@@ -30,3 +30,4 @@ _opam/
 
 pi4
 .vagrant/
+.jekyll-cache/
