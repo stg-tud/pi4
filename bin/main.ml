@@ -78,8 +78,9 @@ let p4_check filename includes maxlen ingress verbose print_parser_ir print_ingr
      else
        let%bind parser_result =
          if print_parser_ir then
-           let%map parser = build_parser header_table p4prog in
-           Fmt.str "%a\n" Pretty.pp_command (parser)
+           let%bind parser = build_parser header_table p4prog in
+           let%map parser_ssa = Ssa.to_ssa header_table parser ("x", Syntax.HeapType.Nothing) Syntax.HeapType.Nothing in
+           Fmt.str "%a\n" Pretty.pp_command (parser_ssa.command)
            (* let%bind parser_type =
              Frontend.annotated_parser_type p4prog header_table
            in *)
@@ -97,7 +98,8 @@ let p4_check filename includes maxlen ingress verbose print_parser_ir print_ingr
            let%bind ingress_cmd =
              Frontend.control_to_command ingress p4prog header_table
            in
-           Ok (Fmt.str "%a\n" Pretty.pp_command (ingress_cmd))
+           let%bind ingress_ssa = Ssa.to_ssa header_table ingress_cmd ("x", Syntax.HeapType.Nothing) Syntax.HeapType.Nothing in
+           Ok (Fmt.str "%a\n" Pretty.pp_command (ingress_ssa.command))
            (* Logs.app (fun m ->
                m "Ingress command: %a" Pretty.pp_command ingress_cmd);
            let%bind ingress_type =
