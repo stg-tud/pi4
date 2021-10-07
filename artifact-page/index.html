@@ -395,13 +395,14 @@ cd ./pi4/</code></pre>
           <li><code>-print-parser-ir</code> produces the IR of the parser</li>
           <li><code>-print-ingress-ir</code> produces the IR of the ingress control block</li>
           <li><code>-print-roundtrip-ir</code> produces the IR of the program checked for parser-deparser compatibility:
-            <pre><code>DEPARSER;reset;PARSER</code></pre> This option is only useful for the roundtripping example, for which the IR can be printed by running the following command:
-            <pre><code>./pi4 -print-roundtrip-ir -i ./p4/includes ./p4/artifact/roundtripping-safe.p4</code></pre>
+            <pre><code>DEPARSER;reset;PARSER</code></pre>
           </li>
         </ol>
         </p>
         <p>For example, to produce the IR for the IPv4-TTL example (<code>./artifact-examples/ipv4_ttl_ssa_safe.pi4</code>), run the following command:
         <pre><code>./pi4 -print-ingress-ir -i ./p4/includes ./p4/artifact/ipv4-ttl-safe.p4</code></pre></p>
+        <p>The <code>-print-roundtrip-ir</code> option is only useful for the roundtripping example, for which the IR can be printed by running the following command:
+        <pre><code>./pi4 -print-roundtrip-ir -i ./p4/includes ./p4/artifact/roundtripping-safe.p4</code></pre></p>
       </div>
     </div>
   </div>
