@@ -47,8 +47,8 @@ let find_roundtrip_annotation (Petr4.Types.Program decls) =
          | Some (RoundtripAnnotation ty_annot) -> Some ty_annot
          | _ -> None)
 
-let p4_check filename includes maxlen ingress verbose check_parser check_ingress
-    check_roundtrip =
+let p4_check filename includes maxlen ingress verbose print_parser_ir print_ingress_ir
+    print_roundtrip_ir =
   match P4Parse.parse_file includes filename verbose with
   | `Ok p4prog ->
     Prover.make_prover "z3";
@@ -56,74 +56,59 @@ let p4_check filename includes maxlen ingress verbose check_parser check_ingress
       let maxlen = maxlen
     end)) in
     (let%bind header_table = Frontend.build_header_table p4prog in
-     if check_roundtrip then
-       (* let%bind input_type =
-         find_roundtrip_annotation p4prog
-         |> Option.map ~f:(fun ty_annot ->
-                Ok (Parsing.parse_header_type ty_annot header_table []))
-         |> Option.value ~default:(Error "No roundtrip annotation found")
-       in *)
+     if print_roundtrip_ir then
        let%bind parser_cmd = build_parser header_table p4prog in
-       let%bind ingress_cmd = Frontend.control_to_command ingress p4prog header_table in
+       (* let%bind ingress_cmd = Frontend.control_to_command ingress p4prog header_table in *)
        let%bind deparser_cmd = Frontend.control_to_command "Deparser" p4prog header_table in
        let roundtrip_cmd = Syntax.Seq (
          deparser_cmd,
          Syntax.Seq (
            Syntax.Reset,
            parser_cmd)) in
-       let prog_cmd = Syntax.Seq (
+       (* let prog_cmd = Syntax.Seq (
          parser_cmd,
          Syntax.Seq (ingress_cmd, roundtrip_cmd)
-       ) in
-       let%bind roundtrip_ssa = Ssa.to_ssa header_table roundtrip_cmd ("x", Syntax.HeapType.Nothing) Syntax.HeapType.Nothing in
-       let%bind prog_ssa = Ssa.to_ssa header_table prog_cmd ("x", Syntax.HeapType.Nothing) Syntax.HeapType.Nothing in
-       (* print_endline "Parser:";
-       print_endline (Fmt.str "%a" Pretty.pp_command parser_cmd); *)
-       (* print_endline "\nIngress:";
-       print_endline (Fmt.str "%a" Pretty.pp_command ingress_cmd); *)
-       (* print_endline "\nDeparser:";
-       print_endline (Fmt.str "%a" Pretty.pp_command deparser_cmd); *)
-       (* print_endline "\nNon-SSA deparser;reset;parser:";
-       print_endline (Fmt.str "%a" Pretty.pp_command roundtrip_cmd); *)
-       (* print_endline "\nNon-SSA full roundtripping program:";
-       print_endline (Fmt.str "%a" Pretty.pp_command prog_cmd); *)
-       print_endline "\nSSA deparser;reset;parser:";
+       ) in *)
+       let%map roundtrip_ssa = Ssa.to_ssa header_table roundtrip_cmd ("x", Syntax.HeapType.Nothing) Syntax.HeapType.Nothing in
+       (* let%map prog_ssa = Ssa.to_ssa header_table prog_cmd ("x", Syntax.HeapType.Nothing) Syntax.HeapType.Nothing in *)
        print_endline (Fmt.str "%a" Pretty.pp_command (roundtrip_ssa.command));
-       print_endline "\nSSA full roundtripping program:";
-       print_endline (Fmt.str "%a" Pretty.pp_command prog_ssa.command);
-       Ok (print_endline "Pi4: Typechecker skipped")
+       (* print_endline "\nSSA full roundtripping program:"; *)
+       (* print_endline (Fmt.str "%a" Pretty.pp_command prog_ssa.command); *)
+       (* Ok (print_endline "Pi4: Typechecker skipped") *)
      else
        let%bind parser_result =
-         if check_parser then
-           let%bind parser = build_parser header_table p4prog in
-           let%bind parser_type =
+         if print_parser_ir then
+           let%map parser = build_parser header_table p4prog in
+           Fmt.str "%a\n" Pretty.pp_command (parser)
+           (* let%bind parser_type =
              Frontend.annotated_parser_type p4prog header_table
-           in
+           in *)
            (* let%bind parser_type = Result.of_option maybe_parser_type
               ~error:"Could not find a type annotation for the parser." in *)
-           T.check_type parser parser_type header_table
-           |> to_result ~success:"Parser was successfully typechecked."
+           (* T.check_type parser parser_type header_table
+           |> to_result ~success:"Parser was successfully typechecked." *)
          else
-           Ok "Pi4: Parser skipped"
+           Ok ""
        in
-       print_endline parser_result;
+       print_string parser_result;
 
        let%map ingress_result =
-         if check_ingress then (
+         if print_ingress_ir then (
            let%bind ingress_cmd =
              Frontend.control_to_command ingress p4prog header_table
            in
-           Logs.app (fun m ->
+           Ok (Fmt.str "%a\n" Pretty.pp_command (ingress_cmd))
+           (* Logs.app (fun m ->
                m "Ingress command: %a" Pretty.pp_command ingress_cmd);
            let%bind ingress_type =
              Frontend.find_type_for_control ingress p4prog header_table
-           in
+           in *)
            (* let%bind ingress_type = Result.of_option maybe_ingress_type
               ~error:"Could not find a type annotation for the ingress." in *)
-           T.check_type ingress_cmd ingress_type header_table
-           |> to_result ~success:"Ingress was successfully typechecked."
+           (* T.check_type ingress_cmd ingress_type header_table
+           |> to_result ~success:"Ingress was successfully typechecked." *)
          ) else
-           Ok "Pi4: Ingress skipped"
+           Ok ""
        in
        print_endline ingress_result)
     |> Result.ok_or_failwith
@@ -165,12 +150,12 @@ let command =
         flag "-ingress"
           (optional_with_default "Ingress" string)
           ~doc:"string name of ingress control (default 'Ingress') [unused if -ir is set]"
-      and check_parser =
-        flag "-check-parser" no_arg ~doc:"Enable checking of parser [unused if -ir is set]"
-      and check_ingress =
-        flag "-check-ingress" no_arg ~doc:"Enable checking of ingress for p4 programs [unused if -ir is set]"
-      and check_roundtrip =
-        flag "-check-roundtrip" no_arg
+      and print_parser_ir =
+        flag "-print-parser-ir" no_arg ~doc:"Enable checking of parser [unused if -ir is set]"
+      and print_ingress_ir =
+        flag "-print-ingress-ir" no_arg ~doc:"Enable checking of ingress for p4 programs [unused if -ir is set]"
+      and print_roundtrip_ir =
+        flag "-print-roundtrip-ir" no_arg
           ~doc:"Enable checking of parser-deparser compatibility for p4 frograms [unused if -ir is set]"
       and ir =
         flag "-ir" no_arg
@@ -189,8 +174,8 @@ let command =
           | None -> failwith "Error. expected type file for Π4 IR mode." 
           end
         else
-          p4_check filename includes maxlen ingress verbose check_parser
-          check_ingress check_roundtrip)
+          p4_check filename includes maxlen ingress verbose print_parser_ir
+          print_ingress_ir print_roundtrip_ir)
 
 let () =
   Fmt_tty.setup_std_outputs ();
