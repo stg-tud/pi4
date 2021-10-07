@@ -11,8 +11,8 @@ let pp_bit (pp : Format.formatter) (bit : Bit.t) =
 
 let rec pp_bitvector (pp : Format.formatter) (bitvec : BitVector.t) =
   match bitvec with
-  | Nil -> pf pp "⟨⟩"
-  | Cons (b, bv) -> pf pp "%a::%a" pp_bit b pp_bitvector bv
+  | Nil -> pf pp ""
+  | Cons (b, bv) -> pf pp "%a%a" pp_bit b pp_bitvector bv
 
 let pp_packet (pp : Format.formatter) (packet : packet) =
   match packet with
@@ -42,7 +42,7 @@ let rec pp_term (ctx : Env.context) (pp : Format.formatter) (term : Term.t) =
     pf pp "%a.%a.length" string name pp_packet p
   | Plus (t1, t2) -> pf pp "(%a + %a)" (pp_term ctx) t1 (pp_term ctx) t2
   | Minus (t1, t2) -> pf pp "(%a - %a)" (pp_term ctx) t1 (pp_term ctx) t2
-  | Bv bv -> pf pp "%a" pp_bitvector bv
+  | Bv bv -> pf pp "0b%a" pp_bitvector bv
   | Concat (tm1, tm2) -> pf pp "%a@%a" (pp_term ctx) tm1 (pp_term ctx) tm2
   | Slice (s, l, r) -> pf pp "%a[%a:%a]" (pp_sliceable ctx) s int l int r
   | Packet (x, p) ->
@@ -55,7 +55,7 @@ let rec pp_term_raw (pp : Format.formatter) (term : Term.t) =
   | Length (x, p) -> pf pp "%a.%a.length" int x pp_packet p
   | Plus (t1, t2) -> pf pp "%a + %a" pp_term_raw t1 pp_term_raw t2
   | Minus (t1, t2) -> pf pp "%a - %a" pp_term_raw t1 pp_term_raw t2
-  | Bv bv -> pf pp "%a" pp_bitvector bv
+  | Bv bv -> pf pp "0b%a" pp_bitvector bv
   | Concat (tm1, tm2) -> pf pp "%a@%a" pp_term_raw tm1 pp_term_raw tm2
   | Slice (s, l, r) -> pf pp "%a[%a:%a]" pp_sliceable_raw s int l int r
   | Packet (x, p) -> pf pp "%a.%a" int x pp_packet p
