@@ -558,7 +558,13 @@ let build_parser (cfg : CfgNode.t String.Map.t) =
           else
             return Syntax.Skip
         | { name = "reject"; _ } -> Error "Don't know how to handle reject."
-        | _ as node -> build_parser_aux node
+        | next ->
+          let%bind node =
+            String.Map.find cfg next.name
+            |> Result.of_option ~error:"Could not lookup node from CFG."
+          in
+          let%bind acc = build_parser_aux node in
+          Ok (Syntax.Seq (stmts_cmd, acc))
       in
       if Set.is_empty successors then
         default_cmd
