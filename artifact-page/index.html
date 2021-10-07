@@ -73,7 +73,7 @@
         <ol>
           <li>First, install Vagrant by downloading the appropriate version for your platform and following the official <a href="https://www.vagrantup.com/docs/installation">installation instructions</a>. Then install <a href="https://www.virtualbox.org/wiki/Downloads">VirtualBox</a>.</li>
           <li>Get the source code with the vagrant scripts:
-            <pre><code class="language-bash">git clone https://github.com/stg-tud/pi4
+            <pre><code class="language-bash">git clone https://github.com/stg-tud/pi4.git
 cd pi4/vm/</code></pre>
           </li>
           <li>Start the virtual machine. This will automatically install all the dependencies and build and install Pi4 in the VM. Depending on the machine used this process will take a couple of minutes. 
@@ -90,7 +90,7 @@ cd pi4/</code></pre>
           <li>Install <a href="https://opam.ocaml.org/doc/Install.html">opam</a>. This build has only been tested with version 2.0.7. </li>
           <li>Clone the repository and change to the directory of the codebase. In what follows, all
             relative paths will be given from this directory.
-            <pre><code>git clone https://github.com/stg-tud/pi4
+            <pre><code>git clone https://github.com/stg-tud/pi4.git
 cd ./pi4/</code></pre>
           </li>
           <li>Install the ocaml compiler locally by running <pre><code>opam switch create . ocaml-base-compiler.4.11.1</code></pre></li>
@@ -155,14 +155,12 @@ cd ./pi4/</code></pre>
           differ in that they are written in the Π4 IR, have some additional type
           annotations, and were manually translated (along with their types) to
           SSA form. We also added a few annotations for efficiency's sake. To run
-          these examples, first build the code from
-          the <code class="language-bash">implementation</code> directory by
-          running <code class="language-bash">make</code>.
+          these examples, first build the code by running <code class="language-bash">make</code>.
         </p>
 
         <p>
           Now, <code class="language-bash">make artifact</code> will run the
-          examples from section 5 of the paper. The output has 10 entries, each
+          examples from sections 5 and 6 of the paper. The output has 10 entries, each
           corresponding to the results of running one of the examples.
         </p>
 
@@ -191,10 +189,9 @@ cd ./pi4/</code></pre>
           results.
         </p>
         <ul>
-          <li>For all examples e, <code class="language-bash">artifact-examples/e_safe.pi4_type</code> and
-             <code class="language-bash">artifact-examples/e_unsafe.pi4_type</code> are
-            the same. The files are duplicated to make writing the Makefile
-            target easier.
+          <li>For all examples e, <code class="language-bash">artifact-examples/e_safe.pi4_type</code> contains the safe example and
+             <code class="language-bash">artifact-examples/e_unsafe.pi4_type</code> contains the unsafe example. 
+             In some cases, the files are identical and only the type used to check the program differs.
           </li>
           <li>
             If the filename contains the
