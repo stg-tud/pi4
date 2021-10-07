@@ -45,22 +45,22 @@
             </ul>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#running">Running Π4</a>
-            <ul>
-              <li>
-                <a class="nav-link" href="#frontend">Via the Frontend</a>
-              </li>
-              <li>
-                <a class="nav-link" href="#ir">Via the IR</a>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
             <a class="nav-link" href="#components">Directory Structure</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#results">Examples from the paper</a>
-          </li>       
+            <a class="nav-link" href="#results">Running the Examples from the paper</a>
+          </li>   
+          <li class="nav-item">
+            <a class="nav-link" href="#running">Running Π4</a>
+            <!-- <ul>
+              <li>
+                <a class="nav-link" href="#ir">Via the IR</a>
+              </li>
+            </ul> -->
+          </li> 
+          <li class="nav-item">
+            <a class="nav-link" href="#frontend">P4 Frontend</a>
+          </li>   
         </ul>
       </div>
       <div class="col-lg-9 col-xl-10">
@@ -83,10 +83,10 @@ cd pi4/vm/</code></pre>
 cd pi4/</code></pre>
           </li>
         </ol>
-        <h3 id="source">From source (requires Linux)</h3>
-        <p>Installing from source requires Linux and has been tested only under Ubuntu 20(.04/.10) and Ubuntu 21.04.</p>
+        <h3 id="source">From Source (requires Linux)</h3>
+        <p>Installing from source requires Linux and has been tested only on Ubuntu 21.04.</p>
         <ul>
-          <li>Install the <a href="https://github.com/Z3Prover/z3/releases/tag/z3-4.8.7">Z3 theorem prover</a>. The code has only been tested with version 4.8.7. The binary <kbd>z3</kbd> must be available in the path.</li>
+          <li>Install the <a href="https://github.com/Z3Prover/z3/releases/tag/z3-4.8.10">Z3 theorem prover</a>. The code has only been tested with version 4.8.10. The binary <code>z3</code> must be available in the path.</li>
           <li>Install <a href="https://opam.ocaml.org/doc/Install.html">opam</a>. This build has only been tested with version 2.0.7. </li>
           <li>Clone the repository and change to the directory of the codebase. In what follows, all
             relative paths will be given from this directory.
@@ -105,7 +105,7 @@ cd ./pi4/</code></pre>
           <li>Once the build succeeds, you should have an executable called <code>./pi4</code></li>
         </ul>
 
-        <p><b><i>Protip</i></b>. If, after installing a dependency, opam still
+        <p><b><i>Pro-tip</i></b>. If, after installing a dependency, opam still
         complains that its missing when you try to <code>make</code>, run
         <code>eval $(opam env)</code> before trying again.</p>
 
@@ -114,63 +114,29 @@ cd ./pi4/</code></pre>
         binary <code class="langauge-bash">./pi4</code> that you can now
         run (See below for information about how).</p>
 
-        <h2 id="running">Running Π4</h2>
-
-        <p>Make should have produced a binary at the artifact toplevel
-        called <code>./pi4</code>. There are two major ways to
-        run <code>./pi4</code>.</p>
-
-        <h3 id="frontend">The P4 frontend</h3>
-
-        <p>To use <code>./pi4</code> to check the parser and ingress of a
-        @pi4-annotated program <code>main.p4</code>, with includes
-        directory <code>/path/to/includes</code>, MTU <code>M</code>, and
-        ingress control named <code>Ingress</code>, run
-        <pre><code class="language-bash">./pi4 main.p4 -i /path/to/includes -m M -check-ingress -check-parser -ingress Ingress</code></pre></p>
-
-        <p>If you want to skip the parser typechecking, omit
-        the <code>-check-parser</code> flag. Similarly omit
-        the <code>-check-ingress</code> flag if you want to skip checking the
-        ingress control name Ingress. To check <code>@pi4_roundtrip</code>
-        properties that are labeled in the code, add the
-        flag <code>-check-roundtrip</code>.</p>
-
-        <h3 id="ir">Using the Π4 IR</h3>
-
-        <p>
-          To use <code>./pi4</code> to check a Π4 program <code>main.pi4</code>,
-          at type <code>main.pi4_type</code>, with MTU <code>M</code>, run the following command:
-          <pre><code>./pi4 main.pi4 -ir -m M -typ main.p4_type</code></pre>
-        </p>
-
-        <p>
-          Use the flag <code>-ssa</code> if both <code>main.pi4</code>
-          and <code>main.pi4_type</code> are in SSA form.
-        </p>
-
         <h2 id="components">A Tour of the Directory Structure</h2>
-        <p>Here is a high-level overfiew of the contents of the artifact toplevel directory</p>
+        <p>Here is a high-level overview of the contents of the artifact top-level directory</p>
         <ul>
           <li> <code>bin</code> -- The directory containing the files for building the <code>./pi4</code> binary  </li>
           <li> <code>artifact-examples</code> -- A collection of example programs and types corresponding to the example programs in the paper. </li>
           <li>
             <code>lib</code> -- the source code. It comprises the following files:
             <ul>
-              <li><code>typechecker.ml(i)</code> -- The dependent typechecker </li>
-              <li><code>syntax.ml(i)</code> -- The AST for Π4. </li>
+              <li><code>typechecker.ml(i)</code> -- The dependent typechecker</li>
+              <li><code>syntax.ml(i)</code> -- The AST for Π4</li>
               <li><code>ssa.ml(i)</code> -- Translates Π4 types and commands into SSA form</li>
-              <li><code>lexer.mll</code> -- The lexer generator for the Π4 IR. </li>
-              <li><code>parser.mly</code> -- The parser generator for the Π4 IR. </li>
-              <li><code>parsing.ml(i)</code> -- A wrapper providing convenience functions for parsing the Π4 IR . </li>
-              <li><code>pretty.ml(i)</code> -- A pretty printer for the Π4 IR. </li>
+              <li><code>lexer.mll</code> -- The lexer generator for the Π4 IR</li>
+              <li><code>parser.mly</code> -- The parser generator for the Π4 IR</li>
+              <li><code>parsing.ml(i)</code> -- A wrapper providing convenience functions for parsing the Π4 IR</li>
+              <li><code>pretty.ml(i)</code> -- A pretty printer for the Π4 IR</li>
               <li><code>types.ml(i)</code> -- Convenience functions for types </li>
               <li><code>encoding.ml(i)</code> -- The SMT encoding of heap types</li>
               <li><code>env.ml(i)</code> -- Utilities for simple contexts</li>
               <li><code>frontend.ml</code> -- Parses p4 code with @pi4 type annotations. </li>
-              <li><code>prover.ml(i)</code> -- The Z3 interface.  for </li>
-              <li><code>simplify.ml(i)</code> -- A collection of heuristic optimizations.</li>
-              <li><code>utils.ml</code> -- General-purpose utilities and helper functions </li>
-              <li><code>logging.ml</code> -- The logging modes </li>
+              <li><code>prover.ml(i)</code> -- The Z3 interface</li>
+              <li><code>simplify.ml(i)</code> -- A collection of heuristic optimizations</li>
+              <li><code>utils.ml</code> -- General-purpose utilities and helper functions</li>
+              <li><code>logging.ml</code> -- Logger for individual components</li>
             </ul>
           </li>
 
@@ -182,8 +148,7 @@ cd ./pi4/</code></pre>
           <li> <code>benchmark</code> -- Some early performance micro-benchmarks</li>
         </ul>
 
-
-        <h2 id="results">Examples from the Paper</h2> 
+        <h2 id="results">Running the Examples from the Paper</h2> 
         <p>
           Code analogous to examples from the paper live in
           the <code class="language-bash">artifact-examples</code> directory. They
@@ -359,7 +324,7 @@ cd ./pi4/</code></pre>
             <td>5.4</td>
             <td>14 (Left)</td>
             <td>mutual_exclusion_ingress_ssa_unsafe.pi4</td>
-            <td>mutual_exclusion_ingress_ssa_insafe.pi4_type</td>
+            <td>mutual_exclusion_ingress_ssa_unsafe.pi4_type</td>
             <td>[×]</td>
           </tr>
           <tr>
@@ -395,6 +360,48 @@ cd ./pi4/</code></pre>
             <td>[×]</td>
           </tr>
         </table>
+
+        <h2 id="running">Running Π4</h2>
+
+        <p>Make should have produced a binary at the artifact top-level
+        called <code>./pi4</code>.</p>
+
+        <h3 id="ir">Using the Π4 IR</h3>
+
+        <p>
+          To use <code>./pi4</code> to check a Π4 program <code>main.pi4</code>,
+          at type <code>main.pi4_type</code>, with MTU <code>M</code>, run the following command:
+          <pre><code>./pi4 main.pi4 -ir -m M -typ main.p4_type</code></pre>
+        </p>
+
+        <p>
+          Use the flag <code>-ssa</code> if both <code>main.pi4</code>
+          and <code>main.pi4_type</code> are in SSA form.
+        </p>
+
+        <h2 id="frontend">Generating IR from P4 code</h3>
+        <p>While the examples in the paper are presented using P4's syntax, in this artifact, we check programs written in the Π4 IR. The handwritten IR code in <code>./artifact-examples/*.pi4</code> differs from the IR code generated by our frontend only in terms of additional annotations.</p>
+        <p><b>Note:</b> In the handwritten IR code we also make the following simplifications, which are syntactic only:</p>
+        <ol>
+          <li>We abbreviate header instances, for example, instead of <code>standard_metadata</code> we named the header instance <code>stdmeta</code></li>
+          <li>We sometimes use named instance slices, for example, we write <code>ether_0.etherType</code> instead of <code>ether_0[96:112]</code></li>
+          <li>We write hexadecimal values, while the frontend always prints bit vectors</li>
+        </ol>
+        <p>To print the IR produced by the frontend, run the following command:
+        <pre><code>./pi4 PRINT_OPTION -i ./p4/includes ./p4/artifact/FILENAME.p4</code></pre>  
+        <code>FILENAME.p4</code> is the file name of the P4 program.
+        The following <code>PRINT_OPTION</code>s are available:
+        <ol>
+          <li><code>-print-parser-ir</code> produces the IR of the parser</li>
+          <li><code>-print-ingress-ir</code> produces the IR of the ingress control block</li>
+          <li><code>-print-roundtrip-ir</code> produces the IR of the program checked for parser-deparser compatibility:
+            <pre><code>DEPARSER;reset;PARSER</code></pre> This option is only useful for the roundtripping example, for which the IR can be printed by running the following command:
+            <pre><code>./pi4 -print-roundtrip-ir -i ./p4/includes ./p4/artifact/roundtripping-safe.p4</code></pre>
+          </li>
+        </ol>
+        </p>
+        <p>For example, to produce the IR for the IPv4-TTL example (<code>./artifact-examples/ipv4_ttl_ssa_safe.pi4</code>), run the following command:
+        <pre><code>./pi4 -print-ingress-ir -i ./p4/includes ./p4/artifact/ipv4-ttl-safe.p4</code></pre></p>
       </div>
     </div>
   </div>
