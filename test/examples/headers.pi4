@@ -1,0 +1,14 @@
+header_type A_t { 
+  f: 4; 
+  g: 8; 
+  h: 4;
+}
+
+header_type B_t { 
+  f: 8;
+}
+
+header A : A_t
+header B : B_t
+
+skip

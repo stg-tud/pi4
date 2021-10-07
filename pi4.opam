@@ -1,0 +1,26 @@
+opam-version: "2.0"
+version: "0.1"
+synopsis: "Dependently-typed Data Plane Programming"
+authors: "Matthias"
+maintainer: "Matthias"
+homepage: "foo"
+bug-reports: "foo"
+build: [
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+]
+depends: [
+  "alcotest"
+  "ANSITerminal"
+  "core" 
+  "dune" {>= "2.7"}
+  "menhir"
+  "ocaml" {>= "4.09.0"}
+  "petr4" {>= "0.1.2"}
+  "ppx_jane"
+  "fmt"
+  "landmarks"
+  "logs"
+  "owl-base"
+]

@@ -1,0 +1,1 @@
+(x:{y:⊤|!y.ether_0.valid && !y.ether_1.valid && !y.ipv4_0.valid && !y.ipv4_1.valid && y.pkt_in.length > 272}) -> {y:⊤|y.ipv4_1.valid => y.ether_1.etherType == 0x0800}

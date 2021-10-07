@@ -1,0 +1,5 @@
+(executable
+ (name main)
+ (modes byte exe)
+ (preprocess (pps ppx_jane -allow-unannotated-ignores))
+ (libraries ANSITerminal core fmt.cli fmt.tty logs.fmt petr4 pi4))

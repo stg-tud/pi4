@@ -1,0 +1,13 @@
+(executable
+ (name optimized)
+ (modules optimized)
+ (preprocess (pps ppx_jane))
+ ; (flags (-ccopt -static))
+ (libraries core fmt.cli logs.fmt pi4))
+
+(executable
+ (name model)
+ (modules model)
+ (preprocess (pps ppx_jane))
+ ; (flags (-ccopt -static))
+ (libraries core fmt.cli logs.fmt pi4))

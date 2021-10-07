@@ -1,0 +1,40 @@
+header_type ipv4_t {
+  ttl: 8;
+}
+header_type standard_metadata_t {
+  egress_spec: 9;
+}
+header ipv4_0 : ipv4_t
+header ipv4_1 : ipv4_t
+header stdmeta_0 : standard_metadata_t
+header stdmeta_1 : standard_metadata_t
+
+if(ipv4_0.valid) {
+  if(ipv4_0.ttl == 0x00) {
+    (add(stdmeta_1) as (x:{y:⊤|y.ipv4_0.valid && y.ipv4_0.ttl == 0x00 && !y.ipv4_1.valid && y.stdmeta_0.valid && !y.stdmeta_1.valid}) -> {y:⊤|y.ipv4_0.valid && y.ipv4_0.ttl == 0x00 && !y.ipv4_1.valid && y.stdmeta_0.valid && y.stdmeta_1.valid});
+    (stdmeta_1.egress_spec := 0b111111111 as (x:{y:⊤|y.ipv4_0.valid && y.ipv4_0.ttl == 0x00 && !y.ipv4_1.valid && y.stdmeta_0.valid && y.stdmeta_1.valid}) -> {y:⊤|y.ipv4_0.valid && y.ipv4_0.ttl == 0x00 && !y.ipv4_1.valid && y.stdmeta_0.valid && y.stdmeta_1.valid && y.stdmeta_1.egress_spec == 0b111111111});
+    (if(ipv4_0.valid) {
+       (add(ipv4_1));
+       ipv4_1[0:8] := ipv4_0[0:8]
+     } else {
+       skip
+     })
+  } else {
+    (add(stdmeta_1) as (x:{y:⊤|y.ipv4_0.valid && (!y.ipv4_0.ttl == 0x00) && !y.ipv4_1.valid && y.stdmeta_0.valid && !y.stdmeta_1.valid}) -> {y:⊤|y.ipv4_0.valid && (!y.ipv4_0.ttl == 0x00) && !y.ipv4_1.valid && y.stdmeta_0.valid && y.stdmeta_1.valid});
+    (stdmeta_1.egress_spec := 0b000000001 as (x:{y:⊤|y.ipv4_0.valid && (!y.ipv4_0.ttl == 0x00) && !y.ipv4_1.valid && y.stdmeta_0.valid && y.stdmeta_1.valid}) -> {y:⊤|y.ipv4_0.valid && (!y.ipv4_0.ttl == 0x00) && !y.ipv4_1.valid && y.stdmeta_0.valid && y.stdmeta_1.valid && y.stdmeta_1.egress_spec == 0b000000001});
+    (add(ipv4_1) as (x:{y:⊤|y.ipv4_0.valid && (!y.ipv4_0.ttl == 0x00) && !y.ipv4_1.valid && y.stdmeta_0.valid && y.stdmeta_1.valid && y.stdmeta_1.egress_spec == 0b000000001}) -> {y:⊤|y.ipv4_0.valid && (!y.ipv4_0.ttl == 0x00) && y.ipv4_1.valid && y.stdmeta_0.valid && y.stdmeta_1.valid && y.stdmeta_1.egress_spec == 0b000000001})
+  }
+} else {
+  (if(stdmeta_0.valid) {
+   add(stdmeta_1);
+   stdmeta_1[0:9] := stdmeta_0[0:9]
+  } else {
+    skip
+  });
+  (if(ipv4_0.valid) {
+    add(ipv4_1);
+    ipv4_1[0:8] := ipv4_0[0:8]
+  } else {
+    skip
+  })
+}

@@ -1,0 +1,7 @@
+header_type A_t { 
+  a: 4; 
+}
+
+header a : A_t
+
+extract(a) as (x: {y:\empty|y.pkt_in.length>7}) -> {y:a|y.pkt_in.length==8}

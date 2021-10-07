@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Dependently-Typed Data Plane Programming</title>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/default.min.css">
+  <script src="/assets/js/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    th, td {
+        text-align: left;
+        padding: 8px;
+    }
+    
+    tr:nth-child(odd) {background-color: #f2f2f2;}
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        <h1 class="display-5">Π4: A Dependently-Typed Data Plane Programming Language</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-3 col-xl-2">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link" href="#installation">Installation</a>
+            <ul>
+              <li>
+                <a class="nav-link" href="#vagrant">Using Vagrant</a>
+              </li>
+              <li>
+                <a class="nav-link" href="#source">From Source</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#running">Running Π4</a>
+            <ul>
+              <li>
+                <a class="nav-link" href="#frontend">Via the Frontend</a>
+              </li>
+              <li>
+                <a class="nav-link" href="#ir">Via the IR</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#components">Directory Structure</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#results">Examples from the paper</a>
+          </li>       
+        </ul>
+      </div>
+      <div class="col-lg-9 col-xl-10">
+        <h2 id="Intro">The Π4 Language and Type Checker</h2> 
+        <p>This document describes how to build and run the Π4 language and type checker.</p>
+
+        <h2 id="installation">Installation</h2>
+        <p>There are two options for installing and running Π4. Using Vagrant to create a virtual machine with all dependencies in place is the recommended way.</p>
+        <h3 id="vagrant">Using Vagrant</h3>
+        <ol>
+          <li>First, install Vagrant by downloading the appropriate version for your platform and following the official <a href="https://www.vagrantup.com/docs/installation">installation instructions</a>. Then install <a href="https://www.virtualbox.org/wiki/Downloads">VirtualBox</a>.</li>
+          <li>Get the source code with the vagrant scripts:
+            <pre><code class="language-bash">git clone https://github.com/stg-tud/pi4
+cd pi4/vm/</code></pre>
+          </li>
+          <li>Start the virtual machine. This will automatically install all the dependencies and build and install Pi4 in the VM. Depending on the machine used this process will take a couple of minutes. 
+          <pre><code class="language-bash">$ vagrant up</code></pre></li>
+          <li>After the installation is complete, connect to the VM via SSH and change to the directory containing the test data.
+          <pre><code class="language-bash">vagrant ssh
+cd pi4/</code></pre>
+          </li>
+        </ol>
+        <h3 id="source">From source (requires Linux)</h3>
+        <p>Installing from source requires Linux and has been tested only under Ubuntu 20(.04/.10) and Ubuntu 21.04.</p>
+        <ul>
+          <li>Install the <a href="https://github.com/Z3Prover/z3/releases/tag/z3-4.8.7">Z3 theorem prover</a>. The code has only been tested with version 4.8.7. The binary <kbd>z3</kbd> must be available in the path.</li>
+          <li>Install <a href="https://opam.ocaml.org/doc/Install.html">opam</a>. This build has only been tested with version 2.0.7. </li>
+          <li>Clone the repository and change to the directory of the codebase. In what follows, all
+            relative paths will be given from this directory.
+            <pre><code>git clone https://github.com/stg-tud/pi4
+cd ./pi4/</code></pre>
+          </li>
+          <li>Install the ocaml compiler locally by running <pre><code>opam switch create . ocaml-base-compiler.4.11.1</code></pre></li>
+          <li>Load the current opam environment by running <pre><code>eval $(opam env)</code></pre></li>
+          <li>Use opam to install dune version 2.9.0: <pre><code> opam install dune.2.9.0</code></pre></li>
+          
+          <li>Pin a custom z3 library: <pre><code>opam pin git@github.com:eichholz/ocaml-z3.git#use-successes</code></pre></li>
+          <li>Pin a a specific version of Petr4: <pre><code>opam pin git@github.com:verified-network-toolchain/petr4.git#0.1.2</code></pre></li>
+          <li>Install the remaining opam dependencies: <pre><code>opam install core fmt landmarks logs owl-base alcotest ANSITerminal menhir</code></pre></li>
+          <li>Execute <code>make</code></li>
+          <li>If the build fails due to a missing dependency, let's say its called <code>d</code>, try running <code>opam install d</code> before attempting to <code>make</code> again.</li>
+          <li>Once the build succeeds, you should have an executable called <code>./pi4</code></li>
+        </ul>
+
+        <p><b><i>Protip</i></b>. If, after installing a dependency, opam still
+        complains that its missing when you try to <code>make</code>, run
+        <code>eval $(opam env)</code> before trying again.</p>
+
+        <p>Now,
+        <code class="langauge-bash">make</code> should have produced a
+        binary <code class="langauge-bash">./pi4</code> that you can now
+        run (See below for information about how).</p>
+
+        <h2 id="running">Running Π4</h2>
+
+        <p>Make should have produced a binary at the artifact toplevel
+        called <code>./pi4</code>. There are two major ways to
+        run <code>./pi4</code>.</p>
+
+        <h3 id="frontend">The P4 frontend</h3>
+
+        <p>To use <code>./pi4</code> to check the parser and ingress of a
+        @pi4-annotated program <code>main.p4</code>, with includes
+        directory <code>/path/to/includes</code>, MTU <code>M</code>, and
+        ingress control named <code>Ingress</code>, run
+        <pre><code class="language-bash">./pi4 main.p4 -i /path/to/includes -m M -check-ingress -check-parser -ingress Ingress</code></pre></p>
+
+        <p>If you want to skip the parser typechecking, omit
+        the <code>-check-parser</code> flag. Similarly omit
+        the <code>-check-ingress</code> flag if you want to skip checking the
+        ingress control name Ingress. To check <code>@pi4_roundtrip</code>
+        properties that are labeled in the code, add the
+        flag <code>-check-roundtrip</code>.</p>
+
+        <h3 id="ir">Using the Π4 IR</h3>
+
+        <p>
+          To use <code>./pi4</code> to check a Π4 program <code>main.pi4</code>,
+          at type <code>main.pi4_type</code>, with MTU <code>M</code>, run the following command:
+          <pre><code>./pi4 main.pi4 -ir -m M -typ main.p4_type</code></pre>
+        </p>
+
+        <p>
+          Use the flag <code>-ssa</code> if both <code>main.pi4</code>
+          and <code>main.pi4_type</code> are in SSA form.
+        </p>
+
+        <h2 id="components">A Tour of the Directory Structure</h2>
+        <p>Here is a high-level overfiew of the contents of the artifact toplevel directory</p>
+        <ul>
+          <li> <code>bin</code> -- The directory containing the files for building the <code>./pi4</code> binary  </li>
+          <li> <code>artifact-examples</code> -- A collection of example programs and types corresponding to the example programs in the paper. </li>
+          <li>
+            <code>lib</code> -- the source code. It comprises the following files:
+            <ul>
+              <li><code>typechecker.ml(i)</code> -- The dependent typechecker </li>
+              <li><code>syntax.ml(i)</code> -- The AST for Π4. </li>
+              <li><code>ssa.ml(i)</code> -- Translates Π4 types and commands into SSA form</li>
+              <li><code>lexer.mll</code> -- The lexer generator for the Π4 IR. </li>
+              <li><code>parser.mly</code> -- The parser generator for the Π4 IR. </li>
+              <li><code>parsing.ml(i)</code> -- A wrapper providing convenience functions for parsing the Π4 IR . </li>
+              <li><code>pretty.ml(i)</code> -- A pretty printer for the Π4 IR. </li>
+              <li><code>types.ml(i)</code> -- Convenience functions for types </li>
+              <li><code>encoding.ml(i)</code> -- The SMT encoding of heap types</li>
+              <li><code>env.ml(i)</code> -- Utilities for simple contexts</li>
+              <li><code>frontend.ml</code> -- Parses p4 code with @pi4 type annotations. </li>
+              <li><code>prover.ml(i)</code> -- The Z3 interface.  for </li>
+              <li><code>simplify.ml(i)</code> -- A collection of heuristic optimizations.</li>
+              <li><code>utils.ml</code> -- General-purpose utilities and helper functions </li>
+              <li><code>logging.ml</code> -- The logging modes </li>
+            </ul>
+          </li>
+
+          <li> <code>test</code> -- The directory containing a collection of
+          unit tests. These can be run via <code>make test</code>, though this
+          is not recommended as some of the tests don't terminate in a reasonable amount of time. </li>
+          <li> <code>p4</code> A collection of example inputs programs for the p4 front-end </li>
+          <li> <code>artifact-page</code> -- The build directory for this webpage</li>
+          <li> <code>benchmark</code> -- Some early performance micro-benchmarks</li>
+        </ul>
+
+
+        <h2 id="results">Examples from the Paper</h2> 
+        <p>
+          Code analogous to examples from the paper live in
+          the <code class="language-bash">artifact-examples</code> directory. They
+          differ in that they are written in the Π4 IR, have some additional type
+          annotations, and were manually translated (along with their types) to
+          SSA form. We also added a few annotations for efficiency's sake. To run
+          these examples, first build the code from
+          the <code class="language-bash">implementation</code> directory by
+          running <code class="language-bash">make</code>.
+        </p>
+
+        <p>
+          Now, <code class="language-bash">make artifact</code> will run the
+          examples from section 5 of the paper. The output has 10 entries, each
+          corresponding to the results of running one of the examples.
+        </p>
+
+        <p>
+          For example, you should see the following output describing the
+          implementation of the Determined Forwarding (Safe) example from the
+          Section 5.2 on the left of Figure 12.
+        </p>
+
+        <pre><code class="language-bash">artifact-examples/determined_forwarding_ssa_safe.pi4 using type artifact-examples/determined_forwarding_ssa_safe.pi4_type
+[✓] passed typechecker</code></pre>
+
+        <p>
+          This says that the Determined Forwarding (Safe) example implemented in SSA
+          form in Π4's IR passes our type checker (as expected). The program lives in
+        <code class="language-bash">
+          artifact-examples/determined_forwarding_ssa_safe.pi4
+        </code>
+        and type lives in
+        <code class="language-bash">
+        artifact-examples/determined_forwarding_ssa_safe.pi4_type
+        </code></p>
+
+        <p>
+          The following general naming conventions can help with interpreting the
+          results.
+        </p>
+        <ul>
+          <li>For all examples e, <code class="language-bash">artifact-examples/e_safe.pi4_type</code> and
+             <code class="language-bash">artifact-examples/e_unsafe.pi4_type</code> are
+            the same. The files are duplicated to make writing the Makefile
+            target easier.
+          </li>
+          <li>
+            If the filename contains the
+            substring <code class="language-bash">_safe</code> it should pass the typechecker with the message
+            <pre><code class="language-bash">[✓] passed typechecker</code></pre>
+          </li>
+
+          <li>
+            If the filename substring the
+            <code class="language-bash">_unsafe</code> it should fail the
+            typechecker with an error message
+            <pre><code class="language-bash">[×] ... some error message ...</code></pre>
+          </li>
+        </ul>
+
+        The following table identifies the sample code
+        in <code class="language-bash">artifact-examples</code> with the
+        examples the paper. The filenames are given relative to
+        the <code class="language-bash">artifact-examples</code> directory.
+
+        <table class="table">
+          <tr>
+            <th>Example</th>
+            <th>Section</th>
+            <th>Figure</th>
+            <th>Program</th>
+            <th>Type</th>
+            <th>Output</th>
+          </tr>
+          <tr>
+            <td>IPv4 TTL (Safe)</td>
+            <td>5.1</td>
+            <td>9 (Right)</td>
+            <td>ipv4_ttl_ssa_safe.pi4</td>
+            <td>ipv4_ttl_ssa_safe.pi4_type</td>
+            <td>[✓]</td>
+          </tr>
+          <tr>
+            <td>IPv4 TTL (Unsafe)</td>
+            <td>5.1</td>
+            <td>9 (Left)</td>
+            <td>ipv4_ttl_ssa_unsafe.pi4</td>
+            <td>ipv4_ttl_ssa_unsafe.pi4_type</td>
+            <td>[×]</td>
+          </tr>
+          <tr>
+            <td>IPv4 Options (Safe)</td>
+            <td>5.1</td>
+            <td>10 (Right)</td>
+            <td>ipv4_opt_ssa_safe.pi4</td>
+            <td>ipv4_opt_ssa_safe.pi4_type</td>
+            <td>[✓]</td>
+          </tr>
+          <tr>
+            <td>IPv4 Options (Unsafe)</td>
+            <td>5.1</td>
+            <td>10 (Left)</td>
+            <td>ipv4_opt_ssa_unsafe.pi4</td>
+            <td>ipv4_opt_ssa_unsafe.pi4_type</td>
+            <td>[×]</td>
+          </tr>
+          <tr>
+            <td>Header Dependency (Safe)</td>
+            <td>5.1</td>
+            <td>11 (Right)</td>
+            <td>header_dependency_ssa_safe.pi4</td>
+            <td>header_dependency_ssa_safe.pi4_type</td>
+            <td>[✓]</td>
+          </tr>
+          <tr>
+            <td>Header Dependency (Unsafe)</td>
+            <td>5.1</td>
+            <td>11 (Left)</td>
+            <td>header_dependency_ssa_unsafe.pi4</td>
+            <td>header_dependency_ssa_unsafe.pi4_type</td>
+            <td>[×]</td>
+          </tr>
+          <tr>
+            <td>Determined Forwarding (Safe)</td>
+            <td>5.2</td>
+            <td>12 (Right)</td>
+            <td>determined_forwarding_ssa_safe.pi4</td>
+            <td>determined_forwarding_ssa_safe.pi4_type</td>
+            <td>[✓]</td>
+          </tr>          <tr>
+            <td>Determined Forwarding (Unsafe)</td>
+            <td>5.2</td>
+            <td>12 (Left)</td>
+            <td>determined_forwarding_ssa_unsafe.pi4</td>
+            <td>determined_forwarding_ssa_unsafe.pi4_type</td>
+            <td>[×]</td>
+          </tr>
+          <tr>
+            <td>Roundtripping (Safe)</td>
+            <td>5.3</td>
+            <td>13 (Right)</td>
+            <td>roundtripping_ssa_safe.pi4</td>
+            <td>roundtripping_ssa_safe.pi4_type</td>
+            <td>[✓]</td>
+          </tr>
+          <tr>
+            <td>Roundtripping (Unsafe)</td>
+            <td>5.3</td>
+            <td>13 (Left)</td>
+            <td>roundtripping_ssa_unsafe.pi4</td>
+            <td>roundtripping_ssa_unsafe.pi4_type</td>
+            <td>[×]</td>
+          </tr>
+          <tr>
+            <td>Mutual Exclusion Parser</td>
+            <td>5.4</td>
+            <td>14 (Top)</td>
+            <td>mutual_exclusion_parser_ssa.pi4</td>
+            <td>mutual_exclusion_parser_ssa.pi4_type</td>
+            <td>[✓]</td>
+          </tr>
+          <tr>
+            <td>Mutual Exclusion Ingress (Safe)</td>
+            <td>5.4</td>
+            <td>14 (Right)</td>
+            <td>mutual_exclusion_ingress_ssa_safe.pi4</td>
+            <td>mutual_exclusion_ingress_ssa_safe.pi4_type</td>
+            <td>[✓]</td>
+          </tr>
+          <tr>
+            <td>Mutual Exclusion Ingress (Unsafe)</td>
+            <td>5.4</td>
+            <td>14 (Left)</td>
+            <td>mutual_exclusion_ingress_ssa_unsafe.pi4</td>
+            <td>mutual_exclusion_ingress_ssa_insafe.pi4_type</td>
+            <td>[×]</td>
+          </tr>
+          <tr>
+            <td>Modular Router Default</td>
+            <td>6.2</td>
+            <td>17 (Top Left)</td>
+            <td>modular_router_default_safe_ssa.pi4</td>
+            <td>modular_router_default_safe_ssa.pi4_type</td>
+            <td>[✓]</td>
+          </tr>
+          <tr>
+            <td>Modular Router Table</td>
+            <td>6.2</td>
+            <td>17 (Bottom Left)</td>
+            <td>modular_router_table_ssa_safe.pi4</td>
+            <td>modular_router_table_ssa_safe.pi4_type</td>
+            <td>[✓]</td>
+          </tr>
+          <tr>
+            <td>Modular Router Overwrite</td>
+            <td>6.2</td>
+            <td>17 (Top Right)</td>
+            <td>modular_router_table_overwrite_unsafe_ssa.pi4</td>
+            <td>modular_router_table_overwrite_unsafe_ssa.pi4_type</td>
+            <td>[×]</td>
+          </tr>
+          <tr>
+            <td>Modular Router Unsafe Actions</td>
+            <td>6.2</td>
+            <td>17 (Bottom Right)</td>
+            <td>modular_router_unsafe_actions_overwrite_unsafe.pi4</td>
+            <td>modular_router_unsafe_actions_overwrite_unsafe.pi4_type</td>
+            <td>[×]</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

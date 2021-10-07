@@ -1,0 +1,26 @@
+header_type meta_t {
+  ingress_port: 9;
+  egress_spec: 9;
+  egress_port: 9;
+  instance_type: 32;
+  packet_length: 32;
+  enq_timestamp: 32;
+  enq_qdepth: 19;
+  deq_timedelta: 32;
+  deq_qdepth: 19;
+  ingress_global_timestamp: 48;
+  egress_global_timestamp: 48;
+  mcast_grp: 16;
+  egress_rid: 16;
+  checksum_error: 1;
+  priority: 3;
+}
+header_type vlan_t {
+  prio: 3;
+  id: 1;
+  vid: 12;
+  etherType: 16;
+}
+header meta_0 : meta_t
+header vlan_0 : vlan_t
+skip

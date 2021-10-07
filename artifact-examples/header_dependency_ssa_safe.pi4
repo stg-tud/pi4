@@ -1,0 +1,39 @@
+header_type ethernet_t {
+  dstAddr: 48;
+  srcAddr: 48;
+  etherType: 16;
+}
+header_type ipv4_t {
+  version: 4;
+  ihl: 4;
+  tos: 8;
+  len: 16;
+  id: 16;
+  flags: 3;
+  frag: 13;
+  ttl: 8;
+  proto: 8;
+  chksum: 16;
+  src: 32;
+  dst: 32;
+}
+header_type ipv4opt_t {
+  type: 8;
+}
+
+header ether_0 : ethernet_t
+header ether_1 : ethernet_t
+header ipv4_0 : ipv4_t
+header ipv4_1 : ipv4_t
+
+(extract(ether_1) as (x:{y:⊤|!y.ether_0.valid && !y.ether_1.valid && !y.ipv4_0.valid && !y.ipv4_1.valid && y.pkt_in.length > 272}) -> {y:⊤|!y.ether_0.valid && y.ether_1.valid && !y.ipv4_0.valid && !y.ipv4_1.valid && y.pkt_in.length > 160});
+if(ether_1.etherType == 0x0800) {
+  extract(ipv4_1)
+} else {
+  (if(ipv4_0.valid) {
+   add(ipv4_1);
+   ipv4_1[0:160] := ipv4_0[0:160]
+   } else {
+     skip
+   })
+}

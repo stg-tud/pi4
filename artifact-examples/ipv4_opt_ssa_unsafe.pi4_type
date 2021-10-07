@@ -1,0 +1,1 @@
+(x:{y:⊤|!y.ether_0.valid && !y.ether_1.valid && !y.ipv4_0.valid && !y.ipv4_1.valid && !y.ipv4opt_0.valid && !y.ipv4opt_1.valid && y.pkt_in.length > 280}) -> {y:⊤|((y.ipv4_1.valid && !y.ipv4_1[4:8]==0b0101) => y.ipv4opt_1.valid) && ((y.ipv4_1.valid && y.ipv4_1[4:8]==0b0101) => !y.ipv4opt_1.valid)}

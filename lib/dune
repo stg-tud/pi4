@@ -1,0 +1,11 @@
+(library
+ (name pi4)
+ (public_name pi4)
+ ; (preprocess (pps ppx_jane landmarks.ppx --auto ))
+ (preprocess (pps ppx_jane))
+ (libraries core fmt landmarks logs owl-base petr4 z3))
+
+(ocamllex lexer)
+
+(menhir
+ (modules parser))

@@ -1,0 +1,8 @@
+(lang dune 2.8)
+
+(context default)
+
+(context
+ (default
+  (name profiling)
+  (instrument_with landmarks)))

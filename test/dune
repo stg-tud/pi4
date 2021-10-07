@@ -1,0 +1,9 @@
+(executable
+ (modes byte exe)
+ (name test)
+ (preprocess (pps ppx_jane))
+ (libraries alcotest fmt.cli landmarks logs.fmt pi4))
+
+(rule
+ (alias runtest)
+ (action (run ./test.exe -q -e)))

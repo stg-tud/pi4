@@ -1,0 +1,13 @@
+header_type A_t { 
+  a: 4; 
+}
+
+header_type B_t { 
+  b: 8; 
+}
+
+header a : A_t
+header b : B_t
+
+extract(a) as (z: {y:\empty|y.pkt_in.length>7}) -> a;
+extract(b)

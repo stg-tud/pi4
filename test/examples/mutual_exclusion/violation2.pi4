@@ -1,0 +1,21 @@
+header_type ether_t {
+  etherType: 16;
+}
+header_type ipv4_t {
+  version: 4;
+  ihl: 4;
+}
+header_type ipv6_t {
+  version: 4;
+  class: 8;
+}
+
+header ether : ether_t
+header ipv4 : ipv4_t
+header ipv6 : ipv6_t
+
+extract(ether);
+if(ether.etherType == 0x0800) {
+    extract(ipv4);
+    extract(ipv6)
+}
