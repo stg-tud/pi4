@@ -1,7 +1,8 @@
 #!/bin/bash
 set -ex
 
-# TODO: Clone git repository
+# Clone git repository
+git clone https://github.com/stg-tud/pi4
 
 cd pi4/
 # Install dependencies
