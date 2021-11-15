@@ -8,6 +8,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "shell", path: "bootstrap.sh"
   config.vm.provision "shell", privileged: false, path: "setup-ocaml.sh"
+  config.vm.provision "shell", privileged: false, path: "setup-p4pp.sh"
   config.vm.provision "shell", privileged: false, path: "setup-petr4.sh"
   config.vm.provision "shell", privileged: false, path: "setup-z3.sh"
   config.vm.provision "shell", privileged: false, path: "setup-pi4.sh"
