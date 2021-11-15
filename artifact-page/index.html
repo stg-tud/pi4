@@ -124,7 +124,6 @@ cd ./pi4/</code></pre>
             <ul>
               <li><code>typechecker.ml(i)</code> -- The dependent typechecker</li>
               <li><code>syntax.ml(i)</code> -- The AST for Π4</li>
-              <li><code>ssa.ml(i)</code> -- Translates Π4 types and commands into SSA form</li>
               <li><code>lexer.mll</code> -- The lexer generator for the Π4 IR</li>
               <li><code>parser.mly</code> -- The parser generator for the Π4 IR</li>
               <li><code>parsing.ml(i)</code> -- A wrapper providing convenience functions for parsing the Π4 IR</li>
@@ -150,11 +149,8 @@ cd ./pi4/</code></pre>
 
         <h2 id="results">Running the Examples from the Paper</h2> 
         <p>
-          Code analogous to examples from the paper live in
-          the <code class="language-bash">artifact-examples</code> directory. They
-          differ in that they are written in the Π4 IR, have some additional type
-          annotations, and were manually translated (along with their types) to
-          SSA form. We also added a few annotations for efficiency's sake. To run
+          The code examples from the paper live in
+          the <code class="language-bash">artifact-examples</code> directory. To run
           these examples, first build the code by running <code class="language-bash">make</code>.
         </p>
 
@@ -170,18 +166,18 @@ cd ./pi4/</code></pre>
           Section 5.2 on the left of Figure 12.
         </p>
 
-        <pre><code class="language-bash">artifact-examples/determined_forwarding_ssa_safe.pi4 using type artifact-examples/determined_forwarding_ssa_safe.pi4_type
+        <pre><code class="language-bash">artifact-examples/determined_forwarding_safe.pi4 using type artifact-examples/determined_forwarding_safe.pi4_type
 [✓] passed typechecker</code></pre>
 
         <p>
-          This says that the Determined Forwarding (Safe) example implemented in SSA
-          form in Π4's IR passes our type checker (as expected). The program lives in
+          This says that the Determined Forwarding (Safe) example implemented in Π4's 
+          IR passes our type checker (as expected). The program lives in
         <code class="language-bash">
-          artifact-examples/determined_forwarding_ssa_safe.pi4
+          artifact-examples/determined_forwarding_safe.pi4
         </code>
         and type lives in
         <code class="language-bash">
-        artifact-examples/determined_forwarding_ssa_safe.pi4_type
+        artifact-examples/determined_forwarding_safe.pi4_type
         </code></p>
 
         <p>
@@ -225,127 +221,127 @@ cd ./pi4/</code></pre>
             <td>IPv4 TTL (Safe)</td>
             <td>5.1</td>
             <td>9 (Right)</td>
-            <td>ipv4_ttl_ssa_safe.pi4</td>
-            <td>ipv4_ttl_ssa_safe.pi4_type</td>
+            <td>ipv4_ttl_safe.pi4</td>
+            <td>ipv4_ttl_safe.pi4_type</td>
             <td>[✓]</td>
           </tr>
           <tr>
             <td>IPv4 TTL (Unsafe)</td>
             <td>5.1</td>
             <td>9 (Left)</td>
-            <td>ipv4_ttl_ssa_unsafe.pi4</td>
-            <td>ipv4_ttl_ssa_unsafe.pi4_type</td>
+            <td>ipv4_ttl_unsafe.pi4</td>
+            <td>ipv4_ttl_unsafe.pi4_type</td>
             <td>[×]</td>
           </tr>
           <tr>
             <td>IPv4 Options (Safe)</td>
             <td>5.1</td>
             <td>10 (Right)</td>
-            <td>ipv4_opt_ssa_safe.pi4</td>
-            <td>ipv4_opt_ssa_safe.pi4_type</td>
+            <td>ipv4_opt_safe.pi4</td>
+            <td>ipv4_opt_safe.pi4_type</td>
             <td>[✓]</td>
           </tr>
           <tr>
             <td>IPv4 Options (Unsafe)</td>
             <td>5.1</td>
             <td>10 (Left)</td>
-            <td>ipv4_opt_ssa_unsafe.pi4</td>
-            <td>ipv4_opt_ssa_unsafe.pi4_type</td>
+            <td>ipv4_opt_unsafe.pi4</td>
+            <td>ipv4_opt_unsafe.pi4_type</td>
             <td>[×]</td>
           </tr>
           <tr>
             <td>Header Dependency (Safe)</td>
             <td>5.1</td>
             <td>11 (Right)</td>
-            <td>header_dependency_ssa_safe.pi4</td>
-            <td>header_dependency_ssa_safe.pi4_type</td>
+            <td>header_dependency_safe.pi4</td>
+            <td>header_dependency_safe.pi4_type</td>
             <td>[✓]</td>
           </tr>
           <tr>
             <td>Header Dependency (Unsafe)</td>
             <td>5.1</td>
             <td>11 (Left)</td>
-            <td>header_dependency_ssa_unsafe.pi4</td>
-            <td>header_dependency_ssa_unsafe.pi4_type</td>
+            <td>header_dependency_unsafe.pi4</td>
+            <td>header_dependency_unsafe.pi4_type</td>
             <td>[×]</td>
           </tr>
           <tr>
             <td>Determined Forwarding (Safe)</td>
             <td>5.2</td>
             <td>12 (Right)</td>
-            <td>determined_forwarding_ssa_safe.pi4</td>
-            <td>determined_forwarding_ssa_safe.pi4_type</td>
+            <td>determined_forwarding_safe.pi4</td>
+            <td>determined_forwarding_safe.pi4_type</td>
             <td>[✓]</td>
           </tr>          <tr>
             <td>Determined Forwarding (Unsafe)</td>
             <td>5.2</td>
             <td>12 (Left)</td>
-            <td>determined_forwarding_ssa_unsafe.pi4</td>
-            <td>determined_forwarding_ssa_unsafe.pi4_type</td>
+            <td>determined_forwarding_unsafe.pi4</td>
+            <td>determined_forwarding_unsafe.pi4_type</td>
             <td>[×]</td>
           </tr>
           <tr>
             <td>Roundtripping (Safe)</td>
             <td>5.3</td>
             <td>13 (Right)</td>
-            <td>roundtripping_ssa_safe.pi4</td>
-            <td>roundtripping_ssa_safe.pi4_type</td>
+            <td>roundtripping_safe.pi4</td>
+            <td>roundtripping_safe.pi4_type</td>
             <td>[✓]</td>
           </tr>
           <tr>
             <td>Roundtripping (Unsafe)</td>
             <td>5.3</td>
             <td>13 (Left)</td>
-            <td>roundtripping_ssa_unsafe.pi4</td>
-            <td>roundtripping_ssa_unsafe.pi4_type</td>
+            <td>roundtripping_unsafe.pi4</td>
+            <td>roundtripping_unsafe.pi4_type</td>
             <td>[×]</td>
           </tr>
           <tr>
             <td>Mutual Exclusion Parser</td>
             <td>5.4</td>
             <td>14 (Top)</td>
-            <td>mutual_exclusion_parser_ssa.pi4</td>
-            <td>mutual_exclusion_parser_ssa.pi4_type</td>
+            <td>mutual_exclusion_parser.pi4</td>
+            <td>mutual_exclusion_parser.pi4_type</td>
             <td>[✓]</td>
           </tr>
           <tr>
             <td>Mutual Exclusion Ingress (Safe)</td>
             <td>5.4</td>
             <td>14 (Right)</td>
-            <td>mutual_exclusion_ingress_ssa_safe.pi4</td>
-            <td>mutual_exclusion_ingress_ssa_safe.pi4_type</td>
+            <td>mutual_exclusion_ingress_safe.pi4</td>
+            <td>mutual_exclusion_ingress_safe.pi4_type</td>
             <td>[✓]</td>
           </tr>
           <tr>
             <td>Mutual Exclusion Ingress (Unsafe)</td>
             <td>5.4</td>
             <td>14 (Left)</td>
-            <td>mutual_exclusion_ingress_ssa_unsafe.pi4</td>
-            <td>mutual_exclusion_ingress_ssa_unsafe.pi4_type</td>
+            <td>mutual_exclusion_ingress_unsafe.pi4</td>
+            <td>mutual_exclusion_ingress_unsafe.pi4_type</td>
             <td>[×]</td>
           </tr>
           <tr>
             <td>Modular Router Default</td>
             <td>6.2</td>
             <td>17 (Top Left)</td>
-            <td>modular_router_default_safe_ssa.pi4</td>
-            <td>modular_router_default_safe_ssa.pi4_type</td>
+            <td>modular_router_default_safe.pi4</td>
+            <td>modular_router_default_safe.pi4_type</td>
             <td>[✓]</td>
           </tr>
           <tr>
             <td>Modular Router Table</td>
             <td>6.2</td>
             <td>17 (Bottom Left)</td>
-            <td>modular_router_table_ssa_safe.pi4</td>
-            <td>modular_router_table_ssa_safe.pi4_type</td>
+            <td>modular_router_table_safe.pi4</td>
+            <td>modular_router_table_safe.pi4_type</td>
             <td>[✓]</td>
           </tr>
           <tr>
             <td>Modular Router Overwrite</td>
             <td>6.2</td>
             <td>17 (Top Right)</td>
-            <td>modular_router_table_overwrite_unsafe_ssa.pi4</td>
-            <td>modular_router_table_overwrite_unsafe_ssa.pi4_type</td>
+            <td>modular_router_table_overwrite_unsafe.pi4</td>
+            <td>modular_router_table_overwrite_unsafe.pi4_type</td>
             <td>[×]</td>
           </tr>
           <tr>
@@ -362,44 +358,11 @@ cd ./pi4/</code></pre>
 
         <p>Make should have produced a binary at the artifact top-level
         called <code>./pi4</code>.</p>
-
-        <h3 id="ir">Using the Π4 IR</h3>
-
         <p>
           To use <code>./pi4</code> to check a Π4 program <code>main.pi4</code>,
           at type <code>main.pi4_type</code>, with MTU <code>M</code>, run the following command:
           <pre><code>./pi4 main.pi4 -ir -m M -typ main.p4_type</code></pre>
         </p>
-
-        <p>
-          Use the flag <code>-ssa</code> if both <code>main.pi4</code>
-          and <code>main.pi4_type</code> are in SSA form.
-        </p>
-
-        <h2 id="frontend">Generating IR from P4 code</h3>
-        <p>While the examples in the paper are presented using P4's syntax, in this artifact, we check programs written in the Π4 IR. The handwritten IR code in <code>./artifact-examples/*.pi4</code> differs from the IR code generated by our frontend only in terms of additional annotations.</p>
-        <p><b>Note:</b> In the handwritten IR code we also make the following simplifications, which are syntactic only:</p>
-        <ol>
-          <li>We abbreviate header instances, for example, instead of <code>standard_metadata</code> we named the header instance <code>stdmeta</code></li>
-          <li>We sometimes use named instance slices, for example, we write <code>ether_0.etherType</code> instead of <code>ether_0[96:112]</code></li>
-          <li>We write hexadecimal values, while the frontend always prints bit vectors</li>
-        </ol>
-        <p>To print the IR produced by the frontend, run the following command:
-        <pre><code>./pi4 PRINT_OPTION -i ./p4/includes ./p4/artifact/FILENAME.p4</code></pre>  
-        <code>FILENAME.p4</code> is the file name of the P4 program.
-        The following <code>PRINT_OPTION</code>s are available:
-        <ol>
-          <li><code>-print-parser-ir</code> produces the IR of the parser</li>
-          <li><code>-print-ingress-ir</code> produces the IR of the ingress control block</li>
-          <li><code>-print-roundtrip-ir</code> produces the IR of the program checked for parser-deparser compatibility:
-            <pre><code>DEPARSER;reset;PARSER</code></pre>
-          </li>
-        </ol>
-        </p>
-        <p>For example, to produce the IR for the IPv4-TTL example (<code>./artifact-examples/ipv4_ttl_ssa_safe.pi4</code>), run the following command:
-        <pre><code>./pi4 -print-ingress-ir -i ./p4/includes ./p4/artifact/ipv4-ttl-safe.p4</code></pre></p>
-        <p>The <code>-print-roundtrip-ir</code> option is only useful for the roundtripping example, for which the IR can be printed by running the following command:
-        <pre><code>./pi4 -print-roundtrip-ir -i ./p4/includes ./p4/artifact/roundtripping-safe.p4</code></pre></p>
       </div>
     </div>
   </div>

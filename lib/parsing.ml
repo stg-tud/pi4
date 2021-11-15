@@ -1,8 +1,8 @@
 open Core_kernel
 
-let header_type_of_string header_type_str header_table ctx =
+let heap_type_of_string header_type_str header_table ctx =
   let lexbuf = Lexing.from_string header_type_str in
-  (Parser.header_type Lexer.read_token lexbuf) header_table ctx
+  (Parser.heap_type Lexer.read_token lexbuf) header_table ctx
 
 let parse_command cmd header_table =
   let lexbuf = Lexing.from_string cmd in
@@ -31,9 +31,9 @@ let parse_instance inst_str =
   let lexbuf = Lexing.from_string inst_str in
   Parser.instance Lexer.read_token lexbuf
 
-let parse_header_type (input : string) (header_table : Syntax.HeaderTable.t)
+let parse_heap_type (input : string) (header_table : Syntax.HeaderTable.t)
     (ctx : Env.context) =
-  header_type_of_string input header_table ctx
+  heap_type_of_string input header_table ctx
 
 let parse_smt_tactic (input : string) = 
   let lexbuf = Lexing.from_string input in

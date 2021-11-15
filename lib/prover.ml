@@ -9,9 +9,11 @@ module Log = (val Logs.src_log Logging.prover_src : Logs.LOG)
 
 module ProfileLog = (val Logs.src_log Logging.prover_profile_src : Logs.LOG)
 
-let prover = ref (Error "Prover not initialized")
+let prover = ref (Error (`ProverError "Prover not initialized"))
 
-let get r = ok_or_failwith !r
+let get r = match !r with 
+| Ok x -> x 
+| Error (_) -> failwith "Get error"
 
 let make_prover loc = prover := Ok (Smtlib.make_solver loc)
 
@@ -82,7 +84,7 @@ module type S = sig
     HeapType.t ->
     Env.context ->
     HeaderTable.t ->
-    (bool, string) result
+    (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
 
   val check_subtype_with_tactic :
     HeapType.t ->
@@ -90,14 +92,14 @@ module type S = sig
     Env.context ->
     HeaderTable.t ->
     Smtlib.tactic ->
-    (bool, string) result
+    (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
 
   val has_model_with_tactic :
     HeapType.t ->
     Env.context ->
     HeaderTable.t ->
     Z3.Smtlib.tactic ->
-    (bool, string) result
+    (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
 end
 
 module Make (Enc : Encoding.S) : S = struct

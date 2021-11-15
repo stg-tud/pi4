@@ -9,12 +9,12 @@ let header_table =
     ]
 
 let input_type =
-  Parsing.parse_header_type "{y:ε|y.pkt_in.length > 5}" header_table []
+  Parsing.parse_heap_type "{y:ε|y.pkt_in.length > 5}" header_table []
 
 let context = [ ("x", Env.VarBind input_type) ]
 
 let subtype =
-  Parsing.parse_header_type
+  Parsing.parse_heap_type
     {|
       {z:⊤
         | 
@@ -28,17 +28,17 @@ let subtype =
   |}
     header_table context
 
-let supertype = Parsing.parse_header_type "Σy:A.B" header_table []
+let supertype = Parsing.parse_heap_type "Σy:A.B" header_table []
 
 let run maxlen_start maxlen_end reps z3_path smt_tactic output_path verbose =
   Format.pp_set_geometry Format.err_formatter ~max_indent:239 ~margin:240;
   Logs.set_reporter @@ Logs_fmt.reporter ();
   Logs.set_level
   @@ Some
-       ( if verbose then
+       (if verbose then
          Logs.Debug
        else
-         Logs.App );
+         Logs.App);
 
   Prover.make_prover (Option.value z3_path ~default:"z3");
 
@@ -66,9 +66,10 @@ let run maxlen_start maxlen_end reps z3_path smt_tactic output_path verbose =
             let maxlen = l
           end)) in
           let result =
-            P.check_subtype_with_tactic subtype supertype context header_table
-              tactic
-            |> Result.ok_or_failwith
+            match (P.check_subtype_with_tactic subtype supertype context header_table tactic) with
+            | Ok b -> b
+            | Error (`EncodingError e) -> failwith e
+            | Error (`VariableLookupError e) -> failwith e
           in
           let diff = Time_ns.abs_diff (Time_ns.now ()) t in
           Printf.fprintf file "%d;%d;%b;%f\n" l i result

@@ -56,7 +56,7 @@ let test_parse_header_table () =
 let test_parse_extract () =
   let input = Parsing.read_file "./test/examples/extract.pi4" in
   let prog = Parsing.parse_program input in
-  
+
   Alcotest.(check Testable.command)
     "commands are equal" (Extract inst_ether) prog.command
 
@@ -74,7 +74,9 @@ let test_parse_conditional () =
     Seq
       ( Extract inst_ether,
         If
-          ( TmEq (Slice (Instance (0, inst_ether), 96, 112), bv_x "0800"),
+          ( Eq
+              ( BvExpr (Slice (Instance (0, inst_ether), 96, 112)),
+                BvExpr (bv_x "0800") ),
             Extract inst_ipv4,
             Skip ) )
   in
@@ -88,7 +90,9 @@ let test_parse_optional_else () =
     Seq
       ( Extract inst_ether,
         If
-          ( TmEq (Slice (Instance (0, inst_ether), 96, 112), bv_x "0800"),
+          ( Eq
+              ( BvExpr (Slice (Instance (0, inst_ether), 96, 112)),
+                BvExpr (bv_x "0800") ),
             Extract inst_ipv4,
             Skip ) )
   in
@@ -102,11 +106,15 @@ let test_parse_nested_if () =
     Seq
       ( Extract inst_ether,
         If
-          ( TmEq (Slice (Instance (0, inst_ether), 96, 112), bv_x "8100"),
+          ( Eq
+              ( BvExpr (Slice (Instance (0, inst_ether), 96, 112)),
+                BvExpr (bv_x "8100") ),
             Seq
               ( Extract inst_vlan,
                 If
-                  ( TmEq (Slice (Instance (0, inst_vlan), 16, 32), bv_x "0800"),
+                  ( Eq
+                      ( BvExpr (Slice (Instance (0, inst_vlan), 16, 32)),
+                        BvExpr (bv_x "0800") ),
                     Extract inst_ipv4,
                     Skip ) ),
             Skip ) )
@@ -122,13 +130,15 @@ let test_parse_reset () =
       ( Extract inst_ether,
         Seq
           ( If
-              ( TmEq (Slice (Instance (0, inst_ether), 96, 112), bv_x "0800"),
+              ( Eq
+                  ( BvExpr (Slice (Instance (0, inst_ether), 96, 112)),
+                    BvExpr (bv_x "0800") ),
                 Extract inst_ipv4,
                 Skip ),
             Seq
               ( Remit inst_ether,
-                Seq (If (IsValid (0, inst_ipv4), Remit inst_ipv4, Skip), Reset) )
-          ) )
+                Seq (If (IsValid (0, inst_ipv4), Remit inst_ipv4, Skip), Reset)
+              ) ) )
   in
 
   Alcotest.(check Testable.command) "commands are equal" expected prog.command
@@ -136,18 +146,21 @@ let test_parse_reset () =
 let test_parse_add () =
   let input = Parsing.read_file "./test/examples/add_vlan.pi4" in
   let prog = Parsing.parse_program input in
-  let eth_l, eth_r = Instance.field_bounds inst_ether "etherType" |> Result.ok_or_failwith in
+  let eth_l, eth_r =
+    Instance.field_bounds inst_ether "etherType" |> Result.ok_or_failwith
+  in
   let expected =
     Seq
       ( Extract inst_ether,
         Seq
           ( If
-              ( TmEq (Slice (Instance (0, inst_ether), 96, 112), bv_x "8100"),
+              ( Eq (BvExpr (Slice (Instance (0, inst_ether), 96, 112)), BvExpr (bv_x "8100")),
                 Extract inst_vlan,
                 Skip ),
             If
               ( Neg (IsValid (0, inst_vlan)),
-                Seq (Add inst_vlan, Assign (inst_ether, eth_l, eth_r, bv_x "8100")),
+                Seq
+                  (Add inst_vlan, Assign (inst_ether, eth_l, eth_r, BvExpr (bv_x "8100"))),
                 Skip ) ) )
   in
 
@@ -158,10 +171,10 @@ let test_parse_ascription () =
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
   let hty_in =
-    Parsing.header_type_of_string "{y:\\empty|y.pkt_in.length>7}" header_table
+    Parsing.heap_type_of_string "{y:\\empty|y.pkt_in.length>7}" header_table
       []
   in
-  let hty_out = Parsing.header_type_of_string "a" header_table [] in
+  let hty_out = Parsing.heap_type_of_string "a" header_table [] in
   let inst_a = Test_utils.mk_inst "a" [ ("a", 4) ] in
   let inst_b = Test_utils.mk_inst "b" [ ("b", 8) ] in
   let expected =

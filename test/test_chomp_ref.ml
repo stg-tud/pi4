@@ -1,9 +1,9 @@
 open Alcotest
 open Pi4
 open Syntax
-open Expression
+open Formula
 open HeapType
-open Term
+open Expression
 
 module T = Typechecker.CompleteChecker (struct
   let maxlen = 32
@@ -40,21 +40,23 @@ let disj x y = Neg (conj (Neg x) (Neg y))
 
 let impl x y = disj (Neg x) y
 
-let e1 = Neg (TmEq (t1, t2))
+let e1 = Neg (Eq (ArithExpr t1, ArithExpr t2))
 
-let e1' = Neg (TmEq (t1', t2'))
+let e1' = Neg (Eq (ArithExpr t1', ArithExpr t2'))
 
-let e2 = disj (TmGt (t1, t2)) (TmGt (t2, t1))
+let e2 =
+  disj (Gt (ArithExpr t1, ArithExpr t2)) (Gt (ArithExpr t2, ArithExpr t1))
 
-let e2' = disj (TmGt (t1', t2')) (TmGt (t2', t1'))
+let e2' =
+  disj (Gt (ArithExpr t1', ArithExpr t2')) (Gt (ArithExpr t2', ArithExpr t1'))
 
 let e3 = impl e2 e1
 
 let e3' = impl e2' e1'
 
-let e4 = conj (TmEq (t3, t4)) (TmEq (t2, t1))
+let e4 = conj (Eq (BvExpr t3, BvExpr t4)) (Eq (ArithExpr t2, ArithExpr t1))
 
-let e4' = conj (TmEq (t3', t4')) (TmEq (t2', t1'))
+let e4' = conj (Eq (BvExpr t3', BvExpr t4')) (Eq (ArithExpr t2', ArithExpr t1'))
 
 let hty_empty = HeapType.empty header_table "x"
 
@@ -62,32 +64,32 @@ let hty_inst inst = HeapType.weak_instance inst "x"
 
 let test_chomp_nothing () =
   let ty = Nothing in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected = ty in
   Alcotest.(check Testable.hty) "chomp_ref1 ø should be ø" expected actual
 
 let test_chomp_empty () =
   let ty = hty_empty in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected = ty in
   Alcotest.(check Testable.hty) "chomp_ref1 ε should be ε" expected actual
 
 let test_chomp_inst () =
   let ty = hty_inst foo_inst in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected = ty in
   Alcotest.(check Testable.hty) "chomp_ref1 foo should be foo" expected actual
 
 let test_chomp_ref1 () =
   let ty = Refinement ("y", hty_empty, e1) in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected = Refinement ("y", hty_empty, e1') in
   Alcotest.(check Testable.hty)
     "chomp_ref1 { z:ε | e1 } should be { z:ε | e1' }" expected actual
 
 let test_chomp_ref2 () =
   let ty = Refinement ("y", hty_empty, e3) in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected = Refinement ("y", hty_empty, e3') in
   Alcotest.(check Testable.hty)
     "chomp_ref1 { z:{ w:instance | e2 } | e1 } should be { z:{ w:instance | e2 } | e1' }"
@@ -97,15 +99,21 @@ let test_chomp_ref3 () =
   let ty =
     Refinement
       ( "y",
-        Refinement ("z", hty_inst foo_inst, TmEq (Length (0, PktIn), Num 1)),
-        TmEq (Length (1, PktIn), Num 1) )
+        Refinement
+          ( "z",
+            hty_inst foo_inst,
+            Eq (ArithExpr (Length (0, PktIn)), ArithExpr (Num 1)) ),
+        Eq (ArithExpr (Length (1, PktIn)), ArithExpr (Num 1)) )
   in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected =
     Refinement
       ( "y",
-        Refinement ("z", hty_inst foo_inst, TmEq (Length (0, PktIn), Num 1)),
-        TmEq (Plus (Length (1, PktIn), Num 1), Num 1) )
+        Refinement
+          ( "z",
+            hty_inst foo_inst,
+            Eq (ArithExpr (Length (0, PktIn)), ArithExpr (Num 1)) ),
+        Eq (ArithExpr (Plus (Length (1, PktIn), Num 1)), ArithExpr (Num 1)) )
   in
   Alcotest.(check Testable.hty)
     "chomp_ref1 { y:{ w:instance | e2 } | e1 } should be { y:{ w:instance | e2 } | e1' }"
@@ -113,7 +121,7 @@ let test_chomp_ref3 () =
 
 let test_chomp_ref4 () =
   let ty = Refinement ("y", Refinement ("z", hty_inst foo_inst, e2), e1) in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected =
     Refinement ("y", Refinement ("z", hty_inst foo_inst, e2'), e1')
   in
@@ -125,16 +133,24 @@ let test_chomp_sigma1 () =
   let ty =
     Sigma
       ( "y",
-        Refinement ("z", hty_empty, TmEq (Length (1, PktIn), Num 1)),
-        Refinement ("z", hty_empty, TmEq (Length (1, PktIn), Num 1)) )
+        Refinement
+          ("z", hty_empty, Eq (ArithExpr (Length (1, PktIn)), ArithExpr (Num 1))),
+        Refinement
+          ("z", hty_empty, Eq (ArithExpr (Length (1, PktIn)), ArithExpr (Num 1)))
+      )
   in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected =
     Sigma
       ( "y",
         Refinement
-          ("z", hty_empty, TmEq (Plus (Length (1, PktIn), Num 1), Num 1)),
-        Refinement ("z", hty_empty, TmEq (Length (1, PktIn), Num 1)) )
+          ( "z",
+            hty_empty,
+            Eq (ArithExpr (Plus (Length (1, PktIn), Num 1)), ArithExpr (Num 1))
+          ),
+        Refinement
+          ("z", hty_empty, Eq (ArithExpr (Length (1, PktIn)), ArithExpr (Num 1)))
+      )
   in
   Alcotest.(check Testable.hty)
     "chomp_ref1 Σ y:{ z:ε | |x.PktIn|=1 }. { z:ε | |y.PktIn|=1 } should be Σ y:{ z:ε | |x.PktIn|+1=1 }. { z:ε | |y.PktIn|=1 }"
@@ -158,7 +174,7 @@ let refty' i =
 
 let test_chomp_sigma2 () =
   let ty = Sigma ("y", refty 4, refty 4) in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected = Sigma ("y", refty' 4, refty 4) in
   Alcotest.(check Testable.hty)
     "chomp_ref1 Σ y:{ z:ε | e4 }. { z:ε | e4 } should be Σ y:{ z:ε | e4' }. { z:ε | e4 }"
@@ -168,17 +184,26 @@ let test_chomp_sigma3 () =
   let ty =
     Sigma
       ( "y",
-        Refinement ("z", hty_empty, TmEq (Length (1, PktIn), Num 1)),
-        Refinement ("z", hty_empty, TmEq (Length (2, PktIn), Num 1)) )
+        Refinement
+          ("z", hty_empty, Eq (ArithExpr (Length (1, PktIn)), ArithExpr (Num 1))),
+        Refinement
+          ("z", hty_empty, Eq (ArithExpr (Length (2, PktIn)), ArithExpr (Num 1)))
+      )
   in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected =
     Sigma
       ( "y",
         Refinement
-          ("z", hty_empty, TmEq (Plus (Length (1, PktIn), Num 1), Num 1)),
+          ( "z",
+            hty_empty,
+            Eq (ArithExpr (Plus (Length (1, PktIn), Num 1)), ArithExpr (Num 1))
+          ),
         Refinement
-          ("z", hty_empty, TmEq (Plus (Length (2, PktIn), Num 1), Num 1)) )
+          ( "z",
+            hty_empty,
+            Eq (ArithExpr (Plus (Length (2, PktIn), Num 1)), ArithExpr (Num 1))
+          ) )
   in
   Alcotest.(check Testable.hty)
     "chomp_ref1 Σ y:{ z:ε | |x.PktIn|=1 }. { z:ε | |x.PktIn|=1 } should be Σ y:{ z:ε | |x.PktIn|+1=1 }. { z:ε | |x.PktIn|+1=1 }"
@@ -186,7 +211,7 @@ let test_chomp_sigma3 () =
 
 let test_chomp_choice () =
   let ty = Choice (Choice (refty 1, refty 2), Choice (refty 3, refty 4)) in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected =
     Choice (Choice (refty' 1, refty' 2), Choice (refty' 3, refty' 4))
   in
@@ -197,11 +222,12 @@ let test_chomp_choice () =
 let test_chomp_subst1 () =
   let ty =
     Substitution
-      ( Refinement ("z", hty_empty, TmEq (Length (1, PktIn), Num 1)),
+      ( Refinement
+          ("z", hty_empty, Eq (ArithExpr (Length (1, PktIn)), ArithExpr (Num 1))),
         "y",
         hty_empty )
   in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected = ty in
   Alcotest.(check Testable.hty)
     "chomp_ref1 { z:ε | |y.PktIn|=1 }[y→ε] should be { z:ε | |y.PktIn|=1 }[y→ε]"
@@ -210,15 +236,19 @@ let test_chomp_subst1 () =
 let test_chomp_subst2 () =
   let ty =
     Substitution
-      ( Refinement ("z", hty_empty, TmEq (Length (2, PktIn), Num 1)),
+      ( Refinement
+          ("z", hty_empty, Eq (ArithExpr (Length (2, PktIn)), ArithExpr (Num 1))),
         "y",
         hty_empty )
   in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected =
     Substitution
       ( Refinement
-          ("z", hty_empty, TmEq (Plus (Length (2, PktIn), Num 1), Num 1)),
+          ( "z",
+            hty_empty,
+            Eq (ArithExpr (Plus (Length (2, PktIn), Num 1)), ArithExpr (Num 1))
+          ),
         "y",
         hty_empty )
   in
@@ -231,15 +261,20 @@ let test_chomp_subst3 () =
     Substitution
       ( hty_empty,
         "y",
-        Refinement ("z", hty_empty, TmEq (Length (1, PktIn), Num 1)) )
+        Refinement
+          ("z", hty_empty, Eq (ArithExpr (Length (1, PktIn)), ArithExpr (Num 1)))
+      )
   in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected =
     Substitution
       ( hty_empty,
         "y",
         Refinement
-          ("z", hty_empty, TmEq (Plus (Length (1, PktIn), Num 1), Num 1)) )
+          ( "z",
+            hty_empty,
+            Eq (ArithExpr (Plus (Length (1, PktIn), Num 1)), ArithExpr (Num 1))
+          ) )
   in
   Alcotest.(check Testable.hty)
     "chomp_ref1 ε[y→{ z:ε | |x.PktIn|=1 }] should be ε[y→{ z:ε | |x.PktIn|+1=1 }]"
@@ -247,7 +282,7 @@ let test_chomp_subst3 () =
 
 let test_chomp_subst22 () =
   let ty = Substitution (refty 3, "y", refty 4) in
-  let actual = T.chomp_ref1 ty 0 0 in
+  let actual = Chomp.chomp_ref1 ty 0 0 in
   let expected = Substitution (refty 3, "y", refty' 4) in
   Alcotest.(check Testable.hty) "chomp_ref1 ø should be ø" expected actual
 

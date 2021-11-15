@@ -184,17 +184,32 @@ module BitVector = struct
     | '7' -> of_bit_str "0111"
     | '8' -> of_bit_str "1000"
     | '9' -> of_bit_str "1001"
-    | 'a' | 'A' -> of_bit_str "1010"
-    | 'b' | 'B' -> of_bit_str "1011"
-    | 'c' | 'C' -> of_bit_str "1100"
-    | 'd' | 'D'-> of_bit_str "1101"
-    | 'e' | 'E'-> of_bit_str "1110"
-    | 'f' | 'F'-> of_bit_str "1110"
+    | 'a'
+    | 'A' ->
+      of_bit_str "1010"
+    | 'b'
+    | 'B' ->
+      of_bit_str "1011"
+    | 'c'
+    | 'C' ->
+      of_bit_str "1100"
+    | 'd'
+    | 'D' ->
+      of_bit_str "1101"
+    | 'e'
+    | 'E' ->
+      of_bit_str "1110"
+    | 'f'
+    | 'F' ->
+      of_bit_str "1110"
     | _ -> failwith (Printf.sprintf "Unrecognized character '%c'" c)
 
   let of_hex_str hex_str =
     String.fold hex_str ~init:Nil ~f:(fun acc c ->
         concat acc (bv_of_hex_char c))
+
+  let zero size = 
+    of_bit_list (List.init size ~f:(fun _ -> Bit.Zero))
 end
 
 module Sliceable = struct
@@ -204,18 +219,27 @@ module Sliceable = struct
   [@@deriving compare, sexp]
 end
 
-module Term = struct
-  type t =
+module Expression = struct
+  type arith =
     | Num of int (* n *)
     | Length of var * packet (* |x.p| *)
-    | Plus of t * t
-    (* t1 + t2 where t1 and t2 must have natural number types *)
-    | Minus of t * t (* t1 - t2 where t1 and t2 must have bitvector types *)
+    | Plus of arith * arith
+  (* t1 + t2 where t1 and t2 must have natural number types *)
+  [@@deriving compare, sexp]
+
+  type bv =
+    | Minus of bv * bv (* t1 - t2 where t1 and t2 must have bitvector types *)
     | Bv of BitVector.t (* bv *)
-    | Concat of t * t
+    | Concat of bv * bv
     (* t1 @ t2 where t1 and t2 must have bitvector types *)
     | Slice of Sliceable.t * int * int (* x.p[hi:lo] or x.h[hi:lo] *)
-    | Packet of var * packet (* x.p *)
+    | Packet of var * packet
+  (* x.p *)
+  [@@deriving compare, sexp]
+
+  type t =
+    | ArithExpr of arith
+    | BvExpr of bv
   [@@deriving compare, sexp]
 
   let field_to_slice inst field binder =
@@ -228,58 +252,63 @@ module Term = struct
 
   let instance_slice x inst = Slice (Instance (x, inst), 0, Instance.sizeof inst)
 
-  let bit_access sliceable idx = Slice (sliceable, idx, idx + 1)
+  let bit_access sliceable idx = BvExpr (Slice (sliceable, idx, idx + 1))
 end
 
-module Expression = struct
+module Formula = struct
   type t =
     | True
     | False
     | IsValid of var * Instance.t
-    | TmEq of Term.t * Term.t
-    | TmGt of Term.t * Term.t
+    | Eq of Expression.t * Expression.t
+    | Gt of Expression.t * Expression.t
     | Neg of t
     | And of t * t
     | Or of t * t
     | Implies of t * t
   [@@deriving compare, sexp]
+
+  let ands forms = List.fold forms ~init:True ~f:(fun e1 e2 -> And (e1, e2))
 end
 
 module HeapType = struct
   type t =
     | Nothing
-    | Empty
     | Top
     | Sigma of string * t * t
     | Choice of t * t
-    | Refinement of string * t * Expression.t
+    | Refinement of string * t * Formula.t
     | Substitution of t * string * t
   [@@deriving compare, sexp]
 
   let empty (header_table : HeaderTable.t) (x : string) =
+    let open Formula in
     let pred =
       HeaderTable.to_list header_table
-      |> List.fold ~init:Expression.True ~f:(fun acc inst ->
-             And (acc, Neg (Expression.IsValid (0, inst))))
+      |> List.fold ~init:True ~f:(fun acc inst ->
+             And (acc, Neg (IsValid (0, inst))))
     in
     Refinement (x, Top, pred)
 
   let instance (inst : Instance.t) (header_table : HeaderTable.t) (x : string) =
+    let open Formula in
     let pred =
       HeaderTable.to_list header_table
       |> List.filter ~f:(fun elem -> String.(elem.name <> inst.name))
       |> List.fold
-           ~init:(Expression.IsValid (0, inst))
+           ~init:(IsValid (0, inst))
            ~f:(fun acc elem -> And (acc, Neg (IsValid (0, elem))))
     in
     Refinement (x, Top, pred)
 
   let weak_instance (inst : Instance.t) (x : string) =
-    Refinement (x, Top, Expression.IsValid (0, inst))
+    let open Formula in
+    Refinement (x, Top, IsValid (0, inst))
 
   let pair (i1 : Instance.t) (i2 : Instance.t) (x : string)
       (header_table : HeaderTable.t) =
-    let valid = Expression.(And (IsValid (0, i1), IsValid (0, i2))) in
+    let open Formula in
+    let valid = And (IsValid (0, i1), IsValid (0, i2)) in
     let e =
       HeaderTable.to_list header_table
       |> List.fold ~init:valid ~f:(fun acc inst ->
@@ -305,8 +334,8 @@ type ty =
 
 type command =
   | Extract of Instance.t
-  | If of Expression.t * command * command
-  | Assign of Instance.t * int * int * Term.t
+  | If of Formula.t * command * command
+  | Assign of Instance.t * int * int * Expression.t
   | Remit of Instance.t
   | Reset
   | Seq of command * command
@@ -330,50 +359,47 @@ let ensure_pi (ty : ty) =
 
 (* Smart Constructors *)
 
-let bv_l l = Term.Bv (BitVector.of_bit_list l)
+let bv_l l = Expression.Bv (BitVector.of_bit_list l)
 
 let bv_s s = Bit.bit_list_of_string s |> bv_l
 
-let bv_x x = Term.Bv (BitVector.of_hex_str x)
+let bv_x x = Expression.Bv (BitVector.of_hex_str x)
 
-let pkt_eq ((i, p) : int * packet) (y : Term.t) (y_len : int) =
-  let open Term in
+let pkt_eq ((i, p) : int * packet) (y : Expression.t) (y_len : int) =
+  let open Expression in
   let s_len = Length (i, p) in
-  Expression.And
-    (TmEq (Slice (Packet (i, p), 0, y_len), y), TmEq (s_len, Num y_len))
+  Formula.And
+    ( Eq (BvExpr (Slice (Packet (i, p), 0, y_len)), y),
+      Eq (ArithExpr s_len, ArithExpr (Num y_len)) )
 
 let pkt_eq_s (s : int * packet) (bv : string) =
-  pkt_eq s (bv_s bv) (String.length bv)
+  pkt_eq s (BvExpr (bv_s bv)) (String.length bv)
 
 let pktin_slice (binder : var) (left : int) (right : int) =
-  let open Term in
-  Slice (Packet (binder, PktIn), left, right)
+  Expression.BvExpr (Slice (Packet (binder, PktIn), left, right))
 
-let packet_equality (packet : packet) (idx_x : var) (idx_y : var) =
-  Expression.And
-    ( TmEq (Length (idx_x, packet), Length (idx_y, packet)),
-      TmEq (Packet (idx_x, packet), Packet (idx_y, packet)) )
+let packet_equality (x : var) (y : var) (packet : packet) =
+  Formula.And
+    ( Eq (ArithExpr (Length (x, packet)), ArithExpr (Length (y, packet))),
+      Eq (BvExpr (Packet (x, packet)), BvExpr (Packet (y, packet))) )
 
 let inst_equality (idx_x : var) (idx_y : var) (insts : Instance.t list) =
-  List.fold insts ~init:Expression.True ~f:(fun acc inst ->
+  List.fold insts ~init:Formula.True ~f:(fun acc inst ->
       let slice var =
-        Term.Slice (Instance (var, inst), 0, Instance.sizeof inst)
+        Expression.Slice (Instance (var, inst), 0, Instance.sizeof inst)
       in
       let eq =
-        (* Expression.( Or ( And (Neg (IsValid (idx_y, inst)), Neg (IsValid
-           (idx_x, inst))), And ( IsValid (idx_y, inst), And (IsValid (idx_x,
-           inst), TmEq (slice idx_y, slice idx_x)) ) )) *)
-        Expression.(
-          And
-            ( Or
-                ( And (Neg (IsValid (idx_x, inst)), Neg (IsValid (idx_y, inst))),
-                  And (IsValid (idx_x, inst), IsValid (idx_y, inst)) ),
-              TmEq (slice idx_y, slice idx_x) ))
+        Formula.(
+          Or
+            ( And (Neg (IsValid (idx_x, inst)), Neg (IsValid (idx_y, inst))),
+              And
+                ( And (IsValid (idx_x, inst), IsValid (idx_y, inst)),
+                  Eq (BvExpr (slice idx_x), BvExpr (slice idx_y)) ) ))
       in
       And (acc, eq))
 
 let heap_equality (idx_x : var) (idx_y : var) (header_table : HeaderTable.t) =
   let insts = HeaderTable.to_list header_table in
-  Expression.And
-    ( And (packet_equality PktIn idx_x idx_y, packet_equality PktOut idx_x idx_y),
+  Formula.And
+    ( And (packet_equality idx_x idx_y PktIn, packet_equality idx_x idx_y PktOut),
       inst_equality idx_x idx_y insts )

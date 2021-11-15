@@ -131,7 +131,7 @@ let rec expr_to_term (header_table : Syntax.HeaderTable.t) (size : int)
       } ->
     Syntax.(
       let%bind inst = HeaderTable.lookup_instance instance_name header_table in
-      Term.field_to_slice inst member_name 0)
+      (Expression.field_to_slice inst member_name 0))
   | Cast { typ = _, BitType (_, Int (_, { value; _ })); expr } -> (
     let%bind cast_size = bigint_to_int value in
     match snd expr with
@@ -146,14 +146,16 @@ let rec expr_to_term (header_table : Syntax.HeaderTable.t) (size : int)
         let%map field = Instance.get_field inst field_name in
         if field.typ < cast_size then
           let diff = cast_size - field.typ in
-          Term.Concat (bv_s (String.make diff '0'), Term.instance_slice 0 inst)
+          Expression.(
+            Concat
+              (bv_s (String.make diff '0'), Expression.instance_slice 0 inst))
         else
-          Term.Slice (Sliceable.Instance (0, inst), 0, cast_size))
+          Expression.Slice (Sliceable.Instance (0, inst), 0, cast_size))
     | _ -> Error "Not implemented (Frontend.expr_to_term - Cast)")
   | BinaryOp { op = _, Petr4.Types.Op.Minus; args = e1, e2 } ->
     let%bind tm1 = expr_to_term header_table size e1 in
     let%map tm2 = expr_to_term header_table size e2 in
-    Syntax.Term.Minus (tm1, tm2)
+    Syntax.Expression.Minus (tm1, tm2)
   | _ as e ->
     Log.debug (fun m ->
         m "Expr: %s"
@@ -186,8 +188,8 @@ let sizeof (header_table : Syntax.HeaderTable.t)
 let rec expr_to_expr (headers_param : string)
     (header_table : Syntax.HeaderTable.t) (expr : Petr4.Types.Expression.t) =
   match snd expr with
-  | True -> return Syntax.Expression.True
-  | False -> return Syntax.Expression.False
+  | True -> return Syntax.Formula.True
+  | False -> return Syntax.Formula.False
   | Int _ -> Error "Not implemented (Frontend.expr_to_expr - Int)"
   | String _ -> Error "Not implemented (Frontend.expr_to_expr - String)"
   | Name _ -> Error "Not implemented (Frontend.expr_to_expr - Name)"
@@ -199,7 +201,7 @@ let rec expr_to_expr (headers_param : string)
   | Record _ -> Error "Not implemented (Frontend.expr_to_expr - Record)"
   | UnaryOp { op = _, Not; arg = e } ->
     let%map e' = expr_to_expr headers_param header_table e in
-    Syntax.Expression.Neg e'
+    Syntax.Formula.Neg e'
   | UnaryOp _ -> Error "Not implemented (Frontend.expr_to_expr - UnaryOp)"
   | BinaryOp { op = _, Eq; args = e1, e2 } ->
     (* print_endline (Sexplib.Sexp.to_string_hum
@@ -213,7 +215,7 @@ let rec expr_to_expr (headers_param : string)
     in
     let%bind t1 = expr_to_term header_table 0 e1 in
     let%map t2 = expr_to_term header_table size e2 in
-    Syntax.Expression.TmEq (t1, t2)
+    Syntax.Formula.Eq (BvExpr t1, BvExpr t2)
     (* print_endline (Sexplib.Sexp.to_string_hum
        (Petr4.Types.Expression.sexp_of_t e2)); *)
     (* Error "Not implemented eq(Frontend.expr_to_expr - BinaryOp)" *)
@@ -226,7 +228,7 @@ let rec expr_to_expr (headers_param : string)
     match member_name with
     | "isValid" ->
       let%map inst = expr_to_instance headers_param header_table expr in
-      Syntax.Expression.IsValid (0, inst)
+      Syntax.Formula.IsValid (0, inst)
     | _ -> Error "Not implemented (Frontend.expr_to_expr - ExpressionMember)")
   | Ternary _ -> Error "Not implemented (Frontend.expr_to_expr - Ternary)"
   | FunctionCall { func = e; type_args = []; args = [] } ->
@@ -303,14 +305,17 @@ let rec stmt_to_command (headers_param_name : string)
             let%map inst =
               Syntax.HeaderTable.lookup_instance inst_name header_table
             in
-            Syntax.If ((Syntax.Expression.IsValid (0, inst)), Syntax.Remit inst, Syntax.Skip)
+            Syntax.If
+              (Syntax.Formula.IsValid (0, inst), Syntax.Remit inst, Syntax.Skip)
           | Expression _ -> Error "Not implemented (Frontend.stmt_to_command)"
-          | _ -> Error "Argument to emit is not an expression"
-        )
+          | _ -> Error "Argument to emit is not an expression")
         | _ -> Error "Invalid argument to emit"
-      else
-        (Fmt.pr "%s" (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_pre_t exprm));
-        Error (Printf.sprintf "Unrecognized method call %s" (snd name)))
+      else (
+        Fmt.pr "%s"
+          (Sexplib.Sexp.to_string_hum
+             (Petr4.Types.Expression.sexp_of_pre_t exprm));
+        Error (Printf.sprintf "Unrecognized method call %s" (snd name))
+      )
     | _ -> Error "Method Called on a Non-member expression")
   | Assignment { lhs = _, ExpressionMember { expr; name = _, field }; rhs } -> (
     match expr_to_instance headers_param_name header_table expr with
@@ -318,7 +323,7 @@ let rec stmt_to_command (headers_param_name : string)
       let open Syntax in
       let%bind l, r = Instance.field_bounds inst field in
       let%map bv = expr_to_term header_table (r - l) rhs in
-      Assign (inst, l, r, bv)
+      Assign (inst, l, r, BvExpr bv)
     | Error e -> Error e)
   | Assignment _ ->
     Error "Not implemented (Frontend.stmt_to_command - Assignment)"
@@ -577,10 +582,12 @@ let build_parser (cfg : CfgNode.t String.Map.t) =
                 Error
                   "Default edges should have been filtered out at this point."
               | EdgeType.Match (inst, field, value) ->
-                let%bind slice = Syntax.Term.field_to_slice inst field 0 in
+                let%bind slice =
+                  Syntax.Expression.field_to_slice inst field 0
+                in
                 let%bind inst_field = Syntax.Instance.get_field inst field in
                 let%bind bv = bigint_to_bv value inst_field.typ in
-                let expr = Syntax.(Expression.TmEq (slice, bv)) in
+                let expr = Syntax.(Formula.Eq (BvExpr slice, BvExpr bv)) in
                 let%bind node =
                   String.Map.find cfg edge.node.name
                   |> Result.of_option ~error:"Could not lookup node from CFG."

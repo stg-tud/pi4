@@ -13,12 +13,12 @@ let header_table =
     ]
 
 let input_type =
-  Parsing.parse_header_type "{y:ε|y.pkt_in.length > 5}" header_table []
+  Parsing.parse_heap_type "{y:ε|y.pkt_in.length > 5}" header_table []
 
 let context = [ ("x", Env.VarBind input_type) ]
 
 let subtype =
-  Parsing.parse_header_type
+  Parsing.parse_heap_type
     {|
       {z:⊤
         | 
@@ -32,10 +32,10 @@ let subtype =
   |}
     header_table context
 
-let supertype = Parsing.parse_header_type "Σy:A.B" header_table []
+let supertype = Parsing.parse_heap_type "Σy:A.B" header_table []
 
 let supertype_opt =
-  Parsing.parse_header_type "{y:⊤|y.A.valid ∧ y.B.valid}" header_table []
+  Parsing.parse_heap_type "{y:⊤|y.A.valid ∧ y.B.valid}" header_table []
 
 let run (benchmark : string) (maxlen_intv : string) (outfile : string)
     (smt_tactic : string option) (verbose : bool) (z3_path : string option) =
@@ -90,8 +90,10 @@ let run (benchmark : string) (maxlen_intv : string) (outfile : string)
             let maxlen = maxlen
           end)) in
           let result =
-            P.has_model_with_tactic hty context header_table tactic
-            |> Result.ok_or_failwith
+            match P.has_model_with_tactic hty context header_table tactic with
+            | Ok b -> b
+            | Error (`EncodingError e) -> failwith e
+            | Error (`VariableLookupError e) -> failwith e
           in
           let diff = Time_ns.abs_diff (Time_ns.now ()) t in
           Printf.fprintf file "%d;%d;%b;%f\n" maxlen i result

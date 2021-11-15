@@ -1,6 +1,6 @@
 %{
     open Syntax
-    open Expression
+    open Formula
     open HeapType
 
     module Pi4 = struct end
@@ -76,18 +76,18 @@
 %left OR DARROW
 %nonassoc prec_sigma
 
-%start header_type
+%start heap_type
 %start program
 %start command
 %start ty
 %start instance
 %start smt_tactic
 
-%type <HeaderTable.t -> Env.context -> HeapType.t> header_type
+%type <HeaderTable.t -> Env.context -> HeapType.t> heap_type
 %type <Program.t> program
 %type <HeaderTable.t -> Syntax.command> command
-%type <HeaderTable.t -> Expression.t> cexpr
-%type <HeaderTable.t -> Term.t> cterm
+%type <HeaderTable.t -> Formula.t> cexpr
+%type <HeaderTable.t -> Expression.t> cterm
 %type <HeaderTable.t -> Syntax.ty > ty
 %type <Instance.t> instance
 %type <Z3.Smtlib.tactic> smt_tactic
@@ -189,12 +189,17 @@ cexpr:
   fun ht -> 
     let t1 = $1 ht in
     let t2 = $4 ht in 
-    TmEq (t1, t2) }
+    Eq (t1, t2) }
+| cterm BANG EQ cterm { 
+  fun ht -> 
+    let t1 = $1 ht in
+    let t2 = $4 ht in 
+    Neg (Eq (t1, t2)) }
 | cterm GT cterm {
     fun ht -> 
       let tm1 = $1 ht in 
       let tm2 = $3 ht in 
-      TmGt (tm1, tm2) }
+      Gt (tm1, tm2) }
 | cexpr AND cexpr {
     fun ht -> 
       let e1 = $1 ht in
@@ -217,27 +222,33 @@ cexpr:
 cterm:
 | LPAREN cterm RPAREN { 
   fun ht -> $2 ht }
+| cterm_bv {
+  fun ht -> Expression.BvExpr ($1 ht)
+}
+
+
+cterm_bv:
 | inst_name=ID DOT field_name=ID { 
   fun ht -> 
     let inst = HeaderTable.lookup_instance_exn inst_name ht in
-    Term.field_to_slice_exn inst field_name 0 }
+    Expression.(field_to_slice_exn inst field_name 0) }
 | bs=BITSTRING {
-  fun _ -> bv_s (Core_kernel.String.drop_prefix bs 2)}
+  fun _ ->  bv_s (Core_kernel.String.drop_prefix bs 2)}
 | hs=HEXSTRING { 
-  fun _ -> bv_x (Core_kernel.String.drop_prefix hs 2)}
+  fun _ ->  bv_x (Core_kernel.String.drop_prefix hs 2)}
 | pkt=packet LSQUARE l=INT COLON r=INT RSQUARE {
     fun _ -> 
-      Term.Slice (Packet (0, pkt), l, r)}
+      Expression.(Slice (Packet (0, pkt), l, r))}
 | inst_name=ID LSQUARE l=INT COLON r=INT RSQUARE {
   fun ht ->
     let inst = HeaderTable.lookup_instance_exn inst_name ht in 
-    Term.Slice (Instance (0, inst), l, r)
+    Expression.(Slice (Instance (0, inst), l, r))
 }
-| cterm MINUS cterm {
+| cterm_bv MINUS cterm_bv {
  fun ht ->
   let tm1 = $1 ht in
   let tm2 = $3 ht in
-  Term.Minus (tm1, tm2) 
+  Expression.(Minus (tm1, tm2))
 }
 
 ty: 
@@ -248,13 +259,15 @@ ty:
       Pi (x, hty_in, hty_out)
   } 
 
-header_type:
+heap_type:
   | hty = hty EOF { hty }
   
 hty:
 | LPAREN hty RPAREN { fun ht ctx -> $2 ht ctx }
 | NOTHING { fun _ _ -> Nothing }
-| EMPTY { fun _ _ -> Empty }
+| EMPTY { fun ht ctx -> 
+    let x = Env.pick_fresh_name ctx "x" in
+    Syntax.HeapType.empty ht x }
 | inst_str=ID { 
     fun ht ctx -> 
       let inst = Syntax.HeaderTable.lookup_instance_exn inst_str ht in
@@ -307,11 +320,11 @@ packet:
 | PKTIN { PktIn }
 | PKTOUT { PktOut }
 
-term:
-| LPAREN term RPAREN {
+arith_expr:
+| LPAREN arith_expr RPAREN {
     fun ht ctx -> $2 ht ctx }
 | n=INT { fun _ _ -> Num n }
-| term PLUS term {
+| arith_expr PLUS arith_expr {
     fun ht ctx -> 
       let tm1 = $1 ht ctx in
       let tm2 = $3 ht ctx in
@@ -320,6 +333,10 @@ term:
     fun _ ctx -> 
       let binder = Env.name_to_index_exn ctx x in
       Length (binder, pkt) }
+
+bv_expr:
+| LPAREN bv_expr RPAREN {
+    fun ht ctx -> $2 ht ctx }
 | LT GT { fun _ _ -> Bv Nil }
 | bv=BITSTRING { 
     fun _ _ -> 
@@ -327,7 +344,7 @@ term:
 | hs=HEXSTRING {
     fun _ _ -> 
       bv_x (Core.String.drop_prefix hs 2) }
-| term AT term { 
+| bv_expr AT bv_expr { 
     fun ht ctx -> 
       let tm1 = $1 ht ctx in
       let tm2 = $3 ht ctx in 
@@ -345,16 +362,16 @@ term:
     fun ht ctx -> 
       let binder = Env.name_to_index_exn ctx x in
       let inst = HeaderTable.lookup_instance_exn inst_str ht in 
-      Term.field_to_slice_exn inst field_name binder }
+      Expression.field_to_slice_exn inst field_name binder }
 | x=ID DOT pkt=packet {
     fun _ ctx -> 
       let binder = Env.name_to_index_exn ctx x in
-      Term.Packet (binder, pkt) }
+      Expression.Packet (binder, pkt) }
 | x=ID DOT inst_str=ID {
   fun ht ctx -> 
     let binder = Env.name_to_index_exn ctx x in
     let inst = HeaderTable.lookup_instance_exn inst_str ht in 
-    Term.Slice(Sliceable.Instance(binder, inst), 0, Instance.sizeof inst) }
+    Expression.Slice(Sliceable.Instance(binder, inst), 0, Instance.sizeof inst) }
 
 expr:
 | LPAREN expr RPAREN { 
@@ -368,21 +385,36 @@ expr:
       let inst = HeaderTable.lookup_instance_exn $3 ht in
       let binder = Env.name_to_index_exn ctx $1 in
       IsValid (binder, inst)}
-| term EQ EQ term {
+| arith_expr EQ EQ arith_expr {
     fun ht ctx -> 
       let tm1 = $1 ht ctx in 
       let tm2 = $4 ht ctx in 
-      TmEq (tm1, tm2) }
-| term EQ term {
+      Eq (ArithExpr tm1, ArithExpr tm2) }
+| arith_expr BANG EQ arith_expr {
+    fun ht ctx -> 
+      let tm1 = $1 ht ctx in 
+      let tm2 = $4 ht ctx in 
+      Neg (Eq (ArithExpr tm1, ArithExpr tm2)) }
+| bv_expr EQ EQ bv_expr {
+    fun ht ctx -> 
+      let tm1 = $1 ht ctx in 
+      let tm2 = $4 ht ctx in 
+      Eq (BvExpr tm1, BvExpr tm2) }
+| bv_expr BANG EQ bv_expr {
+    fun ht ctx -> 
+      let tm1 = $1 ht ctx in 
+      let tm2 = $4 ht ctx in 
+      Neg (Eq (BvExpr tm1, BvExpr tm2)) }
+| arith_expr GT arith_expr {
     fun ht ctx -> 
       let tm1 = $1 ht ctx in 
       let tm2 = $3 ht ctx in 
-      TmEq (tm1, tm2) }
-| term GT term {
+      Gt (ArithExpr tm1, ArithExpr tm2) }
+| bv_expr GT bv_expr {
     fun ht ctx -> 
       let tm1 = $1 ht ctx in 
       let tm2 = $3 ht ctx in 
-      TmGt (tm1, tm2) }
+      Gt (BvExpr tm1, BvExpr tm2) }
 | expr AND expr {
     fun ht ctx -> 
       let e1 = $1 ht ctx in
@@ -421,8 +453,8 @@ expr:
     |> List.fold 
         ~init:True
         ~f:(fun acc inst -> 
-          let slice var = Term.Slice (Instance (var, inst), 0, Instance.sizeof inst) in
-          And (acc, TmEq (slice idx_x, slice idx_y)))
+          let slice var = Expression.Slice (Instance (var, inst), 0, Instance.sizeof inst) in
+          And (acc, Implies (IsValid (0, inst), Eq (BvExpr (slice idx_x), BvExpr (slice idx_y)))))
 }
 
 opt_semi:

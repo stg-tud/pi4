@@ -4,6 +4,7 @@ open Syntax
 type binding =
   | NameBind
   | VarBind of HeapType.t
+[@@deriving sexp]
 
 type context = (string * binding) list
 
@@ -26,18 +27,24 @@ let index_to_binding (ctx : context) (n : int) =
   | Some binding -> Ok binding
   | None ->
     Error
-      (Fmt.str "@[<v>Variable lookup failure (Index %d >= context size %d)@]" n
-         (List.length ctx))
+      (`VariableLookupError
+        (Fmt.str "@[<v>Variable lookup failure (Index %d >= context size %d)@]"
+           n (List.length ctx)))
 
 let index_to_name (ctx : context) (n : int) =
-  index_to_binding ctx n
-  |> Result.map ~f:(fun (name, _) -> name)
-  |> Result.ok_or_failwith
+  index_to_binding ctx n |> Result.map ~f:(fun (name, _) -> name)
+
+let index_to_name_exn (ctx : context) (n : int) = 
+  match index_to_name ctx n with
+  | Ok x -> x
+  | Error (`VariableLookupError e) -> failwith e
 
 let rec name_to_index (ctx : context) (x : string) =
   let open Result.Let_syntax in
   match ctx with
-  | [] -> Error (Printf.sprintf "Identifier %s is unbound" x)
+  | [] ->
+    Error
+      (`IdentifierUnboundError (Printf.sprintf "Identifier %s is unbound" x))
   | (name, _) :: rest ->
     if String.(name = x) then
       Ok 0
@@ -46,4 +53,6 @@ let rec name_to_index (ctx : context) (x : string) =
       1 + index
 
 let name_to_index_exn (ctx : context) (x : string) =
-  name_to_index ctx x |> Result.ok_or_failwith
+  match name_to_index ctx x with
+  | Ok index -> index
+  | Error (`IdentifierUnboundError e) -> failwith e

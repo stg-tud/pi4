@@ -23,10 +23,10 @@ let pp_sliceable (ctx : Env.context) (pp : Format.formatter)
     (sliceable : Sliceable.t) =
   match sliceable with
   | Packet (x, p) ->
-    let name = Env.index_to_name ctx x in
+    let name = Env.index_to_name_exn ctx x in
     pf pp "%a.%a" string name pp_packet p
   | Instance (x, inst) ->
-    let name = Env.index_to_name ctx x in
+    let name = Env.index_to_name_exn ctx x in
     pf pp "%a.%a" string name string inst.name
 
 let pp_sliceable_raw (pp : Format.formatter) (sliceable : Sliceable.t) =
@@ -34,66 +34,83 @@ let pp_sliceable_raw (pp : Format.formatter) (sliceable : Sliceable.t) =
   | Packet (x, p) -> pf pp "%a.%a" int x pp_packet p
   | Instance (x, inst) -> pf pp "%a.%a" int x string inst.name
 
-let rec pp_term (ctx : Env.context) (pp : Format.formatter) (term : Term.t) =
-  match term with
+let rec pp_arith_expr (ctx : Env.context) (pp : Format.formatter)
+    (expr : Expression.arith) =
+  match expr with
   | Num n -> pf pp "%d" n
   | Length (x, p) ->
-    let name = Env.index_to_name ctx x in
+    let name = Env.index_to_name_exn ctx x in
     pf pp "%a.%a.length" string name pp_packet p
-  | Plus (t1, t2) -> pf pp "(%a + %a)" (pp_term ctx) t1 (pp_term ctx) t2
-  | Minus (t1, t2) -> pf pp "(%a - %a)" (pp_term ctx) t1 (pp_term ctx) t2
+  | Plus (t1, t2) ->
+    pf pp "(%a + %a)" (pp_arith_expr ctx) t1 (pp_arith_expr ctx) t2
+
+let rec pp_bv_expr (ctx : Env.context) (pp : Format.formatter)
+    (expr : Expression.bv) =
+  match expr with
+  | Minus (t1, t2) -> pf pp "(%a - %a)" (pp_bv_expr ctx) t1 (pp_bv_expr ctx) t2
   | Bv bv -> pf pp "0b%a" pp_bitvector bv
-  | Concat (tm1, tm2) -> pf pp "%a@%a" (pp_term ctx) tm1 (pp_term ctx) tm2
+  | Concat (tm1, tm2) -> pf pp "%a@%a" (pp_bv_expr ctx) tm1 (pp_bv_expr ctx) tm2
   | Slice (s, l, r) -> pf pp "%a[%a:%a]" (pp_sliceable ctx) s int l int r
   | Packet (x, p) ->
-    let name = Env.index_to_name ctx x in
+    let name = Env.index_to_name_exn ctx x in
     pf pp "%a.%a" string name pp_packet p
 
-let rec pp_term_raw (pp : Format.formatter) (term : Term.t) =
-  match term with
+let pp_expr (ctx : Env.context) (pp : Format.formatter) (expr : Expression.t) =
+  match expr with
+  | ArithExpr e -> pp_arith_expr ctx pp e
+  | BvExpr e -> pp_bv_expr ctx pp e
+
+let rec pp_arith_expr_raw (pp : Format.formatter) (expr : Expression.arith) =
+  match expr with
   | Num n -> pf pp "%d" n
   | Length (x, p) -> pf pp "%a.%a.length" int x pp_packet p
-  | Plus (t1, t2) -> pf pp "%a + %a" pp_term_raw t1 pp_term_raw t2
-  | Minus (t1, t2) -> pf pp "%a - %a" pp_term_raw t1 pp_term_raw t2
+  | Plus (t1, t2) -> pf pp "%a + %a" pp_arith_expr_raw t1 pp_arith_expr_raw t2
+
+let rec pp_bv_expr_raw (pp : Format.formatter) (expr : Expression.bv) =
+  match expr with
+  | Minus (t1, t2) -> pf pp "%a - %a" pp_bv_expr_raw t1 pp_bv_expr_raw t2
   | Bv bv -> pf pp "0b%a" pp_bitvector bv
-  | Concat (tm1, tm2) -> pf pp "%a@%a" pp_term_raw tm1 pp_term_raw tm2
+  | Concat (tm1, tm2) -> pf pp "%a@%a" pp_bv_expr_raw tm1 pp_bv_expr_raw tm2
   | Slice (s, l, r) -> pf pp "%a[%a:%a]" pp_sliceable_raw s int l int r
   | Packet (x, p) -> pf pp "%a.%a" int x pp_packet p
 
-let rec pp_expr (ctx : Env.context) (pp : Format.formatter)
-    (expr : Expression.t) =
+let pp_expr_raw (pp : Format.formatter) (expr : Expression.t) =
+  match expr with
+  | ArithExpr e -> pp_arith_expr_raw pp e
+  | BvExpr e -> pp_bv_expr_raw pp e
+
+let rec pp_form (ctx : Env.context) (pp : Format.formatter) (expr : Formula.t) =
   match expr with
   | True -> pf pp "true"
   | False -> pf pp "false"
   | IsValid (x, inst) ->
-    let name = Env.index_to_name ctx x in
+    let name = Env.index_to_name_exn ctx x in
     pf pp "%a.%a.valid" string name string inst.name
-  | TmEq (tm1, tm2) -> pf pp "%a == %a" (pp_term ctx) tm1 (pp_term ctx) tm2
-  | TmGt (tm1, tm2) -> pf pp "%a > %a" (pp_term ctx) tm1 (pp_term ctx) tm2
-  | Neg e -> pf pp "¬(%a)" (pp_expr ctx) e
-  | And (e1, e2) -> pf pp "@[<v>(%a ∧@ %a)@]" (pp_expr ctx) e1 (pp_expr ctx) e2
-  | Or (e1, e2) -> pf pp "@[<v>(%a ∨@ %a)@]" (pp_expr ctx) e1 (pp_expr ctx) e2
+  | Eq (tm1, tm2) -> pf pp "%a == %a" (pp_expr ctx) tm1 (pp_expr ctx) tm2
+  | Gt (tm1, tm2) -> pf pp "%a > %a" (pp_expr ctx) tm1 (pp_expr ctx) tm2
+  | Neg e -> pf pp "¬(%a)" (pp_form ctx) e
+  | And (e1, e2) -> pf pp "@[<v>(%a ∧@ %a)@]" (pp_form ctx) e1 (pp_form ctx) e2
+  | Or (e1, e2) -> pf pp "@[<v>(%a ∨@ %a)@]" (pp_form ctx) e1 (pp_form ctx) e2
   | Implies (e1, e2) ->
-    pf pp "@[<v 2>(%a ⇒@ (%a))@]" (pp_expr ctx) e1 (pp_expr ctx) e2
+    pf pp "@[<v 2>(%a ⇒@ (%a))@]" (pp_form ctx) e1 (pp_form ctx) e2
 
-let rec pp_expr_raw (pp : Format.formatter) (expr : Expression.t) =
+let rec pp_form_raw (pp : Format.formatter) (expr : Formula.t) =
   match expr with
   | True -> pf pp "true"
   | False -> pf pp "false"
   | IsValid (x, inst) -> pf pp "%a.%a.valid" int x string inst.name
-  | TmEq (tm1, tm2) -> pf pp "%a == %a" pp_term_raw tm1 pp_term_raw tm2
-  | TmGt (tm1, tm2) -> pf pp "%a > %a" pp_term_raw tm1 pp_term_raw tm2
-  | Neg e -> pf pp "¬(%a)" pp_expr_raw e
-  | And (e1, e2) -> pf pp "@[<v>(%a ∧@ %a)@]" pp_expr_raw e1 pp_expr_raw e2
-  | Or (e1, e2) -> pf pp "@[<v>%a ∨@ %a@]" pp_expr_raw e1 pp_expr_raw e2
+  | Eq (tm1, tm2) -> pf pp "%a == %a" pp_expr_raw tm1 pp_expr_raw tm2
+  | Gt (tm1, tm2) -> pf pp "%a > %a" pp_expr_raw tm1 pp_expr_raw tm2
+  | Neg e -> pf pp "¬(%a)" pp_form_raw e
+  | And (e1, e2) -> pf pp "@[<v>(%a ∧@ %a)@]" pp_form_raw e1 pp_form_raw e2
+  | Or (e1, e2) -> pf pp "@[<v>%a ∨@ %a@]" pp_form_raw e1 pp_form_raw e2
   | Implies (e1, e2) ->
-    pf pp "@[<v 2>(%a ⇒@ (%a))@]" pp_expr_raw e1 pp_expr_raw e2
+    pf pp "@[<v 2>(%a ⇒@ (%a))@]" pp_form_raw e1 pp_form_raw e2
 
 let rec pp_header_type (ctx : Env.context) (pp : Format.formatter)
     (header_type : HeapType.t) =
   match header_type with
   | Nothing -> pf pp "∅"
-  | Empty -> pf pp "ε"
   | Top -> pf pp "⊤"
   | Sigma (x, hty1, hty2) ->
     let x_fresh = Env.pick_fresh_name ctx x in
@@ -106,17 +123,16 @@ let rec pp_header_type (ctx : Env.context) (pp : Format.formatter)
     let x_fresh = Env.pick_fresh_name ctx x in
     let ctx' = Env.add_binding ctx x_fresh Env.NameBind in
     pf pp "@[<v 2>{%s:@ %a@ | %a}@]" x_fresh (pp_header_type ctx) hty
-      (pp_expr ctx') e
+      (pp_form ctx') e
   | Substitution (hty1, x, hty2) ->
     let x_fresh = Env.pick_fresh_name ctx x in
     let ctx' = Env.add_binding ctx x_fresh Env.NameBind in
-    pf pp "@[<v 2>(%a)[@[<v 2>%s ↦@ %a@]]@]" (pp_header_type ctx') hty1
-      x_fresh (pp_header_type ctx) hty2
+    pf pp "@[<v 2>(%a)[@[<v 2>%s ↦@ %a@]]@]" (pp_header_type ctx') hty1 x_fresh
+      (pp_header_type ctx) hty2
 
 and pp_header_type_raw (pp : Format.formatter) (header_type : HeapType.t) =
   match header_type with
   | Nothing -> pf pp "∅"
-  | Empty -> pf pp "ε"
   | Top -> pf pp "⊤"
   | Sigma (x, hty1, hty2) ->
     pf pp "@[<v 2>Σ%s:@ (%a).@ (%a)@]" x pp_header_type_raw hty1
@@ -124,7 +140,7 @@ and pp_header_type_raw (pp : Format.formatter) (header_type : HeapType.t) =
   | Choice (hty1, hty2) ->
     pf pp "@[<v>(%a)@ +@ (%a)@]" pp_header_type_raw hty1 pp_header_type_raw hty2
   | Refinement (x, hty, e) ->
-    pf pp "@[<v 2>{%s:@ %a@ | %a}@]" x pp_header_type_raw hty pp_expr_raw e
+    pf pp "@[<v 2>{%s:@ %a@ | %a}@]" x pp_header_type_raw hty pp_form_raw e
   | Substitution (hty1, x, hty2) ->
     pf pp "@[<v 2>(%a)[@[<v 2>%s ↦@ %a@]]@]" pp_header_type_raw hty1 x
       pp_header_type_raw hty2
@@ -169,10 +185,12 @@ let rec pp_command (pp : Format.formatter) (cmd : command) =
   | Extract inst -> pf pp "extract(%a)" string inst.name
   | If (e, c1, c2) ->
     pf pp "@[<v 2>if(%a) {@ %a@]@;<1 0>@[<v 2>} else {@ %a@ }@]"
-      (pp_expr (Env.add_binding [] "" NameBind))
+      (pp_form (Env.add_binding [] "" NameBind))
       e pp_command c1 pp_command c2
   | Assign (inst, left, right, value) ->
-    pf pp "%s[%d:%d] := %a" inst.name left right (pp_term [ ("", NameBind) ]) value
+    pf pp "%s[%d:%d] := %a" inst.name left right
+      (pp_expr [ ("", NameBind) ])
+      value
   | Remit inst -> pf pp "remit(%s)" inst.name
   | Reset -> pf pp "reset"
   | Seq (c1, c2) -> pf pp "@[<v>(%a;@ %a)@]" pp_command c1 pp_command c2

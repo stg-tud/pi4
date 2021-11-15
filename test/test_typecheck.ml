@@ -1,13 +1,11 @@
-open Core_kernel
 open Alcotest
 open Pi4
 open Syntax
-open Expression
 
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 28
+  let maxlen = 16
 end
 
 module Test = Test_utils.TestRunner (TestConfig)
@@ -27,7 +25,7 @@ let test_typecheck_skip_empty () =
   in
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
-  let ty = Parsing.parse_type "(x: \\empty) -> \\empty" header_table in
+  let ty = Parsing.parse_type "(x: ε) -> ε" header_table in
   Test.typecheck header_table prog.command ty
 
 let test_typecheck_extract () =
@@ -131,7 +129,7 @@ let test_typecheck_if_fail () =
   in
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
-  let ty = Parsing.parse_type "(x: \\empty) -> \\sigma y:a.b" header_table in
+  let ty = Parsing.parse_type "(x: ε) -> Σy:a.b" header_table in
   Test.not_typecheck header_table prog.command ty
 
 let test_typeof_remit_invalid_instance () =
@@ -151,7 +149,7 @@ let test_typeof_remit_invalid_instance () =
   let header_table = HeaderTable.of_decls prog.declarations in
   let ty = Parsing.parse_type "(x: \\empty) -> \\empty" header_table in
   Test.error header_table prog.command ty
-    "Instance 'a_0' not included in header type"
+    "Instance 'a' not included in header type"
 
 let test_typecheck_remit () =
   let input =
@@ -170,8 +168,60 @@ let test_typecheck_remit () =
   let header_table = HeaderTable.of_decls prog.declarations in
   let ty =
     Parsing.parse_type
-      "(x: {y:a|y.pkt_in.length==8}) -> 
-          \\sigma y:{y:a|y.pkt_in.length==8}.{z:\\empty|z.pkt_in.length == 0 && z.pkt_out.length==4 && z.pkt_out[0:4]==y.a[0:4]}"
+      "(x: {y:a|y.pkt_in.length==8 && y.pkt_out.length == 0}) -> 
+          Σy:{y:a|y.pkt_in.length==8 && y.pkt_out.length == 0}.{z:ε|z.pkt_in.length == 0 && z.pkt_out.length==4 && z.pkt_out[0:4]==y.a[0:4]}"
+      header_table
+  in
+  Test.typecheck header_table prog.command ty
+
+let test_typecheck_remit_value () =
+  let input =
+    "header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      remit(a)"
+  in
+  let prog = Parsing.parse_program input in
+  let header_table = HeaderTable.of_decls prog.declarations in
+  let ty =
+    Parsing.parse_type
+      "(x: {y:a|y.pkt_out.length == 2 && y.a[0:2] == 0b10}) -> 
+          {y:a|y.pkt_out.length == 6 && 
+                y.pkt_out[2:4] == 0b10 && 
+                y.pkt_out[0:2] == x.pkt_out[0:2]}"
+      header_table
+  in
+  Test.typecheck header_table prog.command ty
+
+let test_typecheck_emit_value () =
+  let input =
+    "header_type a_t {
+          a: 4;
+        }
+        header_type b_t {
+          b: 2;
+        }
+        header a : a_t
+        header b : b_t
+        
+        if(a.valid) {
+          remit(a)
+        }"
+  in
+  let prog = Parsing.parse_program input in
+  let header_table = HeaderTable.of_decls prog.declarations in
+  let ty =
+    Parsing.parse_type
+      "(x: {y:a|y.pkt_out.length == 2 && y.a[0:2] == 0b10}) -> 
+            {y:a|y.pkt_out.length == 6 && 
+                  y.pkt_out[2:4] == 0b10 && 
+                  y.pkt_out[0:2] == x.pkt_out[0:2]}"
       header_table
   in
   Test.typecheck header_table prog.command ty
@@ -232,13 +282,15 @@ let test_typecheck_seq_extract3 () =
       header b : b_t
       header c : c_t
 
-      (extract(a);extract(b));extract(c)"
+      extract(a);
+      extract(b);
+      extract(c)"
   in
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
   let ty =
     Parsing.parse_type
-      "(x: {y:ε|y.pkt_in.length>8}) -> Σy:a.(Σ z:b.c)"
+      "(x: {y:ε|y.pkt_in.length>8}) -> {y:⊤|y.a.valid ∧ y.b.valid ∧ y.c.valid}"
       header_table
   in
   Test.typecheck header_table prog.command ty
@@ -304,60 +356,125 @@ let test_typecheck_add () =
   in
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
-  let ty = Parsing.parse_type "(x: \\empty) -> a" header_table in
+  let ty = Parsing.parse_type "(x: ε) -> a" header_table in
   Test.typecheck header_table prog.command ty
 
 let test_typecheck_assign () =
   let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     extract(a);
-     if(a.a == 0x3) {
-       a.a := 0x4
-     }"
+    {|
+        header_type a_t {
+          a: 4;
+          aa : 2;
+        }
+        header_type b_t {
+          b: 2;
+        }
+        header a : a_t
+        header b : b_t
+        
+        a.a := 0x4
+      |}
+  in
+  let prog = Parsing.parse_program input in
+  let header_table = HeaderTable.of_decls prog.declarations in
+  let ty =
+    Parsing.parse_type "(x: {y:a| y.a.a == 0x3}) -> { y:a | y.a.a == 0x4 }"
+      header_table
+  in
+  Test.typecheck header_table prog.command ty
+
+let test_typecheck_assign2 () =
+  let input =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      extract(a);
+      if(a.a == 0x3) {
+        a.a := 0x4
+      }
+    |}
   in
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
   let ty =
     Parsing.parse_type
-      "(x: { y:\\empty | y.pkt_in.length==8 }) -> { y:a | !y.a[0:4]==0x3 }"
+      "(x: { y:ε | y.pkt_in.length==8 }) -> { y:a | y.pkt_in.length == 4 }"
       header_table
   in
   Test.typecheck header_table prog.command ty
 
-let test_typeof_concat () =
-  let open Term in
-  let tm =
-    Concat
-      (Concat (bv_s "1010", Packet (0, PktIn)), Concat (bv_s "000", bv_s "1111"))
+let test_typecheck_add_assign () =
+  let input =
+    {|
+        header_type vlan_t {
+          prio: 3; 
+          id: 1; 
+          vlan: 12; 
+          etherType: 16;
+        }
+        header vlan : vlan_t
+        
+        add(vlan);
+        vlan.etherType := 0x0000
+      |}
   in
-  let tytm = Typechecker.typeof_tm tm in
-  Alcotest.(check (result (Testable.ty []) string))
-    "types should be equal" (Ok (BitVec MaxLen)) tytm
+  let prog = Parsing.parse_program input in
+  let header_table = HeaderTable.of_decls prog.declarations in
+  let ty =
+    Parsing.parse_type "(x: ε) -> { y:vlan | y.vlan.etherType == 0x0000 }"
+      header_table
+  in
+  Test.typecheck header_table prog.command ty
 
-let test_typeof_exp_tmeq_concat_fail () =
-  let open Term in
-  let tm1 = Concat (bv_s "1111", bv_s "0000") in
-  let tm2 = Concat (bv_s "00", Packet (0, PktIn)) in
-  let tmeq = TmEq (tm1, tm2) in
-  let tye = Typechecker.typeof_exp tmeq in
-  Alcotest.(check bool) "types should be equal" true (Result.is_error tye)
+  let test_typecheck_cond_add_assign () =
+    let input =
+      {|
+          header_type vlan_t {
+            prio: 3; 
+            id: 1; 
+            vlan: 12; 
+            etherType: 16;
+          }
+          header vlan : vlan_t
+          
+          if(!vlan.valid) {
+            add(vlan);
+            vlan.etherType := 0x0000
+          }
+        |}
+    in
+    let prog = Parsing.parse_program input in
+    let header_table = HeaderTable.of_decls prog.declarations in
+    let ty =
+      Parsing.parse_type "(x: ε) -> { y:vlan | y.vlan.etherType == 0x0000 }"
+        header_table
+    in
+    Test.typecheck header_table prog.command ty
+  
 
-let test_typeof_exp_tmeq_concat () =
-  let open Term in
-  let tm1 = Concat (bv_s "1111", bv_s "0000") in
-  let tm2 = Concat (bv_s "00", bv_s "101010") in
-  let tmeq = TmEq (tm1, tm2) in
-  let tye = Typechecker.typeof_exp tmeq in
-  Alcotest.(check (result (Testable.ty []) string))
-    "types should be equal" (Ok Bool) tye
+(* TODO: Fix test cases *)
+(* let test_typeof_concat () = let open Term in let tm = Concat (Concat (bv_s
+   "1010", Packet (0, PktIn)), Concat (bv_s "000", bv_s "1111")) in let tytm =
+   Typechecker.typeof_tm tm in Alcotest.(check (result (Testable.ty []) string))
+   "types should be equal" (Ok (BitVec MaxLen)) tytm *)
+
+(* let test_typeof_exp_tmeq_concat_fail () = let open Term in let tm1 = Concat
+   (bv_s "1111", bv_s "0000") in let tm2 = Concat (bv_s "00", Packet (0, PktIn))
+   in let tmeq = TmEq (tm1, tm2) in let tye = Typechecker.typeof_exp tmeq in
+   Alcotest.(check bool) "types should be equal" true (Result.is_error tye)
+
+   let test_typeof_exp_tmeq_concat () = let open Term in let tm1 = Concat (bv_s
+   "1111", bv_s "0000") in let tm2 = Concat (bv_s "00", bv_s "101010") in let
+   tmeq = TmEq (tm1, tm2) in let tye = Typechecker.typeof_exp tmeq in
+   Alcotest.(check (result (Testable.ty []) string)) "types should be equal" (Ok
+   Bool) tye *)
 
 let test_reset_reset () =
   let input =
@@ -409,8 +526,8 @@ let test_ascription () =
   in
   Test.typecheck header_table prog.command ty
 
-let test_ascription_seq_extract () = 
-  let input = 
+let test_ascription_seq_extract () =
+  let input =
     {|
       header_type g_t {
         f: 4;
@@ -428,16 +545,17 @@ let test_ascription_seq_extract () =
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
   let ty =
-    Parsing.parse_type 
+    Parsing.parse_type
       {| 
         (u:{z5:ε|z5.pkt_in.length == 8}) -> 
           {z6:⊤|z6.g.valid ∧ z6.h.valid ∧ z6.pkt_in.length + 2 == y.pkt_in.length}[y↦{w:g|w.pkt_in.length==4}]
-      |} header_table
+      |}
+      header_table
   in
   Test.typecheck header_table prog.command ty
 
-let test_ascription_seq_extract_step () = 
-  let input = 
+let test_ascription_seq_extract_step () =
+  let input =
     {|
       header_type g_t {
         f: 4;
@@ -455,11 +573,12 @@ let test_ascription_seq_extract_step () =
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
   let ty =
-    Parsing.parse_type 
+    Parsing.parse_type
       {| 
         (u:{z1:g|z1.pkt_in.length == 4}) -> 
           {z2:⊤|z2.g.valid ∧ z2.h.valid ∧ z2.pkt_in.length + 2 == y.pkt_in.length}[y↦{v:g|v.pkt_in.length==4}]
-      |} header_table
+      |}
+      header_table
   in
   Test.typecheck header_table prog.command ty
 
@@ -474,26 +593,32 @@ let test_set =
     test_case "'Remit' fails if instance is not valid" `Quick
       test_typeof_remit_invalid_instance;
     test_case "'Remit' typechecks" `Quick test_typecheck_remit;
+    test_case "Remit writes instance to pkt_out" `Quick
+      test_typecheck_remit_value;
+    test_case "Emit writes instance to pkt_out" `Quick test_typecheck_emit_value;
     test_case "skip;skip typechecks" `Quick test_typecheck_seq_skip;
     test_case "'extract(A);extract(B)' typechecks" `Quick
       test_typecheck_seq_extract_extract;
     test_case "Extracting three instances typechecks" `Quick
       test_typecheck_seq_extract3;
-    test_case "Extracting three instances typechecks (2)" `Quick
+    test_case "Extracting three instances typechecks (2)" `Slow
       test_typecheck_seq_extract3_2;
     test_case "'extract(A);skip' typechecks" `Quick
       test_typecheck_seq_extract_skip;
     test_case "'add' typechecks" `Quick test_typecheck_add;
     test_case "Assignment typechecks" `Quick test_typecheck_assign;
-    test_case "Computed type of concatenation is correct" `Quick
-      test_typeof_concat;
-    test_case
-      "Term equality does not typecheck with bit vector types of different sizes"
-      `Quick test_typeof_exp_tmeq_concat_fail;
-    test_case "Term equality typechecks with bit vector types of same size"
-      `Quick test_typeof_exp_tmeq_concat;
+    test_case "Assignment typechecks 2" `Quick test_typecheck_assign2;
+    test_case "Assignment after adding instance typechecks" `Quick test_typecheck_add_assign;
+    test_case "Conditional assignment after adding instance typechecks" `Quick test_typecheck_cond_add_assign;
+    (* test_case "Computed type of concatenation is correct" `Quick
+       test_typeof_concat; *)
+    (* test_case "Term equality does not typecheck with bit vector types of
+       different sizes" `Quick test_typeof_exp_tmeq_concat_fail; test_case "Term
+       equality typechecks with bit vector types of same size" `Quick
+       test_typeof_exp_tmeq_concat; *)
     test_case "reset;reset" `Quick test_reset_reset;
     test_case "Ascription succeeds" `Quick test_ascription;
     test_case "Ascription typechecks" `Quick test_ascription_seq_extract;
-    test_case "Ascription typechecks after stepping" `Quick test_ascription_seq_extract_step;
+    test_case "Ascription typechecks after stepping" `Quick
+      test_ascription_seq_extract_step
   ]

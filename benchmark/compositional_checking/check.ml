@@ -85,11 +85,11 @@ let run benchmark z3 verbose =
          return (Syntax.Seq (parser, ingress), ty_complete)
        | "ascribe" ->
          let hty_in =
-           Parsing.parse_header_type "{y:ε|y.pkt_in.length=320}" header_table
+           Parsing.parse_heap_type "{y:ε|y.pkt_in.length=320}" header_table
              []
          in
          let hty_parser =
-           Parsing.parse_header_type
+           Parsing.parse_heap_type
              "(ethernet + Σy:ethernet.ipv4 + Σy:ethernet.vlan + Σy:ethernet.(Σz:vlan.ipv4))"
              header_table
              [ ("x", Env.VarBind hty_in) ]

@@ -21,41 +21,64 @@ module type Checker = sig
     string * HeapType.t ->
     Env.context ->
     HeaderTable.t ->
-    (HeapType.t, string) result
+    ( HeapType.t,
+      [> `TypeError of string
+      | `EncodingError of string
+      | `VariableLookupError of string
+      ] )
+    result
 
   val check_subtype :
     HeapType.t ->
     HeapType.t ->
     Env.context ->
     HeaderTable.t ->
-    (bool, string) result
-end
-
-module type Chomp = sig
-  include Checker
-
-  val chomp1 : HeapType.t -> Env.context -> int -> HeapType.t
-
-  val chomp_e1 : Expression.t -> Syntax.var -> int -> Expression.t
-
-  val chomp_ref1 : HeapType.t -> var -> int -> HeapType.t
-
-  val chomp_t1 : Term.t -> Syntax.var -> int -> Term.t
-
-  val heap_tref1 : Term.t -> int -> var -> Instance.t -> int -> Term.t
+    ( bool,
+      [> `TypeError of string
+      | `EncodingError of string
+      | `VariableLookupError of string
+      ] )
+    result
 end
 
 module CompleteChecker : functor
   (BV : sig
      val maxlen : int
    end)
-  -> Chomp
+  -> Checker
 
-module SimpleChecker : Checker
+module SemanticChecker : functor
+  (BV : sig
+     val maxlen : int
+   end)
+  -> Checker
 
 module Make : functor (C : Checker) -> S
-module MakeSSAChecker : functor (C : Checker) -> S
 
-val typeof_tm : Term.t -> (ty, string) result
+module ExprChecker : functor (P : Prover.S) -> sig
+  val check_expr :
+    HeaderTable.t ->
+    Env.context ->
+    HeapType.t ->
+    Expression.t ->
+    ( ty,
+      [> `TypeError of string
+      | `EncodingError of string
+      | `VariableLookupError of string
+      ] )
+    result
+end
 
-val typeof_exp : Expression.t -> (ty, string) result
+module FormChecker : functor (P : Prover.S) -> sig
+  val check_form :
+    HeaderTable.t ->
+    Env.context ->
+    HeapType.t ->
+    Formula.t ->
+    ( ty,
+      [> `TypeError of string
+      | `EncodingError of string
+      | `VariableLookupError of string
+      ] )
+    result
+end

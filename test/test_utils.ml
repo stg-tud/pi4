@@ -1,11 +1,11 @@
 open Core_kernel
-open Fmt
 open Pi4
 open Syntax
 open Pretty
 
 module type TestConfig = sig
   val maxlen : int
+
   val verbose : bool
 end
 
@@ -38,11 +38,14 @@ end = struct
   end
 
   module P = Prover.Make (Encoding.FixedWidthBitvectorEncoding (M))
-  module T = Typechecker.Make (Typechecker.CompleteChecker (M))
+  module T = Typechecker.Make (Typechecker.SemanticChecker (M))
 
   let check_subtype hty_s hty_t ctx ht =
     init_prover;
-    P.check_subtype hty_s hty_t ctx ht |> Result.ok_or_failwith
+    match P.check_subtype hty_s hty_t ctx ht with
+    | Ok b -> b
+    | Error (`EncodingError e) -> failwith e
+    | Error (`VariableLookupError e) -> failwith e
 
   let test_subtype hty_s hty_t ctx header_table assert_msg expected =
     Alcotest.(check bool)
@@ -51,7 +54,7 @@ end = struct
 
   let is_subtype hty_s hty_t ctx ht =
     if Config.verbose then
-      pr "@[<v>Checking subtyping relation:@ %a <: %a@]@."
+      Fmt.pr "@[<v>Checking subtyping relation:@ %a <: %a@]@."
         (Pretty.pp_header_type ctx)
         hty_s
         (Pretty.pp_header_type ctx)
@@ -68,7 +71,7 @@ end = struct
 
   let not_subtype hty_s hty_t ctx ht =
     if Config.verbose then
-      pr "@[<v>Checking subtyping relation:@ %a not <: %a@]@."
+      Fmt.pr "@[<v>Checking subtyping relation:@ %a not <: %a@]@."
         (Pretty.pp_header_type ctx)
         hty_s
         (Pretty.pp_header_type ctx)
@@ -105,18 +108,14 @@ end = struct
   let is_equiv hty1 hty2 ctx ht =
     Alcotest.(check bool)
       "types are equivalent" true
-      ( P.check_subtype hty1 hty2 ctx ht |> Result.ok_or_failwith
-      && P.check_subtype hty2 hty1 ctx ht |> Result.ok_or_failwith )
+      (check_subtype hty1 hty2 ctx ht && check_subtype hty2 hty1 ctx ht)
 
   (* (Pi4.Equiv.htyeqv ht [] Config.maxlen hty1 hty2) *)
 
   let not_equiv hty1 hty2 ctx ht =
     Alcotest.(check bool)
       "types are not equivalent" false
-      ( P.check_subtype hty1 hty2 ctx ht
-        |> Result.ok_or_failwith
-      && P.check_subtype hty2 hty1 ctx ht
-         |> Result.ok_or_failwith )
+      (check_subtype hty1 hty2 ctx ht && check_subtype hty2 hty1 ctx ht)
 end
 
 let mk_inst name fields =

@@ -79,10 +79,10 @@ let intype_composes () =
   let prog = Parsing.parse_program prog_str in
   let header_table = HeaderTable.of_decls prog.declarations in
   let sub =
-    Parsing.header_type_of_string {|\sigma z : meta . vlan|} header_table []
+    Parsing.heap_type_of_string {|\sigma z : meta . vlan|} header_table []
   in
   let sup =
-    Parsing.header_type_of_string {|\sigma z : meta . vlan|} header_table []
+    Parsing.heap_type_of_string {|\sigma z : meta . vlan|} header_table []
   in
   Test.is_subtype sub sup [] header_table
 
@@ -103,18 +103,18 @@ let outtype_composes () =
   let header_table = HeaderTable.of_decls prog.declarations in
   let tau =
     (* Parsing.header_type_of_string "\\sigma x : meta . vlan" header_table [] *)
-    Parsing.header_type_of_string "{x:⊤|x.meta.valid ∧ x.vlan.valid}" header_table []
+    Parsing.heap_type_of_string "{x:⊤|x.meta.valid ∧ x.vlan.valid}" header_table []
   in
   let ctx = [ ("x", Env.VarBind tau) ] in
   let sub =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       (* "{w : \\sigma z : meta . vlan | w.vlan.vid == x.vlan.vid}" header_table *)
       "{w:⊤| w.meta.valid ∧ w.vlan.valid ∧ w.vlan.vid == x.vlan.vid}" header_table
       ctx
   in
   let sup =
     (* Parsing.header_type_of_string {|\sigma z : meta . vlan|} header_table [] *)
-    Parsing.header_type_of_string {| {z:⊤| z.meta.valid ∧ z.vlan.valid} |} header_table []
+    Parsing.heap_type_of_string {| {z:⊤| z.meta.valid ∧ z.vlan.valid} |} header_table []
   in
   Test.is_subtype sub sup ctx header_table
 
@@ -266,7 +266,7 @@ let inner_bad_cust_table_path () =
      } else {
          skip
      }|}
-    {|(x : \sigma z : meta . vlan) -> {w : \sigma z : ?meta . ?vlan | x.vlan.vid == w.vlan.vid}|}
+    {|(x : {x:⊤|x.meta.valid ∧ x.vlan.valid}) -> {y:⊤ | y.meta.valid ∧ y.vlan.valid ∧ x.vlan.vid == y.vlan.vid}|}
 
 let inner_bad_cust_table () =
   parse_typecheck Test.not_typecheck

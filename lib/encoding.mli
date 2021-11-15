@@ -1,4 +1,3 @@
-open Core_kernel
 open Syntax
 open Z3
 
@@ -20,7 +19,9 @@ module type S = sig
     Env.context ->
     string ->
     HeapType.t ->
-    (Smtlib.term, string) result
+    ( Smtlib.term,
+      [> `EncodingError of string | `VariableLookupError of string ] )
+    result
 
   val smt_consts :
     HeapType.t ->
@@ -34,7 +35,5 @@ module type Config = sig
 end
 
 module FixedWidthBitvectorEncoding : functor (Config : Config) -> S
-
-module SimpleEncoding : S
 
 module DefaultEncoding : S

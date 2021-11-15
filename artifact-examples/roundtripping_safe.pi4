@@ -1,0 +1,77 @@
+header_type ether_t {
+  dstAddr: 48;
+  srcAddr: 48;
+  etherType: 16;
+}
+header_type ipv4_t {
+  version: 4; 
+  ihl: 4; 
+  tos: 8; 
+  len: 16; 
+  id: 16; 
+  flags: 3; 
+  frag: 13; 
+  ttl: 8; 
+  proto: 8; 
+  chksum: 16; 
+  src: 32; 
+  dst: 32;
+}
+header_type vlan_t {
+  prio: 3; 
+  id: 1; 
+  vlan: 12; 
+  etherType: 16;
+}
+header ether : ether_t
+header ipv4 : ipv4_t
+header vlan : vlan_t
+
+extract(ether);
+if(ether.etherType == 0x8100) {
+  extract(vlan);
+  if(vlan.etherType == 0x0800) {
+    extract(ipv4)
+  }
+} else {
+  if(ether.etherType == 0x0800) {
+    extract(ipv4)
+  }
+};
+if(!vlan.valid) {
+  add(vlan);
+  vlan.etherType := 0x0000;
+  ether.etherType := 0x8100;
+  if(ipv4.valid) {
+    vlan.etherType := 0x0800
+  }
+};
+((if(ether.valid) {
+  remit(ether)
+};
+if(vlan.valid) {
+  remit(vlan)
+};
+if(ipv4.valid) {
+  remit(ipv4)
+};
+reset;
+extract(ether);
+if(ether.etherType == 0x8100) {
+  extract(vlan);
+  if(vlan.etherType == 0x0800) {
+    extract(ipv4)
+  }
+} else {
+  if(ether.etherType == 0x0800) {
+    extract(ipv4)
+  }
+}) as (x :  
+      {z:ether~| 
+            z.ether.etherType == 0x8100 && 
+            z.vlan.valid && 
+            (z.ipv4.valid => z.vlan.etherType == 0x0800) && 
+            ((!z.ipv4.valid) => z.vlan.etherType != 0x0800) && 
+            z.pkt_out.length == 0 && 
+            z.pkt_in.length > 0}
+) -> {y:⊤| x === y })

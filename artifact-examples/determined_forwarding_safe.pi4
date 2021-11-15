@@ -1,0 +1,38 @@
+header_type ipv4_t {
+  version: 4;
+  ihl: 4;
+  tos: 8;
+  len: 16;
+  id: 16;
+  flg: 3;
+  off: 13;
+  src: 32;
+  dst: 32;
+  ttl: 8
+}
+header_type standard_metadata_t {
+  ingress_port: 9;
+  egress_spec: 9;
+  egress_port: 9;
+  instance_type: 32;
+  packet_length: 32;
+  enq_timestamp: 32;
+  enq_qdepth: 19;
+  deq_timedelta: 32;
+  deq_qdepth: 19;
+  ingress_global_timestamp: 48;
+  mcast_grp: 16;
+  egress_rid: 16;
+  checksum_error: 1;
+  priority: 3;
+}
+header ipv4 : ipv4_t
+header stdmeta : standard_metadata_t
+
+if(ipv4.valid) {
+  if(ipv4.dst != 0x0A0A0A0A) {
+    stdmeta.egress_spec := 0b000000001
+  } else {
+    stdmeta.egress_spec := 0b111111111
+  }
+}

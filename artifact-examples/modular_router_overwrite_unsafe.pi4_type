@@ -1,0 +1,1 @@
+(x : {x:⊤| x.meta.valid ∧ x.vlan.valid }) -> { y:⊤ | y.meta.valid ∧ y.vlan.valid ∧ x.vlan.vid == y.vlan.vid}

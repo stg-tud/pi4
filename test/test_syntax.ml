@@ -1,45 +1,47 @@
 open Alcotest
 open Pi4
 open Syntax
-open Term
+open Expression
 
 let test_bv_l () =
   Alcotest.(check Testable.term)
     "terms are equal"
-    (Bv (Cons (B 0, Cons (B 1, Cons (B 2, Nil)))))
-    (bv_l [ B 0; B 1; B 2 ])
+    (BvExpr (Bv (Cons (B 0, Cons (B 1, Cons (B 2, Nil))))))
+    (BvExpr (bv_l [ B 0; B 1; B 2 ]))
 
 let test_bv_s () =
   Alcotest.(check Testable.term)
     "terms are equal"
-    (Bv
-       (Cons
-          ( One,
-            Cons
-              ( Zero,
-                Cons
-                  ( One,
-                    Cons
-                      ( One,
-                        Cons (One, Cons (Zero, Cons (Zero, Cons (Zero, Nil))))
-                      ) ) ) )))
-    (bv_s "10111000")
+    (BvExpr
+       (Bv
+          (Cons
+             ( One,
+               Cons
+                 ( Zero,
+                   Cons
+                     ( One,
+                       Cons
+                         ( One,
+                           Cons (One, Cons (Zero, Cons (Zero, Cons (Zero, Nil))))
+                         ) ) ) ))))
+    (BvExpr (bv_s "10111000"))
 
 let test_bv_x () =
   Alcotest.(check Testable.term)
     "terms are equal"
-    (Bv
-       (Cons
-          ( One,
-            Cons
-              ( Zero,
-                Cons
-                  ( One,
-                    Cons
-                      ( Zero,
-                        Cons (Zero, Cons (Zero, Cons (Zero, Cons (One, Nil))))
-                      ) ) ) )))
-    (bv_x "a1")
+    (BvExpr
+       (Bv
+          (Cons
+             ( One,
+               Cons
+                 ( Zero,
+                   Cons
+                     ( One,
+                       Cons
+                         ( Zero,
+                           Cons (Zero, Cons (Zero, Cons (Zero, Cons (One, Nil))))
+                         ) ) ) ))))
+    (BvExpr (bv_x "a1"))
 
 let test_bv_of_hex_str () =
   Alcotest.(check Testable.bitvector)

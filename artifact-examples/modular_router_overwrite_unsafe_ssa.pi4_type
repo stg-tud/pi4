@@ -1,2 +1,0 @@
-(x : {z:⊤|z.meta_0.valid ∧ z.vlan_0.valid ∧ ¬z.vlan_1.valid})
--> {w : ⊤ | w.meta_0.valid ∧ w.vlan_1.vid == x.vlan_0.vid}

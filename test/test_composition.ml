@@ -59,7 +59,7 @@ let test_parser () =
   let prog = Parsing.parse_command cmd header_table in
   let ty =
     Parsing.parse_type
-      "(x:{y:ε|y.pkt_in.length=320}) -> ({y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ ¬y.vlan.valid} + 
+      "(x:{y:ε|y.pkt_in.length==320}) -> ({y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ ¬y.vlan.valid} + 
                                           {y:⊤|y.ethernet.valid ∧ y.ipv4.valid ∧ ¬y.vlan.valid} + 
                                           {y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ y.vlan.valid} +
                                           {y:⊤|y.ethernet.valid ∧ y.ipv4.valid ∧ y.vlan.valid})"
@@ -90,7 +90,7 @@ let test_parser_sigma () =
   let prog = Parsing.parse_command cmd header_table in
   let ty =
     Parsing.parse_type
-      "(x:{y:ε|y.pkt_in.length=320}) -> (ethernet + Σy:ethernet.ipv4 +
+      "(x:{y:ε|y.pkt_in.length==320}) -> (ethernet + Σy:ethernet.ipv4 +
          Σy:ethernet.vlan + Σy:ethernet.(Σz:vlan.ipv4))"
       header_table
   in
@@ -100,12 +100,12 @@ let test_simple_parser_ascribed () =
   let ht = HeaderTable.populate [ inst_eth; inst_ipv4 ] in
   let cmd =
     {|
-    extract(ethernet) as (x:{y:ε|y.pkt_in.length=272}) → {y: ethernet|y.pkt_in.length=160};
+    extract(ethernet) as (x:{y:ε|y.pkt_in.length==272}) → {y: ethernet|y.pkt_in.length==160};
     (if(ethernet[96:112] == 0x0800) {
       extract(ipv4)
     } else {
       skip
-    } as (x:{y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ y.pkt_in.length=160}) → 
+    } as (x:{y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ y.pkt_in.length==160}) → 
     ({y:⊤|y.ethernet.valid ∧ y.ipv4.valid} + {y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid}))
   |}
   in
@@ -114,7 +114,7 @@ let test_simple_parser_ascribed () =
   Logs.app (fun m -> m "%a" Pretty.pp_command prog);
   let ty =
     Parsing.parse_type
-      "(x:{y:ε|y.pkt_in.length=272}) -> (ethernet + {y:⊤|y.ethernet.valid ∧
+      "(x:{y:ε|y.pkt_in.length==272}) -> (ethernet + {y:⊤|y.ethernet.valid ∧
          y.ipv4.valid})"
       header_table
   in
@@ -124,12 +124,12 @@ let test_simple_parser_ascribed_sigma () =
   let ht = HeaderTable.populate [ inst_eth; inst_ipv4 ] in
   let cmd =
     {|
-      extract(ethernet) as (x:{y:ε|y.pkt_in.length=272}) → {y: ethernet|y.pkt_in.length=160};
+      extract(ethernet) as (x:{y:ε|y.pkt_in.length==272}) → {y: ethernet|y.pkt_in.length==160};
       (if(ethernet[96:112] == 0x0800) {
         extract(ipv4)
       } else {
         skip
-      } as (x:{y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ y.pkt_in.length=160}) → 
+      } as (x:{y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ y.pkt_in.length==160}) → 
       ({y:⊤|y.ethernet.valid ∧ y.ipv4.valid} + {y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid}))
     |}
   in
@@ -138,7 +138,7 @@ let test_simple_parser_ascribed_sigma () =
   Logs.app (fun m -> m "%a" Pretty.pp_command prog);
   let ty =
     Parsing.parse_type
-      "(x:{y:ε|y.pkt_in.length=272}) -> (ethernet + Σy:ethernet.ipv4)"
+      "(x:{y:ε|y.pkt_in.length==272}) -> (ethernet + Σy:ethernet.ipv4)"
       header_table
   in
   Test.typecheck header_table prog ty
@@ -148,19 +148,19 @@ let test_ascribe_simple () =
   let prog =
     Parsing.parse_command
       {|
-        extract(ethernet) as (x:{y:ε|y.pkt_in.length=272}) → {y: ethernet|y.pkt_in.length=160};
+        extract(ethernet) as (x:{y:ε|y.pkt_in.length==272}) → {y: ethernet|y.pkt_in.length==160};
         (if(ethernet[96:112] == 0x0800) {
           extract(ipv4)
         } else {
           skip
-        } as (x:{y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ y.pkt_in.length=160}) → 
+        } as (x:{y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ y.pkt_in.length==160}) → 
         ({y:⊤|y.ethernet.valid ∧ y.ipv4.valid} + {y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid}))
       |}
       ht
   in
   let ty =
     Parsing.parse_type
-      "(x:{y:ε|y.pkt_in.length=272}) -> (ethernet + Σy:ethernet.ipv4)" ht
+      "(x:{y:ε|y.pkt_in.length==272}) -> (ethernet + Σy:ethernet.ipv4)" ht
   in
   Test.typecheck ht prog ty
 
@@ -305,11 +305,11 @@ let test_ingress_bug () =
     Parsing.parse_command
       {|
         if(!vlan.valid) {
-        add(vlan);
-        if(ipv4.valid) {
-          vlan.etherType := 0x0800
-        };
-        vlan.etherType := 0x8100
+          add(vlan);
+          if(ipv4.valid) {
+            vlan.etherType := 0x0800
+          };
+          vlan.etherType := 0x8100
       }
     |}
       header_table
@@ -355,7 +355,7 @@ let test_complete () =
   let ty =
     Parsing.parse_type
       {|
-        (x:{y:ε|y.pkt_in.length=320}) -> 
+        (x:{y:ε|y.pkt_in.length==320}) -> 
         ({y:⊤|y.ethernet.valid ∧ y.vlan.valid ∧ ¬y.ipv4.valid} + 
         {y:⊤|y.ethernet.valid ∧ y.vlan.valid ∧ y.ipv4.valid})
       |}
@@ -376,7 +376,7 @@ let test_complete_ascribe_parser () =
           if(ethernet.etherType == 0x0800) {
             extract(ipv4)
           }
-        }) as (x:{y:ε|y.pkt_in.length=320}) -> ({y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ ¬y.vlan.valid} + 
+        }) as (x:{y:ε|y.pkt_in.length==320}) -> ({y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ ¬y.vlan.valid} + 
                                                 {y:⊤|y.ethernet.valid ∧ y.ipv4.valid ∧ ¬y.vlan.valid} + 
                                                 {y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ y.vlan.valid} +
                                                 {y:⊤|y.ethernet.valid ∧ y.ipv4.valid ∧ y.vlan.valid}));
@@ -394,7 +394,7 @@ let test_complete_ascribe_parser () =
   let ty =
     Parsing.parse_type
       {|
-          (x:{y:ε|y.pkt_in.length=320}) -> 
+          (x:{y:ε|y.pkt_in.length==320}) -> 
           ({y:⊤|y.ethernet.valid ∧ y.vlan.valid ∧ ¬y.ipv4.valid} + 
           {y:⊤|y.ethernet.valid ∧ y.vlan.valid ∧ y.ipv4.valid})
         |}
@@ -415,7 +415,7 @@ let test_complete_ascribed () =
           if(ethernet.etherType == 0x0800) {
             extract(ipv4)
           }
-        }) as (x:{y:ε|y.pkt_in.length=320}) -> ({y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ ¬y.vlan.valid} + 
+        }) as (x:{y:ε|y.pkt_in.length==320}) -> ({y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ ¬y.vlan.valid} + 
                                                 {y:⊤|y.ethernet.valid ∧ y.ipv4.valid ∧ ¬y.vlan.valid} + 
                                                 {y:⊤|y.ethernet.valid ∧ ¬y.ipv4.valid ∧ y.vlan.valid} +
                                                 {y:⊤|y.ethernet.valid ∧ y.ipv4.valid ∧ y.vlan.valid}));
@@ -437,7 +437,7 @@ let test_complete_ascribed () =
   let ty =
     Parsing.parse_type
       {|
-          (x:{y:ε|y.pkt_in.length=320}) -> 
+          (x:{y:ε|y.pkt_in.length==320}) -> 
           ({y:⊤|y.ethernet.valid ∧ y.vlan.valid ∧ ¬y.ipv4.valid} + 
           {y:⊤|y.ethernet.valid ∧ y.vlan.valid ∧ y.ipv4.valid})
         |}

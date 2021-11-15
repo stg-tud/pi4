@@ -1,7 +1,7 @@
 open Alcotest
 open Pi4
 open Syntax
-open Expression
+open Formula
 open HeapType
 
 module TestConfig = struct
@@ -29,9 +29,11 @@ let hty_empty = HeapType.empty header_table "x"
 
 let hty_inst inst = HeapType.instance inst header_table "x"
 
-let pred_pkt_out_empty binder = TmEq (Length (binder, PktOut), Num 0)
+let pred_pkt_out_empty binder =
+  Eq (ArithExpr (Length (binder, PktOut)), ArithExpr (Num 0))
 
-let pred_pkt_in_empty binder = TmEq (Length (binder, PktIn), Num 0)
+let pred_pkt_in_empty binder =
+  Eq (ArithExpr (Length (binder, PktIn)), ArithExpr (Num 0))
 
 let pred_pkt_in_out_empty binder =
   And (pred_pkt_in_empty binder, pred_pkt_out_empty binder)
@@ -44,21 +46,28 @@ let test_subtype_empty_empty () =
 
 let test_subtype_ref_empty () =
   let s = hty_empty in
-  let t = Refinement ("x", hty_empty, TmEq (Length (0, PktIn), Num 8)) in
+  let t =
+    Refinement
+      ("x", hty_empty, Eq (ArithExpr (Length (0, PktIn)), ArithExpr (Num 8)))
+  in
   Test.not_subtype s t [] header_table
 
 let test_subtype_fixed_pktin_slice () =
   let s = Refinement ("x", hty_empty, pkt_eq_s (0, PktIn) "0101") in
   let t =
     Refinement
-      ("x", hty_empty, TmEq (Slice (Packet (0, PktIn), 0, 4), bv_s "0101"))
+      ( "x",
+        hty_empty,
+        Eq (BvExpr (Slice (Packet (0, PktIn), 0, 4)), BvExpr (bv_s "0101")) )
   in
   Test.is_subtype s t [] header_table
 
 let test_subtype_slice_fixed_pktin () =
   let s =
     Refinement
-      ("x", hty_empty, TmEq (Slice (Packet (0, PktIn), 0, 4), bv_s "0101"))
+      ( "x",
+        hty_empty,
+        Eq (BvExpr (Slice (Packet (0, PktIn), 0, 4)), BvExpr (bv_s "0101")) )
   in
   let t = Refinement ("x", hty_empty, pkt_eq_s (0, PktIn) "0101") in
   Test.not_subtype s t [] header_table
@@ -67,7 +76,9 @@ let test_subtype_fixed_pktout_slice () =
   let s = Refinement ("x", hty_empty, pkt_eq_s (0, PktOut) "0101") in
   let t =
     Refinement
-      ("x", hty_empty, TmEq (Slice (Packet (0, PktOut), 0, 4), bv_s "0101"))
+      ( "x",
+        hty_empty,
+        Eq (BvExpr (Slice (Packet (0, PktOut), 0, 4)), BvExpr (bv_s "0101")) )
   in
   Test.is_subtype s t [] header_table
 
@@ -81,14 +92,23 @@ let test_subtype_fixed_pktout_slice () =
 
 let test_subtype_fixed_pktin_fixed_length () =
   let s = Refinement ("x", hty_empty, pkt_eq_s (0, PktIn) "0101") in
-  let t = Refinement ("x", hty_empty, TmEq (Length (0, PktIn), Num 4)) in
+  let t =
+    Refinement
+      ("x", hty_empty, Eq (ArithExpr (Length (0, PktIn)), ArithExpr (Num 4)))
+  in
   Test.is_subtype s t [] header_table
 
 (* Test doesn't make sense when using the smart constructor *)
 let test_subtype_fixed_length_fixed_pktin () =
-  let s = Refinement ("x", hty_empty, TmEq (Length (0, PktIn), Num 4)) in
+  let s =
+    Refinement
+      ("x", hty_empty, Eq (ArithExpr (Length (0, PktIn)), ArithExpr (Num 4)))
+  in
   (* let t = Refinement ("x", hty_empty, pkt_eq_s (0, PktIn) "0101") in *)
-  let t = Refinement ("x", hty_empty, TmEq (Packet (0, PktIn), bv_s "0101")) in
+  let t =
+    Refinement
+      ("x", hty_empty, Eq (BvExpr (Packet (0, PktIn)), BvExpr (bv_s "0101")))
+  in
   Test.not_subtype s t [] header_table
 
 (* Alcotest.(check bool) "not ({x:ε | |x.pkt_in|=4} <: {x:ε | x.pkt_in=0101})"
@@ -96,7 +116,10 @@ let test_subtype_fixed_length_fixed_pktin () =
 
 let test_subtype_fixed_pktout_fixed_length () =
   let s = Refinement ("x", hty_empty, pkt_eq_s (0, PktOut) "0101") in
-  let t = Refinement ("x", hty_empty, TmEq (Length (0, PktOut), Num 4)) in
+  let t =
+    Refinement
+      ("x", hty_empty, Eq (ArithExpr (Length (0, PktOut)), ArithExpr (Num 4)))
+  in
   Test.is_subtype s t [] header_table
 
 (* Test doesn't make sense when using the smart constructor *)
@@ -108,14 +131,17 @@ let test_subtype_fixed_pktout_fixed_length () =
 
 let test_check_instance_valid_eth () =
   let hty = Sigma ("x", hty_inst eth_inst, hty_inst ipv4_inst) in
-  (* let hty = Refinement ("x", Top, And (IsValid (0, eth_inst), IsValid(0, ipv4_inst))) in *)
-  let t1 = Refinement ("x", hty, IsValid (0, eth_inst)) in
+  (* let hty = Refinement ("x", Top, And (IsValid (0, eth_inst), IsValid(0,
+     ipv4_inst))) in *)
+  let t1 = Refinement ("x", Top, IsValid (0, eth_inst)) in
   Alcotest.(check bool)
     "Σx:eth.ipv4 includes 'eth'" true
     (Test.check_subtype hty t1 [] header_table)
 
 let test_check_instance_valid_ipv4 () =
-  let hty = Refinement ("x", Top, And (IsValid (0, eth_inst), IsValid(0, ipv4_inst))) in
+  let hty =
+    Refinement ("x", Top, And (IsValid (0, eth_inst), IsValid (0, ipv4_inst)))
+  in
   (* let hty = Sigma ("x", hty_inst eth_inst, hty_inst ipv4_inst) in *)
   let t2 = Refinement ("x", hty, IsValid (0, ipv4_inst)) in
   Alcotest.(check bool)
@@ -149,8 +175,8 @@ let test_subtype_empty_concat () =
           ( "y",
             hty_inst eth_inst,
             And
-              (TmEq (Length (0, PktIn), Num 0), TmEq (Length (0, PktOut), Num 0))
-          ) )
+              ( Eq (ArithExpr (Length (0, PktIn)), ArithExpr (Num 0)),
+                Eq (ArithExpr (Length (0, PktOut)), ArithExpr (Num 0)) ) ) )
   in
   Test.is_subtype hty_s hty_t [] header_table
 
@@ -163,17 +189,23 @@ let test_subtype_concat_empty () =
           ( "y",
             hty_inst eth_inst,
             And
-              (TmEq (Length (0, PktIn), Num 0), TmEq (Length (0, PktOut), Num 0))
-          ) )
+              ( Eq (ArithExpr (Length (0, PktIn)), ArithExpr (Num 0)),
+                Eq (ArithExpr (Length (0, PktOut)), ArithExpr (Num 0)) ) ) )
   in
   let hty_t = hty_inst eth_inst in
   Test.is_subtype hty_s hty_t [] header_table
 
 let test_plus () =
   let hty_s =
-    Refinement ("x", hty_empty, TmEq (Plus (Length (0, PktIn), Num 1), Num 33))
+    Refinement
+      ( "x",
+        hty_empty,
+        Eq (ArithExpr (Plus (Length (0, PktIn), Num 1)), ArithExpr (Num 33)) )
   in
-  let hty_t = Refinement ("y", hty_empty, TmEq (Length (0, PktIn), Num 32)) in
+  let hty_t =
+    Refinement
+      ("y", hty_empty, Eq (ArithExpr (Length (0, PktIn)), ArithExpr (Num 32)))
+  in
   Test.is_subtype hty_s hty_t [] header_table
 
 let test_concat () =
@@ -181,15 +213,18 @@ let test_concat () =
     Refinement
       ( "x",
         hty_inst h_inst,
-        TmEq
-          ( Concat (Slice (Instance (0, h_inst), 0, 8), Packet (0, PktIn)),
-            Concat (bv_s "01011010", Packet (0, PktIn)) ) )
+        Eq
+          ( BvExpr
+              (Concat (Slice (Instance (0, h_inst), 0, 8), Packet (0, PktIn))),
+            BvExpr (Concat (bv_s "01011010", Packet (0, PktIn))) ) )
   in
   let hty_t =
     Refinement
       ( "y",
         hty_inst h_inst,
-        TmEq (Slice (Instance (0, h_inst), 0, 8), bv_s "01011010") )
+        Eq
+          (BvExpr (Slice (Instance (0, h_inst), 0, 8)), BvExpr (bv_s "01011010"))
+      )
   in
   Test.is_subtype hty_s hty_t [] header_table
 
@@ -199,25 +234,29 @@ let test_concat2 () =
       ( Refinement
           ( "x",
             hty_inst h_inst,
-            TmEq
-              ( Concat (Slice (Instance (0, h_inst), 0, 4), Packet (0, PktIn)),
-                Packet (1, PktIn) ) ),
+            Eq
+              ( BvExpr
+                  (Concat (Slice (Instance (0, h_inst), 0, 4), Packet (0, PktIn))),
+                BvExpr (Packet (1, PktIn)) ) ),
         "z",
         Refinement
-          ("y", hty_empty, TmEq (Slice (Packet (0, PktIn), 0, 4), bv_s "1111"))
-      )
+          ( "y",
+            hty_empty,
+            Eq (BvExpr (Slice (Packet (0, PktIn), 0, 4)), BvExpr (bv_s "1111"))
+          ) )
   in
   let hty_t =
     Refinement
       ( "x",
         hty_inst h_inst,
-        TmEq (Slice (Instance (0, h_inst), 0, 4), bv_s "1111") )
+        Eq (BvExpr (Slice (Instance (0, h_inst), 0, 4)), BvExpr (bv_s "1111"))
+      )
   in
   Test.is_subtype hty_s hty_t [] header_table
 
 let test_concat3 () =
   let hty_s =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
         (Σ x:
           {y:ε|y.pkt_in.length==6}.
@@ -228,20 +267,21 @@ let test_concat3 () =
   Test.not_subtype hty_s Nothing [] header_table
 
 let test_subst () =
-  (* let hty_s = Parsing.header_type_of_string
+  (* let hty_s = Parsing.heap_type_of_string
      "{x:eth|x.pkt_in.length==y.pkt_in.length}[y ->
-     {z:\\empty|z.pkt_in.length==1 || z.pkt_in.length==2}]" header_table [] in *)
-  (* let hty_t = Parsing.header_type_of_string "{x:eth|x.pkt_in.length==1}"
+     {z:\\empty|z.pkt_in.length==1 || z.pkt_in.length==2}]" header_table []
+     in *)
+  (* let hty_t = Parsing.heap_type_of_string "{x:eth|x.pkt_in.length==1}"
      header_table [] in *)
-  (* let hty_t = Parsing.header_type_of_string
+  (* let hty_t = Parsing.heap_type_of_string
      "{x:eth|x.pkt_in.length==v.pkt_in.length}[v ->
      {z:\\empty|z.pkt_in.length==1}]" header_table [] in *)
   let hty_s =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       "{x:eth|x.pkt_in.length==1} + {x:eth|x.pkt_in.length==2}" header_table []
   in
   let hty_t =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       "{x:eth|x.pkt_in.length==v.pkt_in.length}[v -> {z:\\empty|z.pkt_in.length==1 || z.pkt_in.length==2}]"
       header_table []
   in
@@ -254,9 +294,9 @@ let test_refine_choice () =
   (* TODO: From the perspective of the formalization we expect this to work
      without the explicit validity check. *)
   let hty_s =
-    Parsing.header_type_of_string "{x:(a+b)|x.a.a==0x1 ∧ x.a.valid}" ht []
+    Parsing.heap_type_of_string "{x:(a+b)|x.a.a==0x1 ∧ x.a.valid}" ht []
   in
-  let hty_t = Parsing.header_type_of_string "a" ht [] in
+  let hty_t = Parsing.heap_type_of_string "a" ht [] in
   Test.is_subtype hty_s hty_t [] ht
 
 let test_type_extract_nothing () =
@@ -268,7 +308,7 @@ let test_type_extract_nothing () =
       ]
   in
   let hty_var =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
         {y_2:
           {x_2:
@@ -281,7 +321,7 @@ let test_type_extract_nothing () =
       ht []
   in
   let hty_s =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
         Σy_0:
           ({z_0:
@@ -330,7 +370,7 @@ let test_refinement_not_nothing () =
       ]
   in
   let hty_s =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
       {y_1:
       ⊤
@@ -352,7 +392,7 @@ let test_sigma_not_nothing () =
       ]
   in
   let hty_s =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
         Σy_0:
           ({z_0:
@@ -385,7 +425,7 @@ let test_subtype_roundtripping () =
       ]
   in
   let hty_var =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
         {y_9:
           {x_3:
@@ -398,7 +438,7 @@ let test_subtype_roundtripping () =
   in
   let env = [ ("x_2", Env.VarBind hty_var) ] in
   let hty_s =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
         ((Σy_6:
           ({z_2:
@@ -492,7 +532,7 @@ let test_subtype_roundtripping () =
       ht env
   in
   let hty_t =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
         {y_10:
           {x_4:
@@ -513,7 +553,7 @@ let test_subtype_roundtripping2 () =
       ]
   in
   let hty_var =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
           {y_9:
             {x_3:
@@ -526,7 +566,7 @@ let test_subtype_roundtripping2 () =
   in
   let env = [ ("x_2", Env.VarBind hty_var) ] in
   let hty_subst1 =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
         Σx_0:
         ({u_0:
@@ -561,7 +601,7 @@ let test_subtype_roundtripping2 () =
   in
   let env' = ("y_0", Env.VarBind hty_subst1) :: env in
   let hty_subst2 =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
           Σz_0:
             ({y_5:
@@ -587,7 +627,7 @@ let test_subtype_roundtripping2 () =
   in
   let env'' = ("y_3", Env.VarBind hty_subst2) :: env' in
   let hty_s =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
           Σy_6:
             ({z_2:
@@ -632,7 +672,7 @@ let test_subtype_roundtripping2 () =
       ht env''
   in
   let hty_t =
-    Parsing.header_type_of_string
+    Parsing.heap_type_of_string
       {|
           {y_10:
             {x_4:
@@ -653,25 +693,25 @@ let test_subtype_extract_opt () =
       ]
   in
   let input_type =
-    Parsing.parse_header_type "{y:ε|y.pkt_in.length > 5}" header_table []
+    Parsing.parse_heap_type "{y:ε|y.pkt_in.length > 5}" header_table []
   in
   let context = [ ("x", Env.VarBind input_type) ] in
   let subtype =
-    Parsing.parse_header_type
+    Parsing.parse_heap_type
       {|
         {z:⊤
           | 
             z.A.valid ∧ 
             z.B.valid ∧ 
             z.pkt_in.length + 4 > 5 ∧
-            z.A@z.pkt_in = x.pkt_in ∧ 
-            z.pkt_out = x.pkt_out ∧ 
-            x.A.valid => z.A.valid ∧ z.A = x.A ∧
-            x.B.valid => z.B.valid ∧ z.B = x.B }
+            z.A@z.pkt_in == x.pkt_in ∧ 
+            z.pkt_out == x.pkt_out ∧ 
+            x.A.valid => z.A.valid ∧ z.A == x.A ∧
+            x.B.valid => z.B.valid ∧ z.B == x.B }
       |}
       header_table context
   in
-  let supertype = Parsing.parse_header_type "Σy:A.B" header_table [] in
+  let supertype = Parsing.parse_heap_type "Σy:A.B" header_table [] in
   Test.is_subtype subtype supertype context header_table
 
 let test_subtype_plus () =
@@ -682,13 +722,13 @@ let test_subtype_plus () =
       ]
   in
   let subtype =
-    Parsing.parse_header_type
+    Parsing.parse_heap_type
       {|
         {x:A|x.pkt_in.length+4 == 0}
       |}
       header_table []
   in
-  let supertype = Parsing.parse_header_type "A" header_table [] in
+  let supertype = Parsing.parse_heap_type "A" header_table [] in
   Test.is_subtype subtype supertype [] header_table
 
 let test_set =
@@ -705,8 +745,8 @@ let test_set =
     test_case "not(ε <: {x:ε | |x.pkt_in|=8})" `Quick test_subtype_ref_empty;
     test_case "{x:ε | x.pkt_in=0101} <: {x:ε | x.pkt_in[0:4]=0101}" `Quick
       test_subtype_fixed_pktin_slice;
-    test_case "not ({x:ε | x.pkt_in[0:4]=0101} <: {x:ε | x.pkt_in=0101})"
-      `Quick test_subtype_slice_fixed_pktin;
+    test_case "not ({x:ε | x.pkt_in[0:4]=0101} <: {x:ε | x.pkt_in=0101})" `Quick
+      test_subtype_slice_fixed_pktin;
     test_case "{x:ε | x.pkt_out=0101} <: {x:ε | x.pkt_out[0:4]=0101}" `Quick
       test_subtype_fixed_pktout_slice;
     test_case "{x:ε | x.pkt_in=0101} <: {x:ε | |x.pkt_in|=4}" `Quick
@@ -714,8 +754,7 @@ let test_set =
     test_case "{x:ε | x.pkt_out=0101} <: {x:ε | |x.pkt_out|=4}" `Quick
       test_subtype_fixed_pktout_fixed_length;
     test_case "Σx:eth.ipv4 includes 'eth'" `Slow test_check_instance_valid_eth;
-    test_case "Σx:eth.ipv4 includes 'ipv4'" `Slow
-      test_check_instance_valid_ipv4;
+    test_case "Σx:eth.ipv4 includes 'ipv4'" `Slow test_check_instance_valid_ipv4;
     test_case "eth + ipv4 does not include 'eth'" `Quick
       test_check_instance_valid_choice;
     test_case "eth <: Σx:ε.{y:eth | |y.pkt_in|=0 ∧ |y.pkt_out|=0" `Quick
@@ -733,8 +772,7 @@ let test_set =
     test_case "Concat3" `Quick test_concat3;
     test_case "Substitution" `Quick test_subst;
     test_case "{x:a+b| x.a.a = 0x1} <: a" `Quick test_refine_choice;
-    test_case "Type of extract should not be ∅" `Quick
-      test_type_extract_nothing;
+    test_case "Type of extract should not be ∅" `Quick test_type_extract_nothing;
     test_case "Refinement type should not be ∅" `Quick
       test_refinement_not_nothing;
     test_case "Sigma type should not be ∅" `Quick test_sigma_not_nothing;

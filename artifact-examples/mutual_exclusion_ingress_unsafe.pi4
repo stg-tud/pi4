@@ -1,0 +1,35 @@
+header_type ethernet_t {
+  dstAddr: 48;
+  srcAddr: 48;
+  etherType: 16;
+}
+header_type ipv4_t {
+  version: 4; 
+  ihl: 4; 
+  tos: 8; 
+  len: 16; 
+  id: 16; 
+  flags: 3; 
+  frag: 13; 
+  ttl: 8; 
+  proto: 8; 
+  chksum: 16; 
+  src: 32; 
+  dst: 32;
+}
+header_type ipv6_t {
+  version: 4;
+  trafficClass: 8;
+  flowLable: 20;
+  payloadLength: 16;
+  nextHeader: 8;
+  hopLimit: 8;
+  srcAddr: 128;
+  dstAddr: 128; 
+}
+header ether : ethernet_t
+header ipv4 : ipv4_t
+header ipv6 : ipv6_t
+
+add(ipv6);
+ether.etherType := 0x86dd

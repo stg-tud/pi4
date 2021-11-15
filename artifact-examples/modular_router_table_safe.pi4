@@ -1,0 +1,22 @@
+header_type vlan_t {
+  vid: 2;
+}
+header_type meta_t {
+  egress_spec: 9;
+}
+header_type vlan_tbl_t {
+  vid: 2;
+  act: 1;
+}
+
+header vlan : vlan_t
+header meta : meta_t
+header vlan_tbl : vlan_tbl_t
+
+if (vlan.vid == vlan_tbl.vid) {
+  if (vlan_tbl.act == 0b0) {
+    meta.egress_spec := 0b111111111
+  } else {
+    meta.egress_spec := 0b000000001
+  }
+}

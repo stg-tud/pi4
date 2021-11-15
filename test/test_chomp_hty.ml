@@ -2,9 +2,9 @@ open Core_kernel
 open Alcotest
 open Pi4
 open Syntax
-open Expression
+open Formula
 open HeapType
-open Term
+open Expression
 
 let foo_inst = Test_utils.mk_inst "foo" [ ("a", 4); ("b", 8); ("c", 16) ]
 
@@ -31,7 +31,7 @@ module T = Typechecker.CompleteChecker(struct let maxlen = 32 end)
 
 let test_chomp_nothing () =
   let ty = Nothing in
-  let actual = T.chomp1 ty [] 0 in
+  let actual = Chomp.chomp1 ty [] 0 in
   let expected = ty in
   Alcotest.(check Testable.hty) "chomp1 ø should be ø" expected actual
 

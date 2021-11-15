@@ -9,7 +9,6 @@ let test_suite =
     ("ref_chomping", Test_chomp_ref.test_set);
     ("type_chomping", Test_chomp_hty.test_set);
     ("type_checking", Test_typecheck.test_set);
-    ("ssa", Test_ssa.test_set);
     ("syntax", Test_syntax.test_set);
     ("roundtrip", Test_artifact_roundtrip.test_set);
     ("mutual_exclusion", Test_artifact_mutual_exclusion.test_set);
@@ -28,9 +27,9 @@ let () =
   Format.pp_set_geometry Format.err_formatter ~max_indent:239 ~margin:240;
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter @@ Logs.format_reporter ();
-  Logs.set_level ~all:true @@ Some Logs.Info;
+  Logs.set_level ~all:true @@ Some Logs.Debug;
   Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
-  Logs.Src.set_level Pi4.Logging.ssa_src @@ Some Logs.Debug;  
+
 
   (* start_profiling (); *)
   Alcotest.run "Pi4" test_suite

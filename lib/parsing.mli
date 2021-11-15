@@ -1,9 +1,9 @@
 open Syntax
 
-val header_type_of_string :
+val heap_type_of_string :
   string -> HeaderTable.t -> Env.context -> HeapType.t
 
-val parse_header_type : string -> HeaderTable.t -> Env.context -> HeapType.t
+val parse_heap_type : string -> HeaderTable.t -> Env.context -> HeapType.t
 
 val parse_command : string -> HeaderTable.t -> command
 

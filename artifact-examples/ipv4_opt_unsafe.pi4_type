@@ -1,0 +1,2 @@
+(x:{y:ε | y.pkt_in.length > 280}) -> 
+    {y:⊤|((y.ipv4.valid && y.ipv4.ihl!=0x5) => y.ipv4opt.valid) && ((y.ipv4.valid && y.ipv4.ihl==0x5) => !y.ipv4opt.valid)}

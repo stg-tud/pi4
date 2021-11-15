@@ -9,8 +9,8 @@ let bitvector = Alcotest.testable pp_bitvector [%compare.equal: BitVector.t]
 
 let term =
   Alcotest.testable
-    (Pretty.pp_term [ ("y", NameBind); ("x", NameBind) ])
-    [%compare.equal: Term.t]
+    (Pretty.pp_expr [ ("y", NameBind); ("x", NameBind) ])
+    [%compare.equal: Expression.t]
 
 let ty ctx = Alcotest.testable (pp_type ctx) [%compare.equal: ty]
 
@@ -18,7 +18,7 @@ let rec eq_hty (x : HeapType.t) (y : HeapType.t) =
   match (x, y) with
   | Sigma (_, x1, x2), Sigma (_, y1, y2) -> eq_hty x1 y1 && eq_hty x2 y2
   | Refinement (_, x1, e1), Refinement (_, y1, e2) ->
-    eq_hty x1 y1 && [%compare.equal: Expression.t] e1 e2
+    eq_hty x1 y1 && [%compare.equal: Formula.t] e1 e2
   | Choice (l1, r1), Choice (l2, r2) -> eq_hty l1 l2 && eq_hty r1 r2
   | Substitution (l1, _, r1), Substitution (l2, _, r2) ->
     eq_hty l1 l2 && eq_hty r1 r2

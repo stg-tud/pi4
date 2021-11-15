@@ -1,9 +1,9 @@
 open Core_kernel
 open Syntax
+open Formula
 open Expression
-open Term
 
-let rec fold_plus (term : Term.t) =
+let rec fold_plus (term : Expression.arith) =
   match term with
   | Plus (Num m, Num n) -> Num (m + n)
   | Plus (Plus (t, Num m), Num n) -> fold_plus (Plus (t, Num (m + n)))
@@ -32,32 +32,35 @@ let rec fold_concat t =
   | Concat (t1, t2) -> Concat (fold_concat t1, fold_concat t2)
   | _ -> t
 
-let simplify_term (term : Term.t) = fold_concat (fold_plus term)
+let simplify_expr (expr : Expression.t) =
+  match expr with
+  | ArithExpr e -> ArithExpr (fold_plus e)
+  | BvExpr e -> BvExpr (fold_concat e)
 
-(* let simplify_expr (expr : Expression.t) = let rec aux e0 k = match e0 with |
+(* let simplify_expr (expr : Formula.t) = let rec aux e0 k = match e0 with |
    TmEq (tm1, tm2) -> k (TmEq (simplify_term tm1, simplify_term tm2)) | Neg e1
    -> aux e1 (fun e1' -> k (Neg e1')) | And (e1, e2) -> aux e1 (fun e1' -> aux
    e2 (fun e2' -> k (And (e1', e2')))) | _ as e' -> k e' in aux expr (fun x ->
    x) *)
 
-let expr_equal = [%compare.equal: Expression.t]
+let expr_equal = [%compare.equal: Formula.t]
 
-let rec simplify_expr (expr : Expression.t) =
-  match expr with
-  | TmEq (tm1, tm2) -> TmEq (simplify_term tm1, simplify_term tm2)
-  | TmGt (tm1, tm2) -> TmGt (simplify_term tm1, simplify_term tm2)
-  | Neg e1 -> Neg (simplify_expr e1)
-  | And (True, e) -> simplify_expr e
-  | And (e, True) -> simplify_expr e
+let rec simplify_form (form : Formula.t) =
+  match form with
+  | Eq (tm1, tm2) -> Eq (simplify_expr tm1, simplify_expr tm2)
+  | Gt (tm1, tm2) -> Gt (simplify_expr tm1, simplify_expr tm2)
+  | Neg e1 -> Neg (simplify_form e1)
+  | And (True, e) -> simplify_form e
+  | And (e, True) -> simplify_form e
   | And (e1, And (e2, e3)) ->
     if expr_equal e1 e2 then
-      simplify_expr (And (e1, e3))
+      simplify_form (And (e1, e3))
     else
-      And (simplify_expr e1, simplify_expr (And (e2, e3)))
-  | And (e1, e2) -> And (simplify_expr e1, simplify_expr e2)
+      And (simplify_form e1, simplify_form (And (e2, e3)))
+  | And (e1, e2) -> And (simplify_form e1, simplify_form e2)
   | _ as e' -> e'
 
-module ExpressionSet = Set.Make (Expression)
+module FormulaSet = Set.Make (Formula)
 
 let rec fold_refinements (header_type : HeapType.t) =
   let open HeapType in
@@ -66,14 +69,14 @@ let rec fold_refinements (header_type : HeapType.t) =
     Sigma (x, fold_refinements hty1, fold_refinements hty2)
   | Choice (hty1, hty2) -> Choice (fold_refinements hty1, fold_refinements hty2)
   | Refinement (x, hty, e) ->
-    let hty', exprs = collect_exprs hty ExpressionSet.empty in
+    let hty', exprs = collect_exprs hty FormulaSet.empty in
     let e' = Set.fold exprs ~init:e ~f:(fun acc expr -> And (expr, acc)) in
-    Refinement (x, fold_refinements hty', simplify_expr e')
+    Refinement (x, fold_refinements hty', simplify_form e')
   | Substitution (hty1, x, hty2) ->
     Substitution (fold_refinements hty1, x, fold_refinements hty2)
   | _ as hty -> hty
 
-and collect_exprs (header_type : HeapType.t) (acc : ExpressionSet.t) =
+and collect_exprs (header_type : HeapType.t) (acc : FormulaSet.t) =
   let rec aux expr acc =
     match expr with
     | And (e1, e2) -> Set.union (aux e1 acc) (aux e2 acc)

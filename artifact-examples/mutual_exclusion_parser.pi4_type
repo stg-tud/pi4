@@ -1,0 +1,1 @@
+(x:{y:ε| y.pkt_in.length > 432}) -> {y:⊤|!(y.ipv4.valid && y.ipv6.valid)}

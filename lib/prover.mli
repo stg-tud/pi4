@@ -11,7 +11,7 @@ module type S = sig
     HeapType.t ->
     Env.context ->
     HeaderTable.t ->
-    (bool, string) result
+    (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
 
   val check_subtype_with_tactic :
     HeapType.t ->
@@ -19,14 +19,14 @@ module type S = sig
     Env.context ->
     HeaderTable.t ->
     Smtlib.tactic ->
-    (bool, string) result
+    (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
 
   val has_model_with_tactic :
     HeapType.t ->
     Env.context ->
     HeaderTable.t ->
     Z3.Smtlib.tactic ->
-    (bool, string) result
+    (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
 end
 
 module Make : functor (Enc : Encoding.S) -> S

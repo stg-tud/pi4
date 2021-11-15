@@ -9,7 +9,7 @@ build:
 
 ARTIFACT-DIR = ./artifact-examples
 artifact: $(ARTIFACT-DIR)/*.pi4
-	for f in $(sort $^); do echo; echo $${f} using type $${f}_type; ./pi4 -m 320 -ssa -ir $${f} -typ $${f}_type; done
+	for f in $(sort $^); do echo; echo $${f} using type $${f}_type; ./pi4 -m 320 -ir $${f} -typ $${f}_type; done
 
 run:
 	dune exec bin/main.exe

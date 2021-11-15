@@ -1,0 +1,1 @@
+(x:{y:ε|y.pkt_out.length == 0 && y.pkt_in.length > 304}) -> ⊤
