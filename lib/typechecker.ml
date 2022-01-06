@@ -5,7 +5,6 @@ open Syntax
 open Formula
 open HeapType
 open Expression
-
 module Log = (val Logs.src_log Logging.typechecker_src : Logs.LOG)
 
 module TypecheckingResult = struct
@@ -14,9 +13,7 @@ module TypecheckingResult = struct
     | Success
   [@@deriving compare, sexp]
 
-  let is_error = function
-    | TypeError _ -> true
-    | Success -> false
+  let is_error = function TypeError _ -> true | Success -> false
 
   let pp (pp : Format.formatter) (result : t) =
     match result with
@@ -24,11 +21,7 @@ module TypecheckingResult = struct
     | TypeError e -> Fmt.pf pp "TypeError: %s" e
 end
 
-let incr_binder x cutoff n =
-  if x >= cutoff then
-    x + n
-  else
-    x
+let incr_binder x cutoff n = if x >= cutoff then x + n else x
 
 let shift_sliceable (sliceable : Sliceable.t) cutoff n =
   match sliceable with
@@ -100,9 +93,7 @@ let tybv_concat (ty1 : ty) (ty2 : ty) =
   match (ty1, ty2) with
   | BitVec (StaticSize n), BitVec (StaticSize m) ->
     Ok (BitVec (StaticSize (n + m)))
-  | BitVec MaxLen, BitVec _
-  | BitVec _, BitVec MaxLen ->
-    Ok (BitVec MaxLen)
+  | BitVec MaxLen, BitVec _ | BitVec _, BitVec MaxLen -> Ok (BitVec MaxLen)
   | _ -> Error (`TypeError "Arguments to '@' must be of type BitVec")
 
 let eq_size = [%compare.equal: size]
@@ -131,12 +122,12 @@ let rec refresh_binders (hty : HeapType.t) (ctx : Env.context) =
     Substitution (refresh_binders hty1 ctx', x', refresh_binders hty2 ctx)
 
 module type S = sig
-  val check_type : command -> ty -> HeaderTable.t -> TypecheckingResult.t
+  val check_type : Command.t -> pi_type -> HeaderTable.t -> TypecheckingResult.t
 end
 
 module type Checker = sig
   val compute_type :
-    command ->
+    Command.t ->
     string * HeapType.t ->
     Env.context ->
     HeaderTable.t ->
@@ -216,10 +207,8 @@ module ExprChecker (P : Prover.S) = struct
       and tytm2 = check_bv_expr header_table ctx hty tm2 in
       match (tytm1, tytm2) with
       | BitVec s1, BitVec s2 ->
-        if eq_size s1 s2 then
-          Ok (BitVec s1)
-        else
-          Error (`TypeError "Arguments to '-' must have the same type")
+        if eq_size s1 s2 then Ok (BitVec s1)
+        else Error (`TypeError "Arguments to '-' must have the same type")
       | _ -> Error (`TypeError "Arguments to '-' must be of type BitVec"))
     | Bv Nil -> Ok (BitVec (StaticSize 0))
     | Bv bv -> Ok (BitVec (StaticSize (BitVector.sizeof bv)))
@@ -229,13 +218,13 @@ module ExprChecker (P : Prover.S) = struct
       tybv_concat tybv1 tybv2
     | Slice (Instance (_, inst), l, r) ->
       let%bind incl = HOps.includes header_table ctx hty inst in
-      if incl then
-        return (BitVec (StaticSize (r - l)))
+      if incl then return (BitVec (StaticSize (r - l)))
       else
         Error
           (`TypeError
             (Fmt.str
-               "Instance %s must be included in input type to typecheck term instance slice '%s[%d:%d]'"
+               "Instance %s must be included in input type to typecheck term \
+                instance slice '%s[%d:%d]'"
                inst.name inst.name l r))
     | Slice (Packet (_, _), l, r) -> Ok (BitVec (StaticSize (r - l)))
     | Packet (_, _) -> Ok (BitVec MaxLen)
@@ -267,13 +256,12 @@ module FormChecker (P : Prover.S) = struct
     | Eq (tm1, tm2) ->
       let%bind tytm1 = EC.check_expr header_table ctx hty tm1
       and tytm2 = EC.check_expr header_table ctx hty tm2 in
-      if [%compare.equal: ty] tytm1 tytm2 then
-        return Bool
+      if [%compare.equal: ty] tytm1 tytm2 then return Bool
       else
         Error
           (`TypeError
             (Fmt.str "@[The terms must have the same type (%a/%a)@]"
-               (Pretty.pp_type []) tytm1 (Pretty.pp_type []) tytm2))
+               Pretty.pp_type tytm1 Pretty.pp_type tytm2))
     | Gt (tm1, tm2) -> (
       let%bind tytm1 = EC.check_expr header_table ctx hty tm1
       and tytm2 = EC.check_expr header_table ctx hty tm2 in
@@ -282,9 +270,7 @@ module FormChecker (P : Prover.S) = struct
       | BitVec _, BitVec _ -> return Bool
       | _ -> Error (`TypeError "The terms must have the same type"))
     | Neg e -> check_form header_table ctx hty e
-    | And (e1, e2)
-    | Or (e1, e2)
-    | Implies (e1, e2) ->
+    | And (e1, e2) | Or (e1, e2) | Implies (e1, e2) ->
       let%map _ = check_form header_table ctx hty e1
       and _ = check_form header_table ctx hty e2 in
       Bool
@@ -296,7 +282,7 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
   module C = Chomp.Optimized (P)
   include HeapTypeOps (P)
 
-  let rec compute_type (cmd : command)
+  let rec compute_type (cmd : Command.t)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
       (header_table : HeaderTable.t) =
     let open HeapType in
@@ -360,22 +346,24 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
         in
         Log.debug (fun m ->
             m
-              "Checking if computed output type is a subtype of the ascribed output type...");
+              "Checking if computed output type is a subtype of the ascribed \
+               output type...");
         let%bind output_is_subtype =
           P.check_subtype chty_out ascb_hty_out
             [ (x, Env.VarBind ascb_hty_in) ]
             header_table
         in
-        if output_is_subtype then
-          return ascb_hty_out
+        if output_is_subtype then return ascb_hty_out
         else
           Error
             (`TypeError
-              "The computed output type must be a subtype of the ascribed output type")
-      ) else
+              "The computed output type must be a subtype of the ascribed \
+               output type"))
+      else
         Error
           (`TypeError
-            "The argument input type must be a subtype of the ascribed input type")
+            "The argument input type must be a subtype of the ascribed input \
+             type")
     | Extract inst ->
       Log.debug (fun m -> m "@[<v>Typechecking extract(%s)...@]" inst.name);
       Log.debug (fun m ->
@@ -383,7 +371,8 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
       Log.debug (fun m ->
           m
-            "@[<v>Checking if pkt_in of@ %a@ provides enough bits in context@ %a...@]"
+            "@[<v>Checking if pkt_in of@ %a@ provides enough bits in context@ \
+             %a...@]"
             Pretty.pp_header_type_raw
             (refresh_binders hty_arg ctx)
             Pretty.pp_context ctx);
@@ -456,12 +445,13 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
           Refinement
             (u, chomped, And (insts_equal, And (pkt_out_equal, pkt_in_equal)))
         in
-        return (Sigma (y, tyinst, chomped_eq))
-      ) else
+        return (Sigma (y, tyinst, chomped_eq)))
+      else
         Error
           (`TypeError
             (Printf.sprintf
-               "Tried to chomp off %d bits, but 'pkt_in' does not provide enough bits."
+               "Tried to chomp off %d bits, but 'pkt_in' does not provide \
+                enough bits."
                (Instance.sizeof inst)))
     | If (e, c1, c2) -> (
       Log.debug (fun m ->
@@ -526,8 +516,7 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
             Eq
               ( BvExpr (Slice (Instance (0, inst), 0, left)),
                 BvExpr (Slice (Instance (1, inst), 0, left)) )
-          else
-            insts_equal
+          else insts_equal
         in
         let fields_equal =
           if inst_size - right > 0 then
@@ -537,8 +526,7 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
                   BvExpr (Slice (Instance (1, inst), right, inst_size)) )
             in
             And (fields_equal, eq_right)
-          else
-            fields_equal
+          else fields_equal
         in
 
         let y = Env.pick_fresh_name ctx "y" in
@@ -637,8 +625,7 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
           | Ascription (_, x, ascb_hty_in, _) ->
             Env.add_binding ctx x (Env.VarBind ascb_hty_in)
           | _ -> Env.add_binding ctx hty_var (Env.VarBind hty_arg)
-        else
-          ctx
+        else ctx
       in
       Log.debug (fun m ->
           m "@[<v>Computed output type for c1 = %a:@ %a@]" Pretty.pp_command c1
@@ -688,7 +675,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
     HeaderTable.to_list header_table
     |> List.filter ~f:(fun i -> not ([%compare.equal: Instance.t] i inst))
 
-  let rec compute_type (cmd : command)
+  let rec compute_type (cmd : Command.t)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
       (header_table : HeaderTable.t) =
     let open HeapType in
@@ -744,22 +731,24 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         in
         Log.debug (fun m ->
             m
-              "Checking if computed output type is a subtype of the ascribed output type...");
+              "Checking if computed output type is a subtype of the ascribed \
+               output type...");
         let%bind output_is_subtype =
           P.check_subtype chty_out ascb_hty_out
             [ (x, Env.VarBind ascb_hty_in) ]
             header_table
         in
-        if output_is_subtype then
-          return ascb_hty_out
+        if output_is_subtype then return ascb_hty_out
         else
           Error
             (`TypeError
-              "The computed output type must be a subtype of the ascribed output type")
-      ) else
+              "The computed output type must be a subtype of the ascribed \
+               output type"))
+      else
         Error
           (`TypeError
-            "The argument input type must be a subtype of the ascribed input type")
+            "The argument input type must be a subtype of the ascribed input \
+             type")
     | Extract inst ->
       Log.debug (fun m -> m "@[<v>Typechecking extract(%s)...@]" inst.name);
       Log.debug (fun m ->
@@ -767,7 +756,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
       Log.debug (fun m ->
           m
-            "@[<v>Checking if pkt_in of@ %a@ provides enough bits in context@ %a...@]"
+            "@[<v>Checking if pkt_in of@ %a@ provides enough bits in context@ \
+             %a...@]"
             Pretty.pp_header_type_raw
             (refresh_binders hty_arg ctx)
             Pretty.pp_context ctx);
@@ -798,7 +788,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         Error
           (`TypeError
             (Printf.sprintf
-               "Tried to chomp off %d bits, but 'pkt_in' does not provide enough bits."
+               "Tried to chomp off %d bits, but 'pkt_in' does not provide \
+                enough bits."
                (Instance.sizeof inst)))
     | If (e, c1, c2) -> (
       Log.debug (fun m ->
@@ -879,8 +870,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               Eq
                 ( BvExpr (Slice (Instance (0, inst), right, inst_size)),
                   BvExpr (Slice (Instance (1, inst), right, inst_size)) )
-            else
-              (* right = sizeof(ι) *)
+            else (* right = sizeof(ι) *)
               True
           else if (* ι[n:r] where n > 0 *)
                   inst_size - right > 0 then
@@ -976,8 +966,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           | Ascription (_, x, ascb_hty_in, _) ->
             Env.add_binding ctx x (Env.VarBind ascb_hty_in)
           | _ -> Env.add_binding ctx hty_var (Env.VarBind hty_arg)
-        else
-          ctx
+        else ctx
       in
       Log.debug (fun m ->
           m "@[<v>Computed output type for c1 = %a:@ %a@]" Pretty.pp_command c1
@@ -1025,7 +1014,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
 end
 
 module Make (C : Checker) : S = struct
-  let check_type (cmd : command) (ty : ty) (header_table : HeaderTable.t) =
+  let check_type (cmd : Command.t) (ty : pi_type) (header_table : HeaderTable.t) =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
       let result =
@@ -1033,17 +1022,18 @@ module Make (C : Checker) : S = struct
         let ctx = [ (x, Env.VarBind annot_tyin) ] in
         Log.debug (fun m ->
             m
-              "@[<v>Type computed by type checker:@ (%s:@[<v>@ %a@]@ )@ →@ %a@ @]@."
+              "@[<v>Type computed by type checker:@ (%s:@[<v>@ %a@]@ )@ →@ %a@ \
+               @]@."
               x (Pretty.pp_header_type []) annot_tyin
               (Pretty.pp_header_type ctx)
               (Simplify.fold_refinements tycout));
         let%bind res = C.check_subtype tycout annot_tyout ctx header_table in
-        if res then
-          return res
+        if res then return res
         else
           Error
             (`TypeError
-              "Expected the computed output header type to be a subtype of the annotated output header type")
+              "Expected the computed output header type to be a subtype of the \
+               annotated output header type")
       in
       match result with
       | Ok _ -> TypecheckingResult.Success
@@ -1051,5 +1041,4 @@ module Make (C : Checker) : S = struct
       | Error (`TypeError e)
       | Error (`VariableLookupError e) ->
         TypecheckingResult.TypeError e)
-    | _ -> TypecheckingResult.TypeError "Annotated type must be a Pi type"
 end

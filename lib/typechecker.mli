@@ -12,12 +12,12 @@ module TypecheckingResult : sig
 end
 
 module type S = sig
-  val check_type : command -> ty -> HeaderTable.t -> TypecheckingResult.t
+  val check_type : Command.t -> pi_type -> HeaderTable.t -> TypecheckingResult.t
 end
 
 module type Checker = sig
   val compute_type :
-    command ->
+    Command.t ->
     string * HeapType.t ->
     Env.context ->
     HeaderTable.t ->

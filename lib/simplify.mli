@@ -10,4 +10,4 @@ val simplify_form : Formula.t -> Formula.t
 
 val fold_refinements : HeapType.t -> HeapType.t
 
-val simplify_command : command -> command
+val simplify_command : Command.t -> Command.t

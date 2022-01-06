@@ -1,5 +1,0 @@
-(executable
- (name check)
- (preprocess (pps ppx_jane))
- ;(flags (-ccopt -static))
- (libraries ANSITerminal core fmt.cli logs.fmt petr4 pi4))

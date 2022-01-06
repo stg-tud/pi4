@@ -4,10 +4,7 @@ open Syntax
 open Z3.Smtlib
 
 let pp_bit (pp : Format.formatter) (bit : Bit.t) =
-  match bit with
-  | Zero -> pf pp "0"
-  | One -> pf pp "1"
-  | B n -> pf pp "b_%d" n
+  match bit with Zero -> pf pp "0" | One -> pf pp "1" | B n -> pf pp "b_%d" n
 
 let rec pp_bitvector (pp : Format.formatter) (bitvec : BitVector.t) =
   match bitvec with
@@ -15,9 +12,7 @@ let rec pp_bitvector (pp : Format.formatter) (bitvec : BitVector.t) =
   | Cons (b, bv) -> pf pp "%a%a" pp_bit b pp_bitvector bv
 
 let pp_packet (pp : Format.formatter) (packet : packet) =
-  match packet with
-  | PktIn -> pf pp "pkt_in"
-  | PktOut -> pf pp "pkt_out"
+  match packet with PktIn -> pf pp "pkt_in" | PktOut -> pf pp "pkt_out"
 
 let pp_sliceable (ctx : Env.context) (pp : Format.formatter)
     (sliceable : Sliceable.t) =
@@ -159,28 +154,27 @@ let pp_context (pp : Format.formatter) (ctx : Env.context) =
         pf pp "%s → %a@ " x (pp_header_type ctx') hty);
   pf pp "]@]"
 
-let pp_type (ctx : Env.context) (pp : Format.formatter) (ty : ty) =
+let pp_type (pp : Format.formatter) (ty : ty) =
   match ty with
   | Bool -> pf pp "bool"
   | BitVec MaxLen -> pf pp "bv(MAXLEN)"
   | BitVec (StaticSize n) -> pf pp "bv(%d)" n
   | Nat -> pf pp "nat"
+
+let pp_pi_type (ctx : Env.context) (pp : Format.formatter) (ty : pi_type) =
+  match ty with
   | Pi (x, hty1, hty2) ->
     let ctx' = Env.add_binding ctx x NameBind in
     pf pp "@[(%s: %a)@ →@ %a@]@." x (pp_header_type ctx') hty1
       (pp_header_type ctx') hty2
 
-let pp_type_raw (pp : Format.formatter) (ty : ty) =
+let pp_pi_type_raw (pp : Format.formatter) (ty : pi_type) =
   match ty with
-  | Bool -> pf pp "bool"
-  | BitVec MaxLen -> pf pp "bv(MAXLEN)"
-  | BitVec (StaticSize n) -> pf pp "bv(%d)" n
-  | Nat -> pf pp "nat"
   | Pi (x, hty1, hty2) ->
     pf pp "@[(%s: %a)@ →@ %a@]@." x pp_header_type_raw hty1 pp_header_type_raw
       hty2
 
-let rec pp_command (pp : Format.formatter) (cmd : command) =
+let rec pp_command (pp : Format.formatter) (cmd : Command.t) =
   match cmd with
   | Extract inst -> pf pp "extract(%a)" string inst.name
   | If (e, c1, c2) ->
@@ -230,8 +224,7 @@ let pp_program (pp : Format.formatter) (program : Program.t) =
     program.declarations pp_command program.command
 
 let pp_ident (pp : Format.formatter) (ident : Z3.Smtlib.identifier) =
-  match ident with
-  | Id x -> string pp x
+  match ident with Id x -> string pp x
 
 let rec pp_sort (pp : Format.formatter) (sort : Z3.Smtlib.sort) =
   match sort with
@@ -265,6 +258,8 @@ let rec pp_tactic (pp : Format.formatter) (tactic : Z3.Smtlib.tactic) =
   | SolveEQs -> pf pp "solve-eqs"
   | BitBlast -> pf pp "bit-blast"
   | AIG -> pf pp "aig"
+  | BV -> pf pp "bv"
+  | Repeat t -> pf pp "repeat %a" pp_tactic t
   | SAT -> pf pp "sat"
   | SMT -> pf pp "smt"
   | QFBV -> pf pp "qfbv"

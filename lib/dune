@@ -3,9 +3,17 @@
  (public_name pi4)
  ; (preprocess (pps ppx_jane landmarks.ppx --auto ))
  (preprocess (pps ppx_jane))
- (libraries core fmt landmarks logs owl-base petr4 z3))
+ (libraries core fmt landmarks logs menhirLib owl-base petr4 z3))
+
+(include_subdirs no)
 
 (ocamllex lexer)
 
 (menhir
+ (flags --table)
  (modules parser))
+
+(rule
+ (deps parser.messages parser.mly)
+ (targets parser_messages.ml)
+ (action (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))

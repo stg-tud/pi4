@@ -13,7 +13,9 @@ val index_to_name : context -> int -> (string, [> `VariableLookupError of string
 
 val index_to_name_exn : context -> int -> string
 
-val is_name_bound : context -> string -> bool
+val is_name_bound : (string * 'a) list -> string -> bool
+
+val pick_fresh_name_f : (string * 'a) list -> f:(string -> string) -> string -> string
 
 val pick_fresh_name : context -> string -> string
 

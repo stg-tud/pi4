@@ -22,11 +22,16 @@ module Declaration = struct
 end
 
 module Instance = struct
-  type t =
-    { name : string;
-      fields : Declaration.field list
-    }
-  [@@deriving compare, sexp]
+  module T = struct
+    type t =
+      { name : string;
+        fields : Declaration.field list
+      }
+    [@@deriving compare, sexp]
+  end
+
+  include T
+  include Comparator.Make (T)
 
   let field_exists inst field_name =
     List.exists inst.fields ~f:(fun field -> String.(field.name = field_name))
@@ -36,15 +41,19 @@ module Instance = struct
       match fields with
       | [] ->
         Error
-          (Printf.sprintf "Field '%s' does not exist on instance '%s'" field
-             inst.name)
+          (`FieldAccessError
+            (Printf.sprintf "Field '%s' does not exist on instance '%s'" field
+               inst.name))
       | f :: rest ->
-        if String.(f.name = field) then
-          Ok (offset, offset + f.typ)
-        else
-          aux rest field (offset + f.typ)
+        if String.(f.name = field) then Ok (offset, offset + f.typ)
+        else aux rest field (offset + f.typ)
     in
     aux inst.fields field 0
+
+  let field_bounds_exn inst field =
+    match field_bounds inst field with
+    | Ok bounds -> bounds
+    | Error (`FieldAccessError e) -> failwith e
 
   let sizeof inst =
     List.fold inst.fields ~init:0 ~f:(fun acc field -> acc + field.typ)
@@ -56,8 +65,9 @@ module Instance = struct
     find_field inst field_name
     |> Result.of_option
          ~error:
-           (Printf.sprintf "Field '%s' is not defined on instance '%s'"
-              field_name inst.name)
+           (`FieldAccessError
+             (Printf.sprintf "Field '%s' is not defined on instance '%s'"
+                field_name inst.name))
 
   let slice_matches_field inst left right =
     let _, bounds =
@@ -100,12 +110,15 @@ module HeaderTable = struct
     find_instance inst_str header_table
     |> Result.of_option
          ~error:
-           (Fmt.str
-              "@[<v>Could not look up instance '%s' from header table %s.@]"
-              inst_str (to_string header_table))
+           (`LookupError
+             (Fmt.str
+                "@[<v>Could not look up instance '%s' from header table %s.@]"
+                inst_str (to_string header_table)))
 
   let lookup_instance_exn inst header_table =
-    lookup_instance inst header_table |> Result.ok_or_failwith
+    match lookup_instance inst header_table with
+    | Ok inst -> inst
+    | Error (`LookupError e) -> failwith e
 
   let populate (inst_list : Instance.t list) =
     List.fold inst_list ~init:String.Map.empty ~f:(fun acc inst ->
@@ -158,14 +171,10 @@ module BitVector = struct
     | Cons of (Bit.t * t)
   [@@deriving compare, sexp]
 
-  let rec sizeof = function
-    | Nil -> 0
-    | Cons (_, bs) -> 1 + sizeof bs
+  let rec sizeof = function Nil -> 0 | Cons (_, bs) -> 1 + sizeof bs
 
   let rec concat (bv1 : t) (bv2 : t) =
-    match bv1 with
-    | Nil -> bv2
-    | Cons (b, bs) -> Cons (b, concat bs bv2)
+    match bv1 with Nil -> bv2 | Cons (b, bs) -> Cons (b, concat bs bv2)
 
   let of_bit_list bits =
     List.rev bits |> List.fold ~init:Nil ~f:(fun acc b -> Cons (b, acc))
@@ -184,32 +193,19 @@ module BitVector = struct
     | '7' -> of_bit_str "0111"
     | '8' -> of_bit_str "1000"
     | '9' -> of_bit_str "1001"
-    | 'a'
-    | 'A' ->
-      of_bit_str "1010"
-    | 'b'
-    | 'B' ->
-      of_bit_str "1011"
-    | 'c'
-    | 'C' ->
-      of_bit_str "1100"
-    | 'd'
-    | 'D' ->
-      of_bit_str "1101"
-    | 'e'
-    | 'E' ->
-      of_bit_str "1110"
-    | 'f'
-    | 'F' ->
-      of_bit_str "1110"
+    | 'a' | 'A' -> of_bit_str "1010"
+    | 'b' | 'B' -> of_bit_str "1011"
+    | 'c' | 'C' -> of_bit_str "1100"
+    | 'd' | 'D' -> of_bit_str "1101"
+    | 'e' | 'E' -> of_bit_str "1110"
+    | 'f' | 'F' -> of_bit_str "1110"
     | _ -> failwith (Printf.sprintf "Unrecognized character '%c'" c)
 
   let of_hex_str hex_str =
     String.fold hex_str ~init:Nil ~f:(fun acc c ->
         concat acc (bv_of_hex_char c))
 
-  let zero size = 
-    of_bit_list (List.init size ~f:(fun _ -> Bit.Zero))
+  let zero size = of_bit_list (List.init size ~f:(fun _ -> Bit.Zero))
 end
 
 module Sliceable = struct
@@ -248,10 +244,11 @@ module Expression = struct
     Slice (Instance (binder, inst), l, r)
 
   let field_to_slice_exn inst field binder =
-    field_to_slice inst field binder |> Result.ok_or_failwith
+    match field_to_slice inst field binder with
+    | Ok slice -> slice
+    | Error (`FieldAccessError e) -> failwith e
 
   let instance_slice x inst = Slice (Instance (x, inst), 0, Instance.sizeof inst)
-
   let bit_access sliceable idx = BvExpr (Slice (sliceable, idx, idx + 1))
 end
 
@@ -312,10 +309,8 @@ module HeapType = struct
     let e =
       HeaderTable.to_list header_table
       |> List.fold ~init:valid ~f:(fun acc inst ->
-             if Instance.equals i1 inst || Instance.equals i2 inst then
-               acc
-             else
-               And (acc, Neg (IsValid (0, inst))))
+             if Instance.equals i1 inst || Instance.equals i2 inst then acc
+             else And (acc, Neg (IsValid (0, inst))))
     in
     Refinement (x, Top, e)
 end
@@ -325,44 +320,41 @@ type size =
   | MaxLen
 [@@deriving compare, sexp]
 
+type pi_type = Pi of string * HeapType.t * HeapType.t
+[@@deriving compare, sexp]
+
 type ty =
   | Bool
   | BitVec of size
   | Nat
-  | Pi of string * HeapType.t * HeapType.t
 [@@deriving compare, sexp]
 
-type command =
-  | Extract of Instance.t
-  | If of Formula.t * command * command
-  | Assign of Instance.t * int * int * Expression.t
-  | Remit of Instance.t
-  | Reset
-  | Seq of command * command
-  | Skip
-  | Add of Instance.t
-  | Ascription of command * string * HeapType.t * HeapType.t
-[@@deriving compare, sexp]
+module Command = struct
+  type t =
+    | Extract of Instance.t
+    | If of Formula.t * t * t
+    | Assign of Instance.t * int * int * Expression.t
+    | Remit of Instance.t
+    | Reset
+    | Seq of t * t
+    | Skip
+    | Add of Instance.t
+    | Ascription of t * string * HeapType.t * HeapType.t
+  [@@deriving compare, sexp]
+end
 
 module Program = struct
   type t =
     { declarations : Declaration.t list;
-      command : command
+      command : Command.t
     }
   [@@deriving compare, sexp]
 end
 
-let ensure_pi (ty : ty) =
-  match ty with
-  | Pi (x, hty1, hty2) -> Ok (x, hty1, hty2)
-  | _ -> Error (Printf.sprintf "Expected a function type.")
-
 (* Smart Constructors *)
 
 let bv_l l = Expression.Bv (BitVector.of_bit_list l)
-
 let bv_s s = Bit.bit_list_of_string s |> bv_l
-
 let bv_x x = Expression.Bv (BitVector.of_hex_str x)
 
 let pkt_eq ((i, p) : int * packet) (y : Expression.t) (y_len : int) =
@@ -403,3 +395,15 @@ let heap_equality (idx_x : var) (idx_y : var) (header_table : HeaderTable.t) =
   Formula.And
     ( And (packet_equality idx_x idx_y PktIn, packet_equality idx_x idx_y PktOut),
       inst_equality idx_x idx_y insts )
+
+module Annotation = struct
+  type annotation_body =
+    | Reset
+    | Block of string
+    | TypedBlock of annotation_body * pi_type
+    | Sequence of annotation_body * annotation_body
+  [@@deriving compare, sexp]
+
+  type t = TypeAnnotation of annotation_body * pi_type
+  [@@deriving compare, sexp]
+end

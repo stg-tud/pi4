@@ -68,7 +68,6 @@
 %token QFBV
 
 %right PLUS MINUS LSQUARE
-%left AS
 %right SEMI
 %left AND AT
 %left BANG
@@ -79,20 +78,52 @@
 %start heap_type
 %start program
 %start command
-%start ty
+%start pi_type
 %start instance
 %start smt_tactic
+%start annotation
 
 %type <HeaderTable.t -> Env.context -> HeapType.t> heap_type
 %type <Program.t> program
-%type <HeaderTable.t -> Syntax.command> command
+%type <HeaderTable.t -> Syntax.Command.t> command
 %type <HeaderTable.t -> Formula.t> cexpr
 %type <HeaderTable.t -> Expression.t> cterm
-%type <HeaderTable.t -> Syntax.ty > ty
+%type <HeaderTable.t -> Syntax.pi_type > pi_type
 %type <Instance.t> instance
 %type <Z3.Smtlib.tactic> smt_tactic
+%type <HeaderTable.t -> Syntax.Annotation.t> annotation
 
 %%
+
+annotation_body: 
+| LPAREN body=annotation_body RPAREN { body }
+| RESET { fun _ -> Syntax.Annotation.Reset }
+| body=ID { fun _ -> Syntax.Annotation.Block body }
+| l=annotation_body SEMI r=annotation_body {
+  fun ht -> Syntax.Annotation.Sequence (l ht, r ht)
+}
+| l=typed_annotation_body SEMI r=annotation_body {
+  fun ht -> Syntax.Annotation.Sequence(l ht, r ht)
+}
+| l=annotation_body SEMI r=typed_annotation_body {
+  fun ht -> Syntax.Annotation.Sequence(l ht, r ht)
+}
+| l=typed_annotation_body SEMI r=typed_annotation_body {
+  fun ht -> Syntax.Annotation.Sequence(l ht, r ht)
+}
+
+typed_annotation_body:
+| body = annotation_body AS typ=pi {
+  fun ht -> Syntax.Annotation.TypedBlock (body ht, typ ht)
+}
+
+annotation:
+| body=annotation_body AS typ=pi EOF {
+  fun ht -> Syntax.Annotation.TypeAnnotation (body ht, typ ht)
+}
+| LPAREN body=typed_annotation_body RPAREN AS typ=pi EOF {
+  fun ht -> Syntax.Annotation.TypeAnnotation (body ht, typ ht)
+}
 
 program :
 | decls=list(declaration) cmd EOF { 
@@ -110,7 +141,7 @@ header_field:
 | name=ID COLON typ=INT { Declaration.{ name; typ } }
 
 instance:
-| name=ID LBRACE fields=nonempty_list(terminated(header_field, opt_semi)) RBRACE {
+| name=ID LBRACE fields=nonempty_list(terminated(header_field, SEMI)) RBRACE {
   Instance.{ name; fields }
 }
 
@@ -156,8 +187,7 @@ cmd:
     let tm = $6 ht in
     let inst = HeaderTable.lookup_instance_exn inst_name ht in
     let left, right = 
-      Instance.field_bounds inst field_name 
-      |> Core.Result.ok_or_failwith in
+      Instance.field_bounds_exn inst field_name in
     Assign (inst, left, right, tm) }
 | inst_name=ID LSQUARE left=INT COLON right=INT RSQUARE COLON EQ cterm {
   fun ht ->
@@ -251,13 +281,16 @@ cterm_bv:
   Expression.(Minus (tm1, tm2))
 }
 
-ty: 
-  | LPAREN x=ID COLON hty RPAREN ARROW hty EOF {
+pi: 
+  | LPAREN x=ID COLON hty RPAREN ARROW hty {
     fun ht ->
       let hty_in = $4 ht [] in
       let hty_out = $7 ht [ (x, Env.VarBind hty_in) ] in
       Pi (x, hty_in, hty_out)
   } 
+
+pi_type:
+| pi EOF { $1 }
 
 heap_type:
   | hty = hty EOF { hty }

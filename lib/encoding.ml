@@ -90,32 +90,74 @@ let bv_to_smt v size =
     let i = Int.of_string s in
     Smtlib.bv i size
 
-type dynamic_size =
-  | Dynamic of string
-  | Static of int
-  | Sum of dynamic_size * dynamic_size
+module DynamicSize = struct
+  type t =
+    | Dynamic of string
+    | Static of int
+    | Sum of t * t
 
-let rec max_value_dynamic_size (ds : dynamic_size) (maxlen : int) =
-  match ds with
-  | Dynamic _ -> maxlen
-  | Static n -> n
-  | Sum (n, m) ->
-    max_value_dynamic_size n maxlen + max_value_dynamic_size m maxlen
+  (* let rec is_static = function | Dynamic _ -> false | Static _ -> true | Sum
+     (s1, s2) -> is_static s1 && is_static s2 *)
 
-let rec dynamic_size_to_smt (bv : dynamic_size) (len : int) (maxlen : int) =
+  let rec max_value maxlen = function
+    | Dynamic _ -> maxlen
+    | Static n -> n
+    | Sum (n, m) -> max_value maxlen n + max_value maxlen m
+
+  let rec static_value = function
+    | Dynamic _ -> None
+    | Static n -> Some n
+    | Sum (n, m) ->
+      let open Option.Let_syntax in
+      let%bind n_val = static_value n in
+      let%map m_val = static_value m in
+      n_val + m_val
+end
+
+let fresh_name ctx x =
+  Env.pick_fresh_name_f ctx
+    ~f:(fun s ->
+      let s', n = String.lsplit2 s ~on:'_' |> Option.value ~default:(s, "0") in
+      Fmt.str "%s_%d" s' (int_of_string n + 1))
+    x
+
+type dsize_encoding =
+  { smt_term : Smtlib.term;
+    let_bindings : (string * Smtlib.term) list;
+    constraints : Smtlib.term list
+  }
+
+let rec dynamic_size_to_smt (bv : DynamicSize.t) (len : int) (maxlen : int) =
   match bv with
   | Dynamic d ->
     let const = Smtlib.const d in
     let mbw = min_bit_width maxlen in
     if len > mbw then
-      zero_extend (len - mbw) const
+      { smt_term = zero_extend (len - mbw) const;
+        let_bindings = [];
+        constraints = []
+      }
     else
-      const
-  | Static n -> Smtlib.bv n len
+      { smt_term = const; let_bindings = []; constraints = [] }
+  | Static n ->
+    { smt_term = Smtlib.bv n len; let_bindings = []; constraints = [] }
   | Sum (s1, s2) ->
-    Smtlib.bvadd
-      (dynamic_size_to_smt s1 len maxlen)
-      (dynamic_size_to_smt s2 len maxlen)
+    let s1_enc = dynamic_size_to_smt s1 len maxlen in
+    let s2_enc = dynamic_size_to_smt s2 len maxlen in
+    let let_bindings' = s1_enc.let_bindings @ s2_enc.let_bindings in
+    let binder = fresh_name let_bindings' "dsum" in
+    let const_binder = Smtlib.(Const (Id binder)) in
+    let term =
+      Smtlib.bvadd
+        (zero_extend 1 s1_enc.smt_term)
+        (zero_extend 1 s2_enc.smt_term)
+    in
+    { smt_term = Smtlib.extract (len - 1) 0 const_binder;
+      let_bindings = (binder, term) :: let_bindings';
+      constraints =
+        Smtlib.(equals (extract len len const_binder) (bv 0 1))
+        :: (s1_enc.constraints @ s2_enc.constraints)
+    }
 
 let rec max_arith_value (term : Expression.arith) (maxlen : int) =
   match term with
@@ -137,7 +179,7 @@ let valid_expr_to_smt (ctx : Env.context) (x : var) (inst : Instance.t) =
 module type S = sig
   val equal : string -> string -> HeaderTable.t -> Smtlib.term
 
-  val header_type_to_smt :
+  val heap_type_to_smt :
     HeaderTable.t ->
     Env.context ->
     string ->
@@ -320,14 +362,27 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
     | Concat (tm1, tm2) ->
       let%bind size_tm1 = static_size_of_bv_expr maxlen tm1 in
       let%map size_tm2 = static_size_of_bv_expr maxlen tm2 in
-      size_tm1 + size_tm2
+      min (size_tm1 + size_tm2) maxlen
     | Slice (_, l, r) -> return (r - l)
     | Packet (_, _) -> return maxlen
 
-  let rec arith_expr_to_smt (term : Expression.arith) (length : int)
-      (ctx : Env.context) =
+  type term_encoding =
+    { smt_term : Smtlib.term;
+      dynamic_size : DynamicSize.t;
+      let_bindings : (string * Smtlib.term) list;
+      constraints : Smtlib.term list
+    }
+
+  let rec arith_expr_to_smt (ctx : Env.context) (length : int)
+      (term : Expression.arith) =
     match term with
-    | Num n -> return (Smtlib.bv n length, Static length)
+    | Num n ->
+      return
+        { smt_term = Smtlib.bv n length;
+          dynamic_size = DynamicSize.Static length;
+          let_bindings = [];
+          constraints = []
+        }
     | Length (x, p) ->
       assert (length >= min_bit_width C.maxlen);
       let%map binder = Env.index_to_name ctx x in
@@ -341,11 +396,31 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
         else
           smt_pkt
       in
-      (smt, Static length)
+      { smt_term = smt;
+        dynamic_size = DynamicSize.Static length;
+        let_bindings = [];
+        constraints = []
+      }
     | Plus (tm1, tm2) ->
-      let%bind tm1_smt, _ = arith_expr_to_smt tm1 length ctx in
-      let%map tm2_smt, _ = arith_expr_to_smt tm2 length ctx in
-      (Smtlib.bvadd tm1_smt tm2_smt, Static length)
+      let%bind tm1_enc = arith_expr_to_smt ctx length tm1 in
+      let%map tm2_enc = arith_expr_to_smt ctx length tm2 in
+      let let_bindings' = tm1_enc.let_bindings @ tm2_enc.let_bindings in
+      let x = fresh_name let_bindings' "sum" in
+      let const_x = Smtlib.(Const (Id x)) in
+      (* Ensure that addition does not overflow *)
+      let sum =
+        Smtlib.(
+          bvadd
+            (zero_extend 1 tm1_enc.smt_term)
+            (zero_extend 1 tm2_enc.smt_term))
+      in
+      { smt_term = Smtlib.extract (length - 1) 0 const_x;
+        dynamic_size = DynamicSize.Static length;
+        let_bindings = (x, sum) :: let_bindings';
+        constraints =
+          Smtlib.(equals (extract length length const_x) (bv 0 1))
+          :: (tm1_enc.constraints @ tm2_enc.constraints)
+      }
 
   let rec bv_expr_to_smt (term : Expression.bv) (length : int)
       (ctx : Env.context) =
@@ -353,21 +428,41 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
     | Minus (tm1, tm2) ->
       let%bind tm1_smt, _ = bv_expr_to_smt tm1 length ctx in
       let%map tm2_smt, _ = bv_expr_to_smt tm2 length ctx in
-      (Smtlib.bvsub tm1_smt tm2_smt, Static length)
+      (Smtlib.bvsub tm1_smt tm2_smt, DynamicSize.Static length)
     | Bv v ->
       let%map bv_smt = bv_to_smt v length in
       let size = Syntax.BitVector.sizeof v in
-      (bv_smt, Static size)
+      (bv_smt, DynamicSize.Static size)
     | Concat (tm1, tm2) ->
       let%bind tm1_smt, tm1_size = bv_expr_to_smt tm1 length ctx in
       let%map tm2_smt, tm2_size = bv_expr_to_smt tm2 length ctx in
       let tm1_size_smt = dynamic_size_to_smt tm1_size length C.maxlen in
-      (* TODO: Handle the case where tm1 is empty *)
-      ( Smtlib.ite
-          (Smtlib.equals tm1_size_smt (Smtlib.bv 0 length))
-          tm2_smt
-          Smtlib.(bvor tm1_smt (bvshl tm2_smt tm1_size_smt)),
-        Sum (tm1_size, tm2_size) )
+
+      let ff t =
+        let c =
+          List.fold tm1_size_smt.constraints ~init:t ~f:(fun acc c ->
+              Smtlib.and_ c acc)
+        in
+        List.fold tm1_size_smt.let_bindings ~init:c ~f:(fun acc l ->
+            Smtlib.Let (fst l, snd l, acc))
+      in
+
+      if
+        (* Check if we can determine the size of tm1 is statically known and if
+           so, if it is not 0 *)
+        DynamicSize.static_value tm1_size
+        |> Option.map ~f:(fun v -> v <> 0)
+        |> Option.value ~default:false
+      then
+        ( ff Smtlib.(bvor tm1_smt (bvshl tm2_smt tm1_size_smt.smt_term)),
+          DynamicSize.Sum (tm1_size, tm2_size) )
+      else
+        ( ff
+            (Smtlib.ite
+               (Smtlib.equals tm1_size_smt.smt_term (Smtlib.bv 0 length))
+               tm2_smt
+               Smtlib.(bvor tm1_smt (bvshl tm2_smt tm1_size_smt.smt_term))),
+          DynamicSize.Sum (tm1_size, tm2_size) )
     | Slice (Instance (x, inst), 0, r) when r = Instance.sizeof inst ->
       let%map name = Env.index_to_name ctx x in
       let svar = Smtlib.const (Fmt.str "%s.%s" name inst.name) in
@@ -380,7 +475,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
              variable *)
           svar
       in
-      (smt, Static r)
+      (smt, DynamicSize.Static r)
     | Slice (s, l, r) ->
       assert (length >= r - l);
       let svar = Fmt.str "%a" (Pretty.pp_sliceable ctx) s in
@@ -392,7 +487,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
         else
           extract
       in
-      return (smt, Static (r - l))
+      return (smt, DynamicSize.Static (r - l))
     | Packet (x, p) ->
       let%map binder = Env.index_to_name ctx x in
       let pvar = Fmt.str "%s.%a" binder Pretty.pp_packet p in
@@ -403,25 +498,24 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
         else
           const
       in
-      (smt, Dynamic (Fmt.str "%s.length" pvar))
+      (smt, DynamicSize.Dynamic (Fmt.str "%s.length" pvar))
 
   let encode_bv_expr_comparison (ctx : Env.context)
       (f :
         Smtlib.term ->
         Smtlib.term ->
-        dynamic_size ->
-        dynamic_size ->
+        DynamicSize.t ->
+        DynamicSize.t ->
         Smtlib.term) (e1 : Expression.bv) (e2 : Expression.bv) =
     let%bind ssize_tm1 = static_size_of_bv_expr C.maxlen e1 in
     let%bind ssize_tm2 = static_size_of_bv_expr C.maxlen e2 in
     let len = max ssize_tm1 ssize_tm2 in
-
     let%bind tm1_smt, tm1_dsize = bv_expr_to_smt e1 len ctx in
     let%map tm2_smt, tm2_dsize = bv_expr_to_smt e2 len ctx in
     f tm1_smt tm2_smt tm1_dsize tm2_dsize
 
   let encode_bv_expr_eq (e1_smt : Smtlib.term) (e2_smt : Smtlib.term)
-      (e1_dsize : dynamic_size) (e2_dsize : dynamic_size) =
+      (e1_dsize : DynamicSize.t) (e2_dsize : DynamicSize.t) =
     match (e1_dsize, e2_dsize) with
     | Static n, Static m ->
       assert (n = m);
@@ -430,8 +524,8 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       let dyn_size_num_bits =
         min_bit_width
           (max
-             (max_value_dynamic_size e1_dsize C.maxlen)
-             (max_value_dynamic_size e2_dsize C.maxlen))
+             (DynamicSize.max_value C.maxlen e1_dsize)
+             (DynamicSize.max_value C.maxlen e2_dsize))
       in
       let e1_size_smt =
         dynamic_size_to_smt e1_dsize dyn_size_num_bits C.maxlen
@@ -439,15 +533,23 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       let e2_size_smt =
         dynamic_size_to_smt e2_dsize dyn_size_num_bits C.maxlen
       in
-      Smtlib.(
-        and_
-          (equals e1_size_smt e2_size_smt)
-          (or_
-             (equals (bv 0 dyn_size_num_bits) e1_size_smt)
-             (Smtlib.equals e1_smt e2_smt)))
+      let init =
+        List.fold
+          (e1_size_smt.constraints @ e2_size_smt.constraints)
+          ~init:
+            Smtlib.(
+              and_
+                (equals e1_size_smt.smt_term e2_size_smt.smt_term)
+                (or_
+                   (equals (bv 0 dyn_size_num_bits) e1_size_smt.smt_term)
+                   (Smtlib.equals e1_smt e2_smt)))
+          ~f:(fun acc c -> Smtlib.and_ c acc)
+      in
+      List.fold (e1_size_smt.let_bindings @ e2_size_smt.let_bindings) ~init
+        ~f:(fun acc l -> Smtlib.Let (fst l, snd l, acc))
 
   let encode_bv_expr_gt (e1_smt : Smtlib.term) (e2_smt : Smtlib.term)
-      (e1_dsize : dynamic_size) (e2_dsize : dynamic_size) =
+      (e1_dsize : DynamicSize.t) (e2_dsize : DynamicSize.t) =
     match (e1_dsize, e2_dsize) with
     | Static n, Static m ->
       assert (n = m);
@@ -456,8 +558,8 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       let dyn_size_num_bits =
         min_bit_width
           (max
-             (max_value_dynamic_size e1_dsize C.maxlen)
-             (max_value_dynamic_size e2_dsize C.maxlen))
+             (DynamicSize.max_value C.maxlen e1_dsize)
+             (DynamicSize.max_value C.maxlen e2_dsize))
       in
       let e1_size_smt =
         dynamic_size_to_smt e1_dsize dyn_size_num_bits C.maxlen
@@ -465,12 +567,21 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       let e2_size_smt =
         dynamic_size_to_smt e2_dsize dyn_size_num_bits C.maxlen
       in
-      Smtlib.(
-        and_
-          (equals e1_size_smt e2_size_smt)
-          (or_
-             (equals (bv 0 dyn_size_num_bits) e1_size_smt)
-             (Smtlib.bvugt e1_smt e2_smt)))
+
+      let init =
+        List.fold
+          (e1_size_smt.constraints @ e2_size_smt.constraints)
+          ~init:
+            Smtlib.(
+              and_
+                (equals e1_size_smt.smt_term e2_size_smt.smt_term)
+                (or_
+                   (equals (bv 0 dyn_size_num_bits) e1_size_smt.smt_term)
+                   (Smtlib.bvugt e1_smt e2_smt)))
+          ~f:(fun acc c -> Smtlib.and_ c acc)
+      in
+      List.fold (e1_size_smt.let_bindings @ e2_size_smt.let_bindings) ~init
+        ~f:(fun acc l -> Smtlib.Let (fst l, snd l, acc))
 
   let encode_arith_expr_comparison (ctx : Env.context)
       (f : Smtlib.term -> Smtlib.term -> Smtlib.term) (e1 : Expression.arith)
@@ -478,9 +589,15 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
     let%bind max_tm1 = max_arith_value e1 C.maxlen in
     let%bind max_tm2 = max_arith_value e2 C.maxlen in
     let static_size = min_bit_width (max max_tm1 max_tm2) in
-    let%bind e1_smt, _ = arith_expr_to_smt e1 static_size ctx in
-    let%map e2_smt, _ = arith_expr_to_smt e2 static_size ctx in
-    f e1_smt e2_smt
+    let%bind e1_enc = arith_expr_to_smt ctx static_size e1 in
+    let%map e2_enc = arith_expr_to_smt ctx static_size e2 in
+    let init =
+      List.fold (e1_enc.constraints @ e2_enc.constraints)
+        ~init:(f e1_enc.smt_term e2_enc.smt_term) ~f:(fun acc c ->
+          Smtlib.and_ c acc)
+    in
+    List.fold (e1_enc.let_bindings @ e2_enc.let_bindings) ~init ~f:(fun acc l ->
+        Smtlib.Let (fst l, snd l, acc))
 
   let rec form_to_smt (header_table : HeaderTable.t) (ctx : Env.context)
       (form : Formula.t) =
@@ -495,9 +612,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
     | Gt (ArithExpr e1, ArithExpr e2) ->
       encode_arith_expr_comparison ctx Smtlib.bvugt e1 e2
     | Gt (BvExpr e1, BvExpr e2) ->
-      let%map result = encode_bv_expr_comparison ctx encode_bv_expr_gt e1 e2 in
-      Log.debug (fun m -> m "GT encoded: %a" Pretty.pp_smtlib_term result);
-      result
+      encode_bv_expr_comparison ctx encode_bv_expr_gt e1 e2
     | Eq _
     | Gt _ ->
       Error
@@ -518,21 +633,21 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       let%map e2_smt = form_to_smt header_table ctx e2 in
       Smtlib.implies e1_smt e2_smt
 
-  let rec header_type_to_smt (ht : HeaderTable.t) (ctx : Env.context)
+  let rec heap_type_to_smt (ht : HeaderTable.t) (ctx : Env.context)
       (x0 : string) (hty : HeapType.t) =
     match hty with
     | Nothing -> return (Smtlib.bool_to_term false)
     | Top -> return (Smtlib.bool_to_term true)
     | Choice (hty1, hty2) ->
-      let%bind smt_hty1 = header_type_to_smt ht ctx x0 hty1 in
-      let%map smt_hty2 = header_type_to_smt ht ctx x0 hty2 in
+      let%bind smt_hty1 = heap_type_to_smt ht ctx x0 hty1 in
+      let%map smt_hty2 = heap_type_to_smt ht ctx x0 hty2 in
       Smtlib.or_ smt_hty1 smt_hty2
     | Sigma (x, hty1, hty2) ->
       let x1 = x ^ "_l" in
       let x2 = x ^ "_r" in
-      let%bind smt_hty1 = header_type_to_smt ht ctx x1 hty1 in
+      let%bind smt_hty1 = heap_type_to_smt ht ctx x1 hty1 in
       let ctx' = Env.add_binding ctx x1 (Env.VarBind hty1) in
-      let%map smt_hty2 = header_type_to_smt ht ctx' x2 hty2 in
+      let%map smt_hty2 = heap_type_to_smt ht ctx' x2 hty2 in
       ands
         [ smt_hty1;
           smt_hty2;
@@ -542,14 +657,14 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
           append x0 x1 x2 ht
         ]
     | Refinement (x1, hty, e) ->
-      let%bind smt_hty = header_type_to_smt ht ctx x1 hty in
+      let%bind smt_hty = heap_type_to_smt ht ctx x1 hty in
       let ctx' = Env.add_binding ctx x1 (Env.VarBind hty) in
       let%map smt_exp = form_to_smt ht ctx' e in
       ands [ equal x0 x1 ht; smt_hty; smt_exp; pktbounds x0; pktbounds x1 ]
     | Substitution (hty1, x2, hty2) ->
       let ctx' = Env.add_binding ctx x2 (Env.VarBind hty2) in
-      let%bind smt_hty1 = header_type_to_smt ht ctx' x0 hty1 in
-      let%map smt_hty2 = header_type_to_smt ht ctx x2 hty2 in
+      let%bind smt_hty1 = heap_type_to_smt ht ctx' x0 hty1 in
+      let%map smt_hty2 = heap_type_to_smt ht ctx x2 hty2 in
       ands [ smt_hty1; smt_hty2; pktbounds x0; pktbounds x2 ]
 end
 

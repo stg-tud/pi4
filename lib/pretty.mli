@@ -24,11 +24,13 @@ val pp_header_type_raw : Format.formatter -> HeapType.t -> unit
 
 val pp_context : Format.formatter -> Env.context -> unit
 
-val pp_type : Env.context -> Format.formatter -> ty -> unit
+val pp_type : Format.formatter -> ty -> unit
 
-val pp_type_raw : Format.formatter -> ty -> unit
+val pp_pi_type : Env.context -> Format.formatter -> pi_type -> unit
 
-val pp_command : Format.formatter -> command -> unit
+val pp_pi_type_raw : Format.formatter -> pi_type -> unit
+
+val pp_command : Format.formatter -> Command.t -> unit
 
 val pp_instance : Format.formatter -> Instance.t -> unit
 

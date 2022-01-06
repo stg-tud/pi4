@@ -17,8 +17,7 @@ let ipv4_inst =
 
 let header_table = HeaderTable.populate [ eth_inst; ipv4_inst ]
 
-let parse_header_type hty_str =
-  Parsing.heap_type_of_string hty_str header_table []
+let parse_header_type hty_str = Parsing.parse_heap_type header_table [] hty_str
 
 let test_parser () =
   let input =

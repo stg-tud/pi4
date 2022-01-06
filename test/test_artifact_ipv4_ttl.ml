@@ -20,7 +20,7 @@ module T = Typechecker.Make (Typechecker.SemanticChecker (Config))
 let test_typecheck_ssa header_table cmd ty =
   Prover.make_prover "z3";
   Alcotest.(check Testable.typechecker_result)
-    (Fmt.str "%a" (Pretty.pp_type []) ty)
+    (Fmt.str "%a" (Pretty.pp_pi_type []) ty)
     Typechecker.TypecheckingResult.Success
     (T.check_type cmd ty header_table)
 
@@ -48,8 +48,7 @@ let meta_inst = Test_utils.mk_inst "meta" [ ("egressSpec", 9) ]
 
 let header_table = HeaderTable.populate [ eth_inst; ipv4_inst; meta_inst ]
 
-let parse_header_type hty_str =
-  Parsing.heap_type_of_string hty_str header_table []
+let parse_heap_type s = Parsing.parse_heap_type header_table [] s
 
 let test_ttl_safe1 () =
   let ingress =
@@ -174,10 +173,10 @@ let test_ttl_unsafe () =
          y.meta.valid && ((y.ipv4.ttl == 0x00) => y.meta.egress_spec ==
          0b111111111) && ((y.ipv4.ttl != 0x00) => y.meta.egress_spec ==
          0b000000001)}" *)
-        (* "(x:{y:ipv4~| y.meta.valid}) ->
-         *   {y:ipv4~|
-         *         y.meta.valid && 
-         *         ((x.ipv4.ttl==0x00) => (y.meta.egress_spec==0b111111111))}" *)      
+      (* "(x:{y:ipv4~| y.meta.valid}) ->
+       *   {y:ipv4~|
+       *         y.meta.valid && 
+       *         ((x.ipv4.ttl==0x00) => (y.meta.egress_spec==0b111111111))}" *)
       header_table
   in
   test_typecheck_ssa header_table prog.command ty

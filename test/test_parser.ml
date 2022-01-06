@@ -63,7 +63,7 @@ let test_parse_extract () =
 let test_parse_sequence () =
   let input = Parsing.read_file "./test/examples/sequence.pi4" in
   let prog = Parsing.parse_program input in
-  let expected = Seq (Extract inst_ether, Extract inst_ipv4) in
+  let expected = Command.Seq (Extract inst_ether, Extract inst_ipv4) in
 
   Alcotest.(check Testable.command) "commands are equal" expected prog.command
 
@@ -71,7 +71,7 @@ let test_parse_conditional () =
   let input = Parsing.read_file "./test/examples/conditional.pi4" in
   let prog = Parsing.parse_program input in
   let expected =
-    Seq
+    Command.Seq
       ( Extract inst_ether,
         If
           ( Eq
@@ -87,7 +87,7 @@ let test_parse_optional_else () =
   let input = Parsing.read_file "./test/examples/optional-else.pi4" in
   let prog = Parsing.parse_program input in
   let expected =
-    Seq
+    Command.Seq
       ( Extract inst_ether,
         If
           ( Eq
@@ -103,7 +103,7 @@ let test_parse_nested_if () =
   let input = Parsing.read_file "./test/examples/nested-if.pi4" in
   let prog = Parsing.parse_program input in
   let expected =
-    Seq
+    Command.Seq
       ( Extract inst_ether,
         If
           ( Eq
@@ -126,7 +126,7 @@ let test_parse_reset () =
   let input = Parsing.read_file "./test/examples/reset.pi4" in
   let prog = Parsing.parse_program input in
   let expected =
-    Seq
+    Command.Seq
       ( Extract inst_ether,
         Seq
           ( If
@@ -147,20 +147,25 @@ let test_parse_add () =
   let input = Parsing.read_file "./test/examples/add_vlan.pi4" in
   let prog = Parsing.parse_program input in
   let eth_l, eth_r =
-    Instance.field_bounds inst_ether "etherType" |> Result.ok_or_failwith
+    match Instance.field_bounds inst_ether "etherType" with
+    | Ok (l, r) -> (l, r)
+    | Error (`FieldAccessError e) -> failwith e
   in
   let expected =
-    Seq
+    Command.Seq
       ( Extract inst_ether,
         Seq
           ( If
-              ( Eq (BvExpr (Slice (Instance (0, inst_ether), 96, 112)), BvExpr (bv_x "8100")),
+              ( Eq
+                  ( BvExpr (Slice (Instance (0, inst_ether), 96, 112)),
+                    BvExpr (bv_x "8100") ),
                 Extract inst_vlan,
                 Skip ),
             If
               ( Neg (IsValid (0, inst_vlan)),
                 Seq
-                  (Add inst_vlan, Assign (inst_ether, eth_l, eth_r, BvExpr (bv_x "8100"))),
+                  ( Add inst_vlan,
+                    Assign (inst_ether, eth_l, eth_r, BvExpr (bv_x "8100")) ),
                 Skip ) ) )
   in
 
@@ -171,14 +176,13 @@ let test_parse_ascription () =
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
   let hty_in =
-    Parsing.heap_type_of_string "{y:\\empty|y.pkt_in.length>7}" header_table
-      []
+    Parsing.parse_heap_type header_table [] "{y:\\empty|y.pkt_in.length>7}"
   in
-  let hty_out = Parsing.heap_type_of_string "a" header_table [] in
+  let hty_out = Parsing.parse_heap_type header_table [] "a" in
   let inst_a = Test_utils.mk_inst "a" [ ("a", 4) ] in
   let inst_b = Test_utils.mk_inst "b" [ ("b", 8) ] in
   let expected =
-    Seq (Ascription (Extract inst_a, "z", hty_in, hty_out), Extract inst_b)
+    Command.Seq (Ascription (Extract inst_a, "z", hty_in, hty_out), Extract inst_b)
   in
 
   Alcotest.(check Testable.command) "commands are equal" expected prog.command

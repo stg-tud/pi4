@@ -12,7 +12,7 @@ module T = Typechecker.Make (Typechecker.SemanticChecker (Config))
 let test_typecheck header_table cmd ty =
   Prover.make_prover "z3";
   Alcotest.(check Testable.typechecker_result)
-    (Fmt.str "%a" (Pretty.pp_type []) ty)
+    (Fmt.str "%a" (Pretty.pp_pi_type []) ty)
     Typechecker.TypecheckingResult.Success
     (T.check_type cmd ty header_table)
 

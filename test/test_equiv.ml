@@ -162,7 +162,7 @@ let test_pkt_length_gt_n () =
     Nothing [] header_table
 
 let parse_header_type hty_str =
-  Pi4.Parsing.heap_type_of_string hty_str header_table []
+  Pi4.Parsing.parse_heap_type header_table [] hty_str
 
 let test_pkt_length_gt2 () =
   let hty =
@@ -399,20 +399,20 @@ let test_eqv_concat_choice_nothing4 () =
 
 let test_sigma_semantic_sugar () =
   let hty_sigma =
-    Parsing.parse_heap_type
+    Parsing.parse_heap_type header_table []
       {| 
         Σx:{y:eth|y.pkt_in.length == 0 && y.pkt_out.length == 0}.
           {y:ipv4|y.pkt_in == x.pkt_in && y.pkt_in.length == x.pkt_in.length && y.pkt_out == x.pkt_out && y.pkt_out.length == x.pkt_out.length}
       |}
-      header_table []
   in
+
   let hty_ref =
-    Parsing.parse_heap_type
+    Parsing.parse_heap_type header_table []
       {| {x:⊤|x.eth.valid && x.ipv4.valid && x.pkt_in.length==0 && x.pkt_out.length==0}|}
-      header_table []
   in
+
   let hty_subst =
-    Parsing.parse_heap_type
+    Parsing.parse_heap_type header_table []
       {|
         ({z:⊤|
           !(r.eth.valid && l.eth.valid) && 
@@ -429,8 +429,8 @@ let test_sigma_semantic_sugar () =
           z.pkt_out.length == l.pkt_out.length+r.pkt_out.length}[r ↦ {y:ipv4|y.pkt_in == l.pkt_in && y.pkt_in.length == l.pkt_in.length && y.pkt_out == l.pkt_out && y.pkt_out.length == l.pkt_out.length}]
         )[l ↦ {y:eth|y.pkt_in.length == 0 && y.pkt_out.length == 0}]
       |}
-      header_table []
   in
+
   Test.is_equiv hty_sigma hty_ref [] header_table;
   Test.is_equiv hty_subst hty_ref [] header_table
 

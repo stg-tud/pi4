@@ -1,6 +1,5 @@
 open Core_kernel
 open Z3
-open Smtlib
 open Syntax
 open Result
 open Let_syntax
@@ -11,9 +10,10 @@ module ProfileLog = (val Logs.src_log Logging.prover_profile_src : Logs.LOG)
 
 let prover = ref (Error (`ProverError "Prover not initialized"))
 
-let get r = match !r with 
-| Ok x -> x 
-| Error (_) -> failwith "Get error"
+let get r =
+  match !r with
+  | Ok x -> x
+  | Error _ -> failwith "Get error"
 
 let make_prover loc = prover := Ok (Smtlib.make_solver loc)
 
@@ -28,10 +28,8 @@ let unsat result =
     Ok true
   | Unknown -> failwith "Prover returned UNKNOWN."
 
-let default_tactic = Then [ SolveEQs; UFBV ]
-(* let default_tactic = UFBV *)
-(* ParOr ( UFBV, ParOr ( Then [ Simplify; SolveEQs; QE; BitBlast; AIG; UFBV ],
-   Then [ Simplify; SolveEQs; UFBV ] ) ) *)
+let default_tactic = Smtlib.UFBV
+  (* Smtlib.Then [ SolveEQs; UFBV ] *)
 
 let check_unsat_and_reset (tactic : Smtlib.tactic) =
   let open Smtlib in
@@ -84,7 +82,9 @@ module type S = sig
     HeapType.t ->
     Env.context ->
     HeaderTable.t ->
-    (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
+    ( bool,
+      [> `EncodingError of string | `VariableLookupError of string ] )
+    result
 
   val check_subtype_with_tactic :
     HeapType.t ->
@@ -92,14 +92,18 @@ module type S = sig
     Env.context ->
     HeaderTable.t ->
     Smtlib.tactic ->
-    (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
+    ( bool,
+      [> `EncodingError of string | `VariableLookupError of string ] )
+    result
 
   val has_model_with_tactic :
     HeapType.t ->
     Env.context ->
     HeaderTable.t ->
     Z3.Smtlib.tactic ->
-    (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
+    ( bool,
+      [> `EncodingError of string | `VariableLookupError of string ] )
+    result
 end
 
 module Make (Enc : Encoding.S) : S = struct
@@ -165,25 +169,26 @@ module Make (Enc : Encoding.S) : S = struct
                   []
               in
               let%map term =
-                Enc.header_type_to_smt header_table encoding_ctx x hty
+                Enc.heap_type_to_smt header_table encoding_ctx x hty
               in
               Smtlib.and_ acc term)
       in
 
       let%bind smt_s =
-        Enc.header_type_to_smt header_table annot_ctx svar annot_s
+        Enc.heap_type_to_smt header_table annot_ctx svar annot_s
       in
       let%bind smt_t =
-        Enc.header_type_to_smt header_table annot_ctx tvar annot_t
+        Enc.heap_type_to_smt header_table annot_ctx tvar annot_t
       in
       let smt_t =
-        forall_ consts_t
-          (implies smt_t (not_ (Enc.equal svar tvar header_table)))
+        Smtlib.(
+          forall_ consts_t
+            (implies smt_t (not_ (Enc.equal svar tvar header_table))))
       in
       let smt_consts = Encoding.id_dedup consts_s @ free_consts in
       let smt_terms = [ ctx_s; smt_s; smt_t ] in
 
-      let assert__ = assert_ (get prover) in
+      let assert__ = Smtlib.assert_ (get prover) in
 
       Log.debug (fun m ->
           m "@[<v>%a@;<2 0>%a@ (@[<v 2>check-sat-using@ %a@])@ @]@."
@@ -192,8 +197,10 @@ module Make (Enc : Encoding.S) : S = struct
 
       declare_constants smt_consts;
       List.iter smt_terms ~f:(fun term -> assert__ term);
+      Smtlib.(
+        apply (get prover) (Then [ Simplify; SolveEQs ]));
       let time = Time_ns.now () in
-      let result = check_unsat_and_reset tactic in
+      let result = check_unsat_and_reset Smtlib.BV in
       let time_diff = Time_ns.abs_diff (Time_ns.now ()) time in
       ProfileLog.debug (fun m ->
           m "Subtype check performed in %f ms" (Time_ns.Span.to_ms time_diff));
@@ -252,17 +259,15 @@ module Make (Enc : Encoding.S) : S = struct
                 []
             in
             let%map term =
-              Enc.header_type_to_smt header_table encoding_ctx x hty
+              Enc.heap_type_to_smt header_table encoding_ctx x hty
             in
             Smtlib.and_ acc term)
     in
-    let%bind smt_s =
-      Enc.header_type_to_smt header_table annot_ctx svar annot_s
-    in
+    let%bind smt_s = Enc.heap_type_to_smt header_table annot_ctx svar annot_s in
     let smt_consts = Encoding.id_dedup consts_s @ free_consts in
     let smt_terms = [ ctx_s; smt_s ] in
 
-    let assert__ = assert_ (get prover) in
+    let assert__ = Smtlib.assert_ (get prover) in
 
     Log.debug (fun m ->
         m "@[<v>%a@;<2 0>%a@ (@[<v 2>check-sat-using@ %a@])@ @]@." print_consts

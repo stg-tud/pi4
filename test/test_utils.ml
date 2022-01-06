@@ -19,11 +19,11 @@ module TestRunner (Config : TestConfig) : sig
   val not_subtype :
     HeapType.t -> HeapType.t -> Env.context -> HeaderTable.t -> unit
 
-  val typecheck : HeaderTable.t -> command -> ty -> unit
+  val typecheck : HeaderTable.t -> Command.t -> pi_type -> unit
 
-  val not_typecheck : HeaderTable.t -> command -> ty -> unit
+  val not_typecheck : HeaderTable.t -> Command.t -> pi_type -> unit
 
-  val error : HeaderTable.t -> command -> ty -> string -> unit
+  val error : HeaderTable.t -> Command.t -> pi_type -> string -> unit
 
   val is_equiv :
     HeapType.t -> HeapType.t -> Env.context -> HeaderTable.t -> unit
@@ -89,13 +89,13 @@ end = struct
   let typecheck ht cmd ty =
     init_prover;
     Alcotest.(check Testable.typechecker_result)
-      (Fmt.str "%a" (pp_type []) ty)
+      (Fmt.str "%a" (pp_pi_type []) ty)
       Typechecker.TypecheckingResult.Success (T.check_type cmd ty ht)
 
   let not_typecheck ht cmd ty =
     init_prover;
     Alcotest.(check bool)
-      (Fmt.str "%a" (pp_type []) ty)
+      (Fmt.str "%a" (pp_pi_type []) ty)
       true
       (Typechecker.TypecheckingResult.is_error (T.check_type cmd ty ht))
 

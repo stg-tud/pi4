@@ -1,0 +1,2912 @@
+annotation: VBAR
+##
+## Ends in an error in state: 0.
+##
+## annotation' -> . annotation [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN VBAR
+##
+## Ends in an error in state: 2.
+##
+## annotation -> LPAREN . typed_annotation_body RPAREN AS pi EOF [ # ]
+## annotation_body -> LPAREN . annotation_body RPAREN [ SEMI AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN LPAREN VBAR
+##
+## Ends in an error in state: 3.
+##
+## annotation_body -> LPAREN . annotation_body RPAREN [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN
+##
+## Ends in an error in state: 5.
+##
+## annotation_body -> typed_annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> typed_annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## typed_annotation_body
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 135, spurious reduction of production typed_annotation_body -> annotation_body AS pi
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI VBAR
+##
+## Ends in an error in state: 6.
+##
+## annotation_body -> typed_annotation_body SEMI . annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> typed_annotation_body SEMI . typed_annotation_body [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## typed_annotation_body SEMI
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
+##
+## Ends in an error in state: 7.
+##
+## annotation_body -> typed_annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> typed_annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> typed_annotation_body SEMI typed_annotation_body . [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## typed_annotation_body SEMI typed_annotation_body
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 135, spurious reduction of production typed_annotation_body -> annotation_body AS pi
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI ID VBAR
+##
+## Ends in an error in state: 8.
+##
+## annotation_body -> annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> typed_annotation_body SEMI annotation_body . [ SEMI RPAREN AS ]
+## annotation_body -> annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+## typed_annotation_body -> annotation_body . AS pi [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## typed_annotation_body SEMI annotation_body
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: ID SEMI VBAR
+##
+## Ends in an error in state: 9.
+##
+## annotation_body -> annotation_body SEMI . annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> annotation_body SEMI . typed_annotation_body [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## annotation_body SEMI
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: ID SEMI ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
+##
+## Ends in an error in state: 10.
+##
+## annotation_body -> typed_annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> annotation_body SEMI typed_annotation_body . [ SEMI RPAREN AS ]
+## annotation_body -> typed_annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## annotation_body SEMI typed_annotation_body
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 135, spurious reduction of production typed_annotation_body -> annotation_body AS pi
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: ID SEMI ID VBAR
+##
+## Ends in an error in state: 11.
+##
+## annotation_body -> annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> annotation_body SEMI annotation_body . [ SEMI RPAREN AS ]
+## annotation_body -> annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+## typed_annotation_body -> annotation_body . AS pi [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## annotation_body SEMI annotation_body
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN ID AS VBAR
+##
+## Ends in an error in state: 12.
+##
+## typed_annotation_body -> annotation_body AS . pi [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## annotation_body AS
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+pi_type: LPAREN VBAR
+##
+## Ends in an error in state: 13.
+##
+## pi -> LPAREN . ID COLON hty RPAREN ARROW hty [ SEMI RPAREN EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+pi_type: LPAREN ID VBAR
+##
+## Ends in an error in state: 14.
+##
+## pi -> LPAREN ID . COLON hty RPAREN ARROW hty [ SEMI RPAREN EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+pi_type: LPAREN ID COLON VBAR
+##
+## Ends in an error in state: 15.
+##
+## pi -> LPAREN ID COLON . hty RPAREN ARROW hty [ SEMI RPAREN EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN ID COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: SIGMA VBAR
+##
+## Ends in an error in state: 17.
+##
+## hty -> SIGMA . ID COLON hty DOT hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## SIGMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: SIGMA ID VBAR
+##
+## Ends in an error in state: 18.
+##
+## hty -> SIGMA ID . COLON hty DOT hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## SIGMA ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: SIGMA ID COLON VBAR
+##
+## Ends in an error in state: 19.
+##
+## hty -> SIGMA ID COLON . hty DOT hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## SIGMA ID COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: QUERY VBAR
+##
+## Ends in an error in state: 20.
+##
+## hty -> QUERY . ID [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## QUERY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LPAREN VBAR
+##
+## Ends in an error in state: 23.
+##
+## hty -> LPAREN . hty RPAREN [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE VBAR
+##
+## Ends in an error in state: 24.
+##
+## hty -> LBRACE . ID COLON hty VBAR expr RBRACE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## LBRACE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID VBAR
+##
+## Ends in an error in state: 25.
+##
+## hty -> LBRACE ID . COLON hty VBAR expr RBRACE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## LBRACE ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON VBAR
+##
+## Ends in an error in state: 26.
+##
+## hty -> LBRACE ID COLON . hty VBAR expr RBRACE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## LBRACE ID COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: ID VALID
+##
+## Ends in an error in state: 27.
+##
+## hty -> ID . [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+## hty -> ID . TILDE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VALID
+##
+## Ends in an error in state: 30.
+##
+## hty -> hty . PLUS hty [ VBAR PLUS LSQUARE ]
+## hty -> LBRACE ID COLON hty . VBAR expr RBRACE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ VBAR PLUS LSQUARE ]
+##
+## The known suffix of the stack is as follows:
+## LBRACE ID COLON hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR VBAR
+##
+## Ends in an error in state: 31.
+##
+## hty -> LBRACE ID COLON hty VBAR . expr RBRACE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## LBRACE ID COLON hty VBAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR NEG VBAR
+##
+## Ends in an error in state: 33.
+##
+## expr -> NEG . expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## NEG
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR LT VBAR
+##
+## Ends in an error in state: 34.
+##
+## bv_expr -> LT . GT [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## LT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR LPAREN VBAR
+##
+## Ends in an error in state: 36.
+##
+## arith_expr -> LPAREN . arith_expr RPAREN [ RPAREN PLUS GT EQ BANG ]
+## bv_expr -> LPAREN . bv_expr RPAREN [ RPAREN GT EQ BANG AT ]
+## expr -> LPAREN . expr RPAREN [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID VBAR
+##
+## Ends in an error in state: 38.
+##
+## arith_expr -> ID . DOT packet DOT LENGTH [ RPAREN PLUS GT EQ BANG ]
+## bv_expr -> ID . DOT packet LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID . DOT ID LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID . DOT ID DOT ID [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID . DOT packet [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID . DOT ID [ RPAREN GT EQ BANG AT ]
+## expr -> ID . DOT ID DOT VALID [ RPAREN RBRACE OR DARROW AND ]
+## expr -> ID . EQ EQ EQ ID [ RPAREN RBRACE OR DARROW AND ]
+## expr -> ID . INST_EQ ID [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID INST_EQ VBAR
+##
+## Ends in an error in state: 39.
+##
+## expr -> ID INST_EQ . ID [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## ID INST_EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID EQ VBAR
+##
+## Ends in an error in state: 41.
+##
+## expr -> ID EQ . EQ EQ ID [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## ID EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID EQ EQ VBAR
+##
+## Ends in an error in state: 42.
+##
+## expr -> ID EQ EQ . EQ ID [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## ID EQ EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID EQ EQ EQ VBAR
+##
+## Ends in an error in state: 43.
+##
+## expr -> ID EQ EQ EQ . ID [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## ID EQ EQ EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT VBAR
+##
+## Ends in an error in state: 45.
+##
+## arith_expr -> ID DOT . packet DOT LENGTH [ RPAREN PLUS GT EQ BANG ]
+## bv_expr -> ID DOT . packet LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT . ID LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT . ID DOT ID [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT . packet [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT . ID [ RPAREN GT EQ BANG AT ]
+## expr -> ID DOT . ID DOT VALID [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID VBAR
+##
+## Ends in an error in state: 48.
+##
+## bv_expr -> ID DOT ID . LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT ID . DOT ID [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT ID . [ RPAREN GT EQ BANG AT ]
+## expr -> ID DOT ID . DOT VALID [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID LSQUARE VBAR
+##
+## Ends in an error in state: 49.
+##
+## bv_expr -> ID DOT ID LSQUARE . INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID LSQUARE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID LSQUARE INT VBAR
+##
+## Ends in an error in state: 50.
+##
+## bv_expr -> ID DOT ID LSQUARE INT . COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID LSQUARE INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID LSQUARE INT COLON VBAR
+##
+## Ends in an error in state: 51.
+##
+## bv_expr -> ID DOT ID LSQUARE INT COLON . INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID LSQUARE INT COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID LSQUARE INT COLON INT VBAR
+##
+## Ends in an error in state: 52.
+##
+## bv_expr -> ID DOT ID LSQUARE INT COLON INT . RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID LSQUARE INT COLON INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID DOT VBAR
+##
+## Ends in an error in state: 54.
+##
+## bv_expr -> ID DOT ID DOT . ID [ RPAREN GT EQ BANG AT ]
+## expr -> ID DOT ID DOT . VALID [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN VBAR
+##
+## Ends in an error in state: 57.
+##
+## arith_expr -> ID DOT packet . DOT LENGTH [ RPAREN PLUS GT EQ BANG ]
+## bv_expr -> ID DOT packet . LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT packet . [ RPAREN GT EQ BANG AT ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT packet
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN LSQUARE VBAR
+##
+## Ends in an error in state: 58.
+##
+## bv_expr -> ID DOT packet LSQUARE . INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT packet LSQUARE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN LSQUARE INT VBAR
+##
+## Ends in an error in state: 59.
+##
+## bv_expr -> ID DOT packet LSQUARE INT . COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT packet LSQUARE INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN LSQUARE INT COLON VBAR
+##
+## Ends in an error in state: 60.
+##
+## bv_expr -> ID DOT packet LSQUARE INT COLON . INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT packet LSQUARE INT COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN LSQUARE INT COLON INT VBAR
+##
+## Ends in an error in state: 61.
+##
+## bv_expr -> ID DOT packet LSQUARE INT COLON INT . RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT packet LSQUARE INT COLON INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN DOT VBAR
+##
+## Ends in an error in state: 63.
+##
+## arith_expr -> ID DOT packet DOT . LENGTH [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT packet DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BANG VBAR
+##
+## Ends in an error in state: 68.
+##
+## expr -> BANG . expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## BANG
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BANG FALSE VBAR
+##
+## Ends in an error in state: 69.
+##
+## expr -> expr . AND expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> expr . OR expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> expr . DARROW expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> BANG expr . [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## BANG expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE OR VBAR
+##
+## Ends in an error in state: 70.
+##
+## expr -> expr OR . expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## expr OR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING VBAR
+##
+## Ends in an error in state: 72.
+##
+## bv_expr -> bv_expr . AT bv_expr [ GT EQ BANG AT ]
+## expr -> bv_expr . EQ EQ bv_expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> bv_expr . BANG EQ bv_expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> bv_expr . GT bv_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING GT VBAR
+##
+## Ends in an error in state: 73.
+##
+## expr -> bv_expr GT . bv_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr GT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT LPAREN VBAR
+##
+## Ends in an error in state: 74.
+##
+## bv_expr -> LPAREN . bv_expr RPAREN [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID VBAR
+##
+## Ends in an error in state: 75.
+##
+## bv_expr -> ID . DOT packet LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID . DOT ID LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID . DOT ID DOT ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID . DOT packet [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID . DOT ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID DOT VBAR
+##
+## Ends in an error in state: 76.
+##
+## bv_expr -> ID DOT . packet LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT . ID LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT . ID DOT ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT . packet [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT . ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID DOT ID VBAR
+##
+## Ends in an error in state: 77.
+##
+## bv_expr -> ID DOT ID . LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT ID . DOT ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT ID . [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID DOT ID DOT VBAR
+##
+## Ends in an error in state: 78.
+##
+## bv_expr -> ID DOT ID DOT . ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID DOT PKTIN VBAR
+##
+## Ends in an error in state: 79.
+##
+## bv_expr -> ID DOT packet . LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT packet . [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT packet
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT LPAREN BITSTRING VBAR
+##
+## Ends in an error in state: 80.
+##
+## bv_expr -> LPAREN bv_expr . RPAREN [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN AT ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN bv_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT VBAR
+##
+## Ends in an error in state: 82.
+##
+## bv_expr -> bv_expr AT . bv_expr [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr AT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING GT BITSTRING VBAR
+##
+## Ends in an error in state: 84.
+##
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR DARROW AT AND ]
+## expr -> bv_expr GT bv_expr . [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr GT bv_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING EQ VBAR
+##
+## Ends in an error in state: 85.
+##
+## expr -> bv_expr EQ . EQ bv_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING EQ EQ VBAR
+##
+## Ends in an error in state: 86.
+##
+## expr -> bv_expr EQ EQ . bv_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr EQ EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING EQ EQ BITSTRING VBAR
+##
+## Ends in an error in state: 87.
+##
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR DARROW AT AND ]
+## expr -> bv_expr EQ EQ bv_expr . [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr EQ EQ bv_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING BANG VBAR
+##
+## Ends in an error in state: 88.
+##
+## expr -> bv_expr BANG . EQ bv_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr BANG
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING BANG EQ VBAR
+##
+## Ends in an error in state: 89.
+##
+## expr -> bv_expr BANG EQ . bv_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr BANG EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING BANG EQ BITSTRING VBAR
+##
+## Ends in an error in state: 90.
+##
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR DARROW AT AND ]
+## expr -> bv_expr BANG EQ bv_expr . [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr BANG EQ bv_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT RPAREN
+##
+## Ends in an error in state: 91.
+##
+## arith_expr -> arith_expr . PLUS arith_expr [ PLUS GT EQ BANG ]
+## expr -> arith_expr . EQ EQ arith_expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> arith_expr . BANG EQ arith_expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> arith_expr . GT arith_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT PLUS VBAR
+##
+## Ends in an error in state: 92.
+##
+## arith_expr -> arith_expr PLUS . arith_expr [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr PLUS
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT LPAREN VBAR
+##
+## Ends in an error in state: 93.
+##
+## arith_expr -> LPAREN . arith_expr RPAREN [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT ID VBAR
+##
+## Ends in an error in state: 94.
+##
+## arith_expr -> ID . DOT packet DOT LENGTH [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT ID DOT VBAR
+##
+## Ends in an error in state: 95.
+##
+## arith_expr -> ID DOT . packet DOT LENGTH [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT ID DOT PKTIN VBAR
+##
+## Ends in an error in state: 96.
+##
+## arith_expr -> ID DOT packet . DOT LENGTH [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT packet
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT LPAREN INT RBRACE
+##
+## Ends in an error in state: 97.
+##
+## arith_expr -> LPAREN arith_expr . RPAREN [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
+## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN PLUS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN arith_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT PLUS INT VBAR
+##
+## Ends in an error in state: 99.
+##
+## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
+## arith_expr -> arith_expr PLUS arith_expr . [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr PLUS arith_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT VBAR
+##
+## Ends in an error in state: 100.
+##
+## expr -> arith_expr GT . arith_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr GT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT INT GT
+##
+## Ends in an error in state: 101.
+##
+## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN RBRACE PLUS OR DARROW AND ]
+## expr -> arith_expr GT arith_expr . [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr GT arith_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT EQ VBAR
+##
+## Ends in an error in state: 102.
+##
+## expr -> arith_expr EQ . EQ arith_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT EQ EQ VBAR
+##
+## Ends in an error in state: 103.
+##
+## expr -> arith_expr EQ EQ . arith_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr EQ EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT EQ EQ INT GT
+##
+## Ends in an error in state: 104.
+##
+## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN RBRACE PLUS OR DARROW AND ]
+## expr -> arith_expr EQ EQ arith_expr . [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr EQ EQ arith_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT BANG VBAR
+##
+## Ends in an error in state: 105.
+##
+## expr -> arith_expr BANG . EQ arith_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr BANG
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT BANG EQ VBAR
+##
+## Ends in an error in state: 106.
+##
+## expr -> arith_expr BANG EQ . arith_expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr BANG EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR INT BANG EQ INT GT
+##
+## Ends in an error in state: 107.
+##
+## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN RBRACE PLUS OR DARROW AND ]
+## expr -> arith_expr BANG EQ arith_expr . [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## arith_expr BANG EQ arith_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE DARROW VBAR
+##
+## Ends in an error in state: 108.
+##
+## expr -> expr DARROW . expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## expr DARROW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR LPAREN FALSE VBAR
+##
+## Ends in an error in state: 110.
+##
+## expr -> LPAREN expr . RPAREN [ RPAREN RBRACE OR DARROW AND ]
+## expr -> expr . AND expr [ RPAREN OR DARROW AND ]
+## expr -> expr . OR expr [ RPAREN OR DARROW AND ]
+## expr -> expr . DARROW expr [ RPAREN OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE AND VBAR
+##
+## Ends in an error in state: 112.
+##
+## expr -> expr AND . expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## expr AND
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE AND FALSE VBAR
+##
+## Ends in an error in state: 113.
+##
+## expr -> expr . AND expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> expr AND expr . [ RPAREN RBRACE OR DARROW AND ]
+## expr -> expr . OR expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> expr . DARROW expr [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## expr AND expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR LPAREN BITSTRING VBAR
+##
+## Ends in an error in state: 114.
+##
+## bv_expr -> LPAREN bv_expr . RPAREN [ RPAREN GT EQ BANG AT ]
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN GT EQ BANG AT ]
+## expr -> bv_expr . EQ EQ bv_expr [ RPAREN OR DARROW AND ]
+## expr -> bv_expr . BANG EQ bv_expr [ RPAREN OR DARROW AND ]
+## expr -> bv_expr . GT bv_expr [ RPAREN OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN bv_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR LPAREN INT RBRACE
+##
+## Ends in an error in state: 115.
+##
+## arith_expr -> LPAREN arith_expr . RPAREN [ RPAREN PLUS GT EQ BANG ]
+## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN PLUS GT EQ BANG ]
+## expr -> arith_expr . EQ EQ arith_expr [ RPAREN OR DARROW AND ]
+## expr -> arith_expr . BANG EQ arith_expr [ RPAREN OR DARROW AND ]
+## expr -> arith_expr . GT arith_expr [ RPAREN OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN arith_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR NEG FALSE VBAR
+##
+## Ends in an error in state: 116.
+##
+## expr -> expr . AND expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> expr . OR expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> expr . DARROW expr [ RPAREN RBRACE OR DARROW AND ]
+## expr -> NEG expr . [ RPAREN RBRACE OR DARROW AND ]
+##
+## The known suffix of the stack is as follows:
+## NEG expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE VBAR
+##
+## Ends in an error in state: 117.
+##
+## expr -> expr . AND expr [ RBRACE OR DARROW AND ]
+## expr -> expr . OR expr [ RBRACE OR DARROW AND ]
+## expr -> expr . DARROW expr [ RBRACE OR DARROW AND ]
+## hty -> LBRACE ID COLON hty VBAR expr . RBRACE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## LBRACE ID COLON hty VBAR expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: EMPTY PLUS VBAR
+##
+## Ends in an error in state: 119.
+##
+## hty -> hty PLUS . hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## hty PLUS
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: EMPTY PLUS EMPTY VALID
+##
+## Ends in an error in state: 120.
+##
+## hty -> hty . PLUS hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+## hty -> hty PLUS hty . [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## hty PLUS hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: EMPTY LSQUARE VBAR
+##
+## Ends in an error in state: 121.
+##
+## hty -> hty LSQUARE . ID ARROW hty RSQUARE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## hty LSQUARE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: EMPTY LSQUARE ID VBAR
+##
+## Ends in an error in state: 122.
+##
+## hty -> hty LSQUARE ID . ARROW hty RSQUARE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## hty LSQUARE ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: EMPTY LSQUARE ID ARROW VBAR
+##
+## Ends in an error in state: 123.
+##
+## hty -> hty LSQUARE ID ARROW . hty RSQUARE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## hty LSQUARE ID ARROW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: EMPTY LSQUARE ID ARROW EMPTY VALID
+##
+## Ends in an error in state: 124.
+##
+## hty -> hty . PLUS hty [ RSQUARE PLUS LSQUARE ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ RSQUARE PLUS LSQUARE ]
+## hty -> hty LSQUARE ID ARROW hty . RSQUARE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## hty LSQUARE ID ARROW hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LPAREN EMPTY VALID
+##
+## Ends in an error in state: 126.
+##
+## hty -> LPAREN hty . RPAREN [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+## hty -> hty . PLUS hty [ RPAREN PLUS LSQUARE ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ RPAREN PLUS LSQUARE ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: SIGMA ID COLON EMPTY VALID
+##
+## Ends in an error in state: 128.
+##
+## hty -> SIGMA ID COLON hty . DOT hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+## hty -> hty . PLUS hty [ PLUS LSQUARE DOT ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ PLUS LSQUARE DOT ]
+##
+## The known suffix of the stack is as follows:
+## SIGMA ID COLON hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: SIGMA ID COLON EMPTY DOT VBAR
+##
+## Ends in an error in state: 129.
+##
+## hty -> SIGMA ID COLON hty DOT . hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
+##
+## The known suffix of the stack is as follows:
+## SIGMA ID COLON hty DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+pi_type: LPAREN ID COLON EMPTY VALID
+##
+## Ends in an error in state: 131.
+##
+## hty -> hty . PLUS hty [ RPAREN PLUS LSQUARE ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ RPAREN PLUS LSQUARE ]
+## pi -> LPAREN ID COLON hty . RPAREN ARROW hty [ SEMI RPAREN EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN ID COLON hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+pi_type: LPAREN ID COLON EMPTY RPAREN VBAR
+##
+## Ends in an error in state: 132.
+##
+## pi -> LPAREN ID COLON hty RPAREN . ARROW hty [ SEMI RPAREN EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN ID COLON hty RPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+pi_type: LPAREN ID COLON EMPTY RPAREN ARROW VBAR
+##
+## Ends in an error in state: 133.
+##
+## pi -> LPAREN ID COLON hty RPAREN ARROW . hty [ SEMI RPAREN EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN ID COLON hty RPAREN ARROW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+pi_type: LPAREN ID COLON EMPTY RPAREN ARROW EMPTY VALID
+##
+## Ends in an error in state: 134.
+##
+## hty -> hty . PLUS hty [ SEMI RPAREN PLUS LSQUARE EOF AS ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ SEMI RPAREN PLUS LSQUARE EOF AS ]
+## pi -> LPAREN ID COLON hty RPAREN ARROW hty . [ SEMI RPAREN EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN ID COLON hty RPAREN ARROW hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN LPAREN ID VBAR
+##
+## Ends in an error in state: 136.
+##
+## annotation_body -> LPAREN annotation_body . RPAREN [ SEMI RPAREN AS ]
+## annotation_body -> annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+## typed_annotation_body -> annotation_body . AS pi [ SEMI ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN annotation_body
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
+##
+## Ends in an error in state: 138.
+##
+## annotation -> LPAREN typed_annotation_body . RPAREN AS pi EOF [ # ]
+## annotation_body -> typed_annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> typed_annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN typed_annotation_body
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 135, spurious reduction of production typed_annotation_body -> annotation_body AS pi
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN VBAR
+##
+## Ends in an error in state: 139.
+##
+## annotation -> LPAREN typed_annotation_body RPAREN . AS pi EOF [ # ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN typed_annotation_body RPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN AS VBAR
+##
+## Ends in an error in state: 140.
+##
+## annotation -> LPAREN typed_annotation_body RPAREN AS . pi EOF [ # ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN typed_annotation_body RPAREN AS
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI
+##
+## Ends in an error in state: 141.
+##
+## annotation -> LPAREN typed_annotation_body RPAREN AS pi . EOF [ # ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN typed_annotation_body RPAREN AS pi
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN ID VBAR
+##
+## Ends in an error in state: 143.
+##
+## annotation_body -> LPAREN annotation_body . RPAREN [ SEMI AS ]
+## annotation_body -> annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
+## annotation_body -> annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+## typed_annotation_body -> annotation_body . AS pi [ SEMI RPAREN ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN annotation_body
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: ID RPAREN
+##
+## Ends in an error in state: 144.
+##
+## annotation -> annotation_body . AS pi EOF [ # ]
+## annotation_body -> annotation_body . SEMI annotation_body [ SEMI AS ]
+## annotation_body -> annotation_body . SEMI typed_annotation_body [ SEMI AS ]
+## typed_annotation_body -> annotation_body . AS pi [ SEMI ]
+##
+## The known suffix of the stack is as follows:
+## annotation_body
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: ID AS VBAR
+##
+## Ends in an error in state: 145.
+##
+## annotation -> annotation_body AS . pi EOF [ # ]
+## typed_annotation_body -> annotation_body AS . pi [ SEMI ]
+##
+## The known suffix of the stack is as follows:
+## annotation_body AS
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN
+##
+## Ends in an error in state: 146.
+##
+## annotation -> annotation_body AS pi . EOF [ # ]
+## typed_annotation_body -> annotation_body AS pi . [ SEMI ]
+##
+## The known suffix of the stack is as follows:
+## annotation_body AS pi
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: VBAR
+##
+## Ends in an error in state: 149.
+##
+## command' -> . command [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: REMIT VBAR
+##
+## Ends in an error in state: 152.
+##
+## cmd -> REMIT . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## REMIT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: REMIT LPAREN VBAR
+##
+## Ends in an error in state: 153.
+##
+## cmd -> REMIT LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## REMIT LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: REMIT LPAREN ID VBAR
+##
+## Ends in an error in state: 154.
+##
+## cmd -> REMIT LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## REMIT LPAREN ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: LPAREN VBAR
+##
+## Ends in an error in state: 156.
+##
+## cmd -> LPAREN . cmd RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF VBAR
+##
+## Ends in an error in state: 157.
+##
+## cmd -> IF . cexpr LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+## cmd -> IF . cexpr LBRACE cmd RBRACE ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## IF
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF NEG VBAR
+##
+## Ends in an error in state: 159.
+##
+## cexpr -> NEG . cexpr [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## NEG
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF LPAREN VBAR
+##
+## Ends in an error in state: 160.
+##
+## cexpr -> LPAREN . cexpr RPAREN [ RPAREN OR LBRACE AND ]
+## cterm -> LPAREN . cterm RPAREN [ RPAREN GT EQ BANG ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF ID VBAR
+##
+## Ends in an error in state: 161.
+##
+## cexpr -> ID . DOT VALID [ RPAREN OR LBRACE AND ]
+## cterm_bv -> ID . DOT ID [ RPAREN MINUS GT EQ BANG ]
+## cterm_bv -> ID . LSQUARE INT COLON INT RSQUARE [ RPAREN MINUS GT EQ BANG ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF ID LSQUARE VBAR
+##
+## Ends in an error in state: 162.
+##
+## cterm_bv -> ID LSQUARE . INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF ID LSQUARE INT VBAR
+##
+## Ends in an error in state: 163.
+##
+## cterm_bv -> ID LSQUARE INT . COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF ID LSQUARE INT COLON VBAR
+##
+## Ends in an error in state: 164.
+##
+## cterm_bv -> ID LSQUARE INT COLON . INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE INT COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF ID LSQUARE INT COLON INT VBAR
+##
+## Ends in an error in state: 165.
+##
+## cterm_bv -> ID LSQUARE INT COLON INT . RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE INT COLON INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF ID DOT VBAR
+##
+## Ends in an error in state: 167.
+##
+## cexpr -> ID DOT . VALID [ RPAREN OR LBRACE AND ]
+## cterm_bv -> ID DOT . ID [ RPAREN MINUS GT EQ BANG ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BANG VBAR
+##
+## Ends in an error in state: 173.
+##
+## cexpr -> BANG . cexpr [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## BANG
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF PKTIN VBAR
+##
+## Ends in an error in state: 174.
+##
+## cterm_bv -> packet . LSQUARE INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## packet
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF PKTIN LSQUARE VBAR
+##
+## Ends in an error in state: 175.
+##
+## cterm_bv -> packet LSQUARE . INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## packet LSQUARE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF PKTIN LSQUARE INT VBAR
+##
+## Ends in an error in state: 176.
+##
+## cterm_bv -> packet LSQUARE INT . COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## packet LSQUARE INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF PKTIN LSQUARE INT COLON VBAR
+##
+## Ends in an error in state: 177.
+##
+## cterm_bv -> packet LSQUARE INT COLON . INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## packet LSQUARE INT COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF PKTIN LSQUARE INT COLON INT VBAR
+##
+## Ends in an error in state: 178.
+##
+## cterm_bv -> packet LSQUARE INT COLON INT . RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## packet LSQUARE INT COLON INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING VBAR
+##
+## Ends in an error in state: 180.
+##
+## cterm -> cterm_bv . [ SEMI RPAREN RBRACE OR LBRACE GT EQ EOF BANG AS AND ]
+## cterm_bv -> cterm_bv . MINUS cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## cterm_bv
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING MINUS VBAR
+##
+## Ends in an error in state: 181.
+##
+## cterm_bv -> cterm_bv MINUS . cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## cterm_bv MINUS
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING GT ID VBAR
+##
+## Ends in an error in state: 182.
+##
+## cterm_bv -> ID . DOT ID [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+## cterm_bv -> ID . LSQUARE INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING GT ID DOT VBAR
+##
+## Ends in an error in state: 183.
+##
+## cterm_bv -> ID DOT . ID [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING MINUS BITSTRING VBAR
+##
+## Ends in an error in state: 184.
+##
+## cterm_bv -> cterm_bv . MINUS cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+## cterm_bv -> cterm_bv MINUS cterm_bv . [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+##
+## The known suffix of the stack is as follows:
+## cterm_bv MINUS cterm_bv
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING SEMI
+##
+## Ends in an error in state: 185.
+##
+## cexpr -> cterm . EQ EQ cterm [ RPAREN OR LBRACE AND ]
+## cexpr -> cterm . BANG EQ cterm [ RPAREN OR LBRACE AND ]
+## cexpr -> cterm . GT cterm [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## cterm
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 180, spurious reduction of production cterm -> cterm_bv
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING GT VBAR
+##
+## Ends in an error in state: 186.
+##
+## cexpr -> cterm GT . cterm [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## cterm GT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING GT LPAREN VBAR
+##
+## Ends in an error in state: 187.
+##
+## cterm -> LPAREN . cterm RPAREN [ SEMI RPAREN RBRACE OR LBRACE EOF AS AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING GT LPAREN BITSTRING SEMI
+##
+## Ends in an error in state: 188.
+##
+## cterm -> LPAREN cterm . RPAREN [ SEMI RPAREN RBRACE OR LBRACE EOF AS AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN cterm
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 180, spurious reduction of production cterm -> cterm_bv
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING EQ VBAR
+##
+## Ends in an error in state: 191.
+##
+## cexpr -> cterm EQ . EQ cterm [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## cterm EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING EQ EQ VBAR
+##
+## Ends in an error in state: 192.
+##
+## cexpr -> cterm EQ EQ . cterm [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## cterm EQ EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING BANG VBAR
+##
+## Ends in an error in state: 194.
+##
+## cexpr -> cterm BANG . EQ cterm [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## cterm BANG
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BITSTRING BANG EQ VBAR
+##
+## Ends in an error in state: 195.
+##
+## cexpr -> cterm BANG EQ . cterm [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## cterm BANG EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF BANG FALSE VBAR
+##
+## Ends in an error in state: 197.
+##
+## cexpr -> cexpr . AND cexpr [ RPAREN OR LBRACE AND ]
+## cexpr -> cexpr . OR cexpr [ RPAREN OR LBRACE AND ]
+## cexpr -> BANG cexpr . [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## BANG cexpr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE OR VBAR
+##
+## Ends in an error in state: 198.
+##
+## cexpr -> cexpr OR . cexpr [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## cexpr OR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF LPAREN BITSTRING SEMI
+##
+## Ends in an error in state: 200.
+##
+## cexpr -> cterm . EQ EQ cterm [ RPAREN OR AND ]
+## cexpr -> cterm . BANG EQ cterm [ RPAREN OR AND ]
+## cexpr -> cterm . GT cterm [ RPAREN OR AND ]
+## cterm -> LPAREN cterm . RPAREN [ RPAREN GT EQ BANG ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN cterm
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 180, spurious reduction of production cterm -> cterm_bv
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF LPAREN FALSE VBAR
+##
+## Ends in an error in state: 201.
+##
+## cexpr -> LPAREN cexpr . RPAREN [ RPAREN OR LBRACE AND ]
+## cexpr -> cexpr . AND cexpr [ RPAREN OR AND ]
+## cexpr -> cexpr . OR cexpr [ RPAREN OR AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN cexpr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE AND VBAR
+##
+## Ends in an error in state: 203.
+##
+## cexpr -> cexpr AND . cexpr [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## cexpr AND
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE AND FALSE VBAR
+##
+## Ends in an error in state: 204.
+##
+## cexpr -> cexpr . AND cexpr [ RPAREN OR LBRACE AND ]
+## cexpr -> cexpr AND cexpr . [ RPAREN OR LBRACE AND ]
+## cexpr -> cexpr . OR cexpr [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## cexpr AND cexpr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF NEG FALSE VBAR
+##
+## Ends in an error in state: 205.
+##
+## cexpr -> cexpr . AND cexpr [ RPAREN OR LBRACE AND ]
+## cexpr -> cexpr . OR cexpr [ RPAREN OR LBRACE AND ]
+## cexpr -> NEG cexpr . [ RPAREN OR LBRACE AND ]
+##
+## The known suffix of the stack is as follows:
+## NEG cexpr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE VBAR
+##
+## Ends in an error in state: 206.
+##
+## cexpr -> cexpr . AND cexpr [ OR LBRACE AND ]
+## cexpr -> cexpr . OR cexpr [ OR LBRACE AND ]
+## cmd -> IF cexpr . LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+## cmd -> IF cexpr . LBRACE cmd RBRACE ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## IF cexpr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE LBRACE VBAR
+##
+## Ends in an error in state: 207.
+##
+## cmd -> IF cexpr LBRACE . cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+## cmd -> IF cexpr LBRACE . cmd RBRACE ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## IF cexpr LBRACE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID VBAR
+##
+## Ends in an error in state: 208.
+##
+## cmd -> ID . DOT ID COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+## cmd -> ID . LSQUARE INT COLON INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID LSQUARE VBAR
+##
+## Ends in an error in state: 209.
+##
+## cmd -> ID LSQUARE . INT COLON INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID LSQUARE INT VBAR
+##
+## Ends in an error in state: 210.
+##
+## cmd -> ID LSQUARE INT . COLON INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID LSQUARE INT COLON VBAR
+##
+## Ends in an error in state: 211.
+##
+## cmd -> ID LSQUARE INT COLON . INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE INT COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID LSQUARE INT COLON INT VBAR
+##
+## Ends in an error in state: 212.
+##
+## cmd -> ID LSQUARE INT COLON INT . RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE INT COLON INT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID LSQUARE INT COLON INT RSQUARE VBAR
+##
+## Ends in an error in state: 213.
+##
+## cmd -> ID LSQUARE INT COLON INT RSQUARE . COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE INT COLON INT RSQUARE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID LSQUARE INT COLON INT RSQUARE COLON VBAR
+##
+## Ends in an error in state: 214.
+##
+## cmd -> ID LSQUARE INT COLON INT RSQUARE COLON . EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE INT COLON INT RSQUARE COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID LSQUARE INT COLON INT RSQUARE COLON EQ VBAR
+##
+## Ends in an error in state: 215.
+##
+## cmd -> ID LSQUARE INT COLON INT RSQUARE COLON EQ . cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID LSQUARE INT COLON INT RSQUARE COLON EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID DOT VBAR
+##
+## Ends in an error in state: 217.
+##
+## cmd -> ID DOT . ID COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID DOT ID VBAR
+##
+## Ends in an error in state: 218.
+##
+## cmd -> ID DOT ID . COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID DOT ID COLON VBAR
+##
+## Ends in an error in state: 219.
+##
+## cmd -> ID DOT ID COLON . EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ID DOT ID COLON EQ VBAR
+##
+## Ends in an error in state: 220.
+##
+## cmd -> ID DOT ID COLON EQ . cterm [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID COLON EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: EXTRACT VBAR
+##
+## Ends in an error in state: 222.
+##
+## cmd -> EXTRACT . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## EXTRACT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: EXTRACT LPAREN VBAR
+##
+## Ends in an error in state: 223.
+##
+## cmd -> EXTRACT LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## EXTRACT LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: EXTRACT LPAREN ID VBAR
+##
+## Ends in an error in state: 224.
+##
+## cmd -> EXTRACT LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## EXTRACT LPAREN ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ADD VBAR
+##
+## Ends in an error in state: 226.
+##
+## cmd -> ADD . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ADD
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ADD LPAREN VBAR
+##
+## Ends in an error in state: 227.
+##
+## cmd -> ADD LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ADD LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: ADD LPAREN ID VBAR
+##
+## Ends in an error in state: 228.
+##
+## cmd -> ADD LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## ADD LPAREN ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE LBRACE RESET VBAR
+##
+## Ends in an error in state: 230.
+##
+## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RBRACE AS ]
+## cmd -> cmd . SEMI cmd [ SEMI RBRACE AS ]
+## cmd -> IF cexpr LBRACE cmd . RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+## cmd -> IF cexpr LBRACE cmd . RBRACE ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## IF cexpr LBRACE cmd
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET SEMI VBAR
+##
+## Ends in an error in state: 231.
+##
+## cmd -> cmd SEMI . cmd [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## cmd SEMI
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET SEMI RESET VBAR
+##
+## Ends in an error in state: 232.
+##
+## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
+## cmd -> cmd . SEMI cmd [ SEMI RPAREN RBRACE EOF AS ]
+## cmd -> cmd SEMI cmd . [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## cmd SEMI cmd
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET AS VBAR
+##
+## Ends in an error in state: 233.
+##
+## cmd -> cmd AS . LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## cmd AS
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET AS LPAREN VBAR
+##
+## Ends in an error in state: 234.
+##
+## cmd -> cmd AS LPAREN . ID COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## cmd AS LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET AS LPAREN ID VBAR
+##
+## Ends in an error in state: 235.
+##
+## cmd -> cmd AS LPAREN ID . COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## cmd AS LPAREN ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET AS LPAREN ID COLON VBAR
+##
+## Ends in an error in state: 236.
+##
+## cmd -> cmd AS LPAREN ID COLON . hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## cmd AS LPAREN ID COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET AS LPAREN ID COLON EMPTY VALID
+##
+## Ends in an error in state: 237.
+##
+## cmd -> cmd AS LPAREN ID COLON hty . RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
+## hty -> hty . PLUS hty [ RPAREN PLUS LSQUARE ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ RPAREN PLUS LSQUARE ]
+##
+## The known suffix of the stack is as follows:
+## cmd AS LPAREN ID COLON hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET AS LPAREN ID COLON EMPTY RPAREN VBAR
+##
+## Ends in an error in state: 238.
+##
+## cmd -> cmd AS LPAREN ID COLON hty RPAREN . ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## cmd AS LPAREN ID COLON hty RPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET AS LPAREN ID COLON EMPTY RPAREN ARROW VBAR
+##
+## Ends in an error in state: 239.
+##
+## cmd -> cmd AS LPAREN ID COLON hty RPAREN ARROW . hty [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## cmd AS LPAREN ID COLON hty RPAREN ARROW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY VALID
+##
+## Ends in an error in state: 240.
+##
+## cmd -> cmd AS LPAREN ID COLON hty RPAREN ARROW hty . [ SEMI RPAREN RBRACE EOF AS ]
+## hty -> hty . PLUS hty [ SEMI RPAREN RBRACE PLUS LSQUARE EOF AS ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ SEMI RPAREN RBRACE PLUS LSQUARE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## cmd AS LPAREN ID COLON hty RPAREN ARROW hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE LBRACE RESET RBRACE VBAR
+##
+## Ends in an error in state: 241.
+##
+## cmd -> IF cexpr LBRACE cmd RBRACE . [ SEMI RPAREN RBRACE EOF AS ]
+## cmd -> IF cexpr LBRACE cmd RBRACE . ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## IF cexpr LBRACE cmd RBRACE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE LBRACE RESET RBRACE ELSE VBAR
+##
+## Ends in an error in state: 242.
+##
+## cmd -> IF cexpr LBRACE cmd RBRACE ELSE . LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## IF cexpr LBRACE cmd RBRACE ELSE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE VBAR
+##
+## Ends in an error in state: 243.
+##
+## cmd -> IF cexpr LBRACE cmd RBRACE ELSE LBRACE . cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## IF cexpr LBRACE cmd RBRACE ELSE LBRACE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE RESET VBAR
+##
+## Ends in an error in state: 244.
+##
+## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RBRACE AS ]
+## cmd -> cmd . SEMI cmd [ SEMI RBRACE AS ]
+## cmd -> IF cexpr LBRACE cmd RBRACE ELSE LBRACE cmd . RBRACE [ SEMI RPAREN RBRACE EOF AS ]
+##
+## The known suffix of the stack is as follows:
+## IF cexpr LBRACE cmd RBRACE ELSE LBRACE cmd
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: LPAREN RESET VBAR
+##
+## Ends in an error in state: 246.
+##
+## cmd -> LPAREN cmd . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
+## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RPAREN AS ]
+## cmd -> cmd . SEMI cmd [ SEMI RPAREN AS ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN cmd
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+command: RESET VBAR
+##
+## Ends in an error in state: 249.
+##
+## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI EOF AS ]
+## cmd -> cmd . SEMI cmd [ SEMI EOF AS ]
+## command -> cmd . EOF [ # ]
+##
+## The known suffix of the stack is as follows:
+## cmd
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: VBAR
+##
+## Ends in an error in state: 251.
+##
+## heap_type' -> . heap_type [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: EMPTY VALID
+##
+## Ends in an error in state: 252.
+##
+## heap_type -> hty . EOF [ # ]
+## hty -> hty . PLUS hty [ PLUS LSQUARE EOF ]
+## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ PLUS LSQUARE EOF ]
+##
+## The known suffix of the stack is as follows:
+## hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+instance: VBAR
+##
+## Ends in an error in state: 255.
+##
+## instance' -> . instance [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+Instance declarations must start with the instance name.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
+
+instance: ID VBAR
+##
+## Ends in an error in state: 256.
+##
+## instance -> ID . LBRACE nonempty_list(terminated(header_field,SEMI)) RBRACE [ # ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+Field declarations are missing.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
+
+instance: ID LBRACE VBAR
+##
+## Ends in an error in state: 257.
+##
+## instance -> ID LBRACE . nonempty_list(terminated(header_field,SEMI)) RBRACE [ # ]
+##
+## The known suffix of the stack is as follows:
+## ID LBRACE
+##
+
+Field declarations are missing.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
+
+instance: ID LBRACE ID VBAR
+##
+## Ends in an error in state: 258.
+##
+## header_field -> ID . COLON INT [ SEMI RBRACE ID ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+Not a valid field identifier.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
+
+instance: ID LBRACE ID COLON VBAR
+##
+## Ends in an error in state: 259.
+##
+## header_field -> ID COLON . INT [ SEMI RBRACE ID ]
+##
+## The known suffix of the stack is as follows:
+## ID COLON
+##
+
+Bit size missing for field.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
+
+instance: ID LBRACE ID COLON INT VBAR
+##
+## Ends in an error in state: 263.
+##
+## nonempty_list(terminated(header_field,SEMI)) -> header_field . SEMI [ RBRACE ]
+## nonempty_list(terminated(header_field,SEMI)) -> header_field . SEMI nonempty_list(terminated(header_field,SEMI)) [ RBRACE ]
+##
+## The known suffix of the stack is as follows:
+## header_field
+##
+
+Field declaration expects trailing ';'.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
+
+instance: ID LBRACE ID COLON INT SEMI VBAR
+##
+## Ends in an error in state: 264.
+##
+## nonempty_list(terminated(header_field,SEMI)) -> header_field SEMI . [ RBRACE ]
+## nonempty_list(terminated(header_field,SEMI)) -> header_field SEMI . nonempty_list(terminated(header_field,SEMI)) [ RBRACE ]
+##
+## The known suffix of the stack is as follows:
+## header_field SEMI
+##
+
+Expected closing '}'.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
+
+pi_type: VBAR
+##
+## Ends in an error in state: 267.
+##
+## pi_type' -> . pi_type [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+pi_type: LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI
+##
+## Ends in an error in state: 269.
+##
+## pi_type -> pi . EOF [ # ]
+##
+## The known suffix of the stack is as follows:
+## pi
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: VBAR
+##
+## Ends in an error in state: 271.
+##
+## program' -> . program [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: HEADERTYPE VBAR
+##
+## Ends in an error in state: 272.
+##
+## declaration -> HEADERTYPE . ID LBRACE nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+##
+## The known suffix of the stack is as follows:
+## HEADERTYPE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: HEADERTYPE ID VBAR
+##
+## Ends in an error in state: 273.
+##
+## declaration -> HEADERTYPE ID . LBRACE nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+##
+## The known suffix of the stack is as follows:
+## HEADERTYPE ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: HEADERTYPE ID LBRACE VBAR
+##
+## Ends in an error in state: 274.
+##
+## declaration -> HEADERTYPE ID LBRACE . nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+##
+## The known suffix of the stack is as follows:
+## HEADERTYPE ID LBRACE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: HEADERTYPE ID LBRACE ID COLON INT VBAR
+##
+## Ends in an error in state: 277.
+##
+## nonempty_list(terminated(header_field,opt_semi)) -> header_field . opt_semi [ RBRACE ]
+## nonempty_list(terminated(header_field,opt_semi)) -> header_field . opt_semi nonempty_list(terminated(header_field,opt_semi)) [ RBRACE ]
+##
+## The known suffix of the stack is as follows:
+## header_field
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: HEADERTYPE ID LBRACE ID COLON INT SEMI VBAR
+##
+## Ends in an error in state: 279.
+##
+## nonempty_list(terminated(header_field,opt_semi)) -> header_field opt_semi . [ RBRACE ]
+## nonempty_list(terminated(header_field,opt_semi)) -> header_field opt_semi . nonempty_list(terminated(header_field,opt_semi)) [ RBRACE ]
+##
+## The known suffix of the stack is as follows:
+## header_field opt_semi
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: HEADER VBAR
+##
+## Ends in an error in state: 281.
+##
+## declaration -> HEADER . ID COLON ID [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+##
+## The known suffix of the stack is as follows:
+## HEADER
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: HEADER ID VBAR
+##
+## Ends in an error in state: 282.
+##
+## declaration -> HEADER ID . COLON ID [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+##
+## The known suffix of the stack is as follows:
+## HEADER ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: HEADER ID COLON VBAR
+##
+## Ends in an error in state: 283.
+##
+## declaration -> HEADER ID COLON . ID [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+##
+## The known suffix of the stack is as follows:
+## HEADER ID COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: RESET VBAR
+##
+## Ends in an error in state: 287.
+##
+## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI EOF AS ]
+## cmd -> cmd . SEMI cmd [ SEMI EOF AS ]
+## program -> list(declaration) cmd . EOF [ # ]
+##
+## The known suffix of the stack is as follows:
+## list(declaration) cmd
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+program: HEADER ID COLON ID VBAR
+##
+## Ends in an error in state: 289.
+##
+## list(declaration) -> declaration . list(declaration) [ SKIP RESET REMIT LPAREN IF ID EXTRACT ADD ]
+##
+## The known suffix of the stack is as follows:
+## declaration
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: VBAR
+##
+## Ends in an error in state: 291.
+##
+## smt_tactic' -> . smt_tactic [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN VBAR
+##
+## Ends in an error in state: 297.
+##
+## smt_tactic -> LPAREN . PAR_OR smt_tactic smt_tactic RPAREN [ # ]
+## smt_tactic -> LPAREN . THEN list(smt_tactic) RPAREN [ # ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN THEN VBAR
+##
+## Ends in an error in state: 298.
+##
+## smt_tactic -> LPAREN THEN . list(smt_tactic) RPAREN [ # ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN THEN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN PAR_OR LPAREN VBAR
+##
+## Ends in an error in state: 304.
+##
+## smt_tactic -> LPAREN . PAR_OR smt_tactic smt_tactic RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
+## smt_tactic -> LPAREN . THEN list(smt_tactic) RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN PAR_OR LPAREN THEN VBAR
+##
+## Ends in an error in state: 305.
+##
+## smt_tactic -> LPAREN THEN . list(smt_tactic) RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN THEN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN THEN AIG VBAR
+##
+## Ends in an error in state: 308.
+##
+## list(smt_tactic) -> smt_tactic . list(smt_tactic) [ RPAREN ]
+##
+## The known suffix of the stack is as follows:
+## smt_tactic
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN PAR_OR LPAREN PAR_OR VBAR
+##
+## Ends in an error in state: 312.
+##
+## smt_tactic -> LPAREN PAR_OR . smt_tactic smt_tactic RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN PAR_OR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG VBAR
+##
+## Ends in an error in state: 313.
+##
+## smt_tactic -> LPAREN PAR_OR smt_tactic . smt_tactic RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN PAR_OR smt_tactic
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG AIG VBAR
+##
+## Ends in an error in state: 314.
+##
+## smt_tactic -> LPAREN PAR_OR smt_tactic smt_tactic . RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN PAR_OR smt_tactic smt_tactic
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN PAR_OR VBAR
+##
+## Ends in an error in state: 318.
+##
+## smt_tactic -> LPAREN PAR_OR . smt_tactic smt_tactic RPAREN [ # ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN PAR_OR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN PAR_OR AIG VBAR
+##
+## Ends in an error in state: 319.
+##
+## smt_tactic -> LPAREN PAR_OR smt_tactic . smt_tactic RPAREN [ # ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN PAR_OR smt_tactic
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+smt_tactic: LPAREN PAR_OR AIG AIG VBAR
+##
+## Ends in an error in state: 320.
+##
+## smt_tactic -> LPAREN PAR_OR smt_tactic smt_tactic . RPAREN [ # ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN PAR_OR smt_tactic smt_tactic
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+

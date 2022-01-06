@@ -12,7 +12,6 @@ let colorize colors s = ANSITerminal.sprintf colors "%s" s
 
 module Conf : Parse_config = struct
   let red s = colorize [ ANSITerminal.red ] s
-
   let green s = colorize [ ANSITerminal.green ] s
 
   let preprocess include_dirs p4file =
@@ -36,17 +35,6 @@ let to_result ~success result =
   | Typechecker.TypecheckingResult.Success -> return success
   | Typechecker.TypecheckingResult.TypeError e -> Error e
 
-let build_parser header_table p4prog =
-  let%bind parser_cfg = Frontend.build_parser_cfg p4prog header_table in
-  Frontend.build_parser parser_cfg
-
-let find_roundtrip_annotation (Petr4.Types.Program decls) =
-  Frontend.find_parser_annotations decls
-  |> Option.bind ~f:(fun annotations ->
-         match Frontend.find_type_annotation annotations with
-         | Some (RoundtripAnnotation ty_annot) -> Some ty_annot
-         | _ -> None)
-
 let union r =
   match r with
   | Error s -> Printf.sprintf "[×] %s" s
@@ -66,12 +54,33 @@ let pi4_check program_filename type_filename maxlen : unit =
   |> to_result ~success:"passed typechecker"
   |> union |> print_endline
 
+let p4_check filename includes _maxlen verbose =
+  match P4Parse.parse_file includes filename verbose with
+  | `Ok p4prog -> (
+    let result =
+      let%map header_table = Frontend.build_header_table p4prog in
+      Log.debug (fun m ->
+          m "Header table: %a\n" Pretty.pp_header_table header_table);
+      let annotations = Frontend.collect_annotations header_table p4prog in
+      Log.debug (fun m ->
+          m "Annotations: %s"
+            (Sexplib.Sexp.to_string_hum
+               (List.sexp_of_t Syntax.Annotation.sexp_of_t annotations)))
+    in
+    match result with Ok _ -> () | _ -> print_endline "error")
+  | `Error (_, _) -> print_endline "Petr4 could not parse the input file."
+
 let command =
   Command.basic ~summary:"Check a P4 program with Pi4's typechecker"
     Command.Let_syntax.(
       let%map_open filename = anon ("filename" %: string)
       and verbose =
         flag "-v" no_arg ~doc:"verbose mode for parser [unused if -ir is set]"
+      and includes =
+        flag "-i" (listed string)
+          ~doc:
+            "<dir> add directory to include path for P4 programs [unused if \
+             -ir is set]"
       and maxlen =
         flag "-m"
           (optional_with_default 1500 int)
@@ -87,19 +96,16 @@ let command =
       fun () ->
         Fmt_tty.setup_std_outputs ();
         Logs.set_reporter @@ Logs_fmt.reporter ();
-        if verbose then
-          Logs.set_level @@ Some Logs.Debug
-        (* Logs.Src.set_level Pi4.Logging.ssa_src @@ Some Logs.Debug; *)
-        (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug;     *)
-        (* Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug; *)
-        (* Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Debug; *)
-        else
-          ();
+        if verbose then Logs.set_level @@ Some Logs.Debug
+          (* Logs.Src.set_level Pi4.Logging.ssa_src @@ Some Logs.Debug; *)
+          (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug;     *)
+          (* Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug; *)
+          (* Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Debug; *)
+        else ();
         if ir then
           match typ with
           | Some typfile -> pi4_check filename typfile maxlen
           | None -> failwith "Error. expected type file for Π4 IR mode."
-        else
-          ())
+        else p4_check filename includes maxlen verbose)
 
 let () = Command.run ~version:"0.1" command

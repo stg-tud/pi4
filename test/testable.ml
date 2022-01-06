@@ -12,7 +12,7 @@ let term =
     (Pretty.pp_expr [ ("y", NameBind); ("x", NameBind) ])
     [%compare.equal: Expression.t]
 
-let ty ctx = Alcotest.testable (pp_type ctx) [%compare.equal: ty]
+let pi_type ctx = Alcotest.testable (pp_pi_type ctx) [%compare.equal: pi_type]
 
 let rec eq_hty (x : HeapType.t) (y : HeapType.t) =
   match (x, y) with
@@ -28,7 +28,7 @@ let hty = Alcotest.testable (Pretty.pp_header_type []) eq_hty
 
 let program = Alcotest.testable pp_program [%compare.equal: Program.t]
 
-let command = Alcotest.testable pp_command [%compare.equal: command]
+let command = Alcotest.testable pp_command [%compare.equal: Command.t]
 
 let typechecker_result =
   Alcotest.testable Typechecker.TypecheckingResult.pp [%compare.equal: Typechecker.TypecheckingResult.t]

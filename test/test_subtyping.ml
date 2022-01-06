@@ -256,35 +256,35 @@ let test_concat2 () =
 
 let test_concat3 () =
   let hty_s =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type header_table []
       {|
         (Σ x:
           {y:ε|y.pkt_in.length==6}.
           {z:eth|z.pkt_in==x.pkt_in@s.pkt_in})[s->{t:ε|t.pkt_in.length==8}]
       |}
-      header_table []
   in
+
   Test.not_subtype hty_s Nothing [] header_table
 
 let test_subst () =
-  (* let hty_s = Parsing.heap_type_of_string
+  (* let hty_s = Parsing.parse_heap_type
      "{x:eth|x.pkt_in.length==y.pkt_in.length}[y ->
      {z:\\empty|z.pkt_in.length==1 || z.pkt_in.length==2}]" header_table []
      in *)
-  (* let hty_t = Parsing.heap_type_of_string "{x:eth|x.pkt_in.length==1}"
+  (* let hty_t = Parsing.parse_heap_type "{x:eth|x.pkt_in.length==1}"
      header_table [] in *)
-  (* let hty_t = Parsing.heap_type_of_string
+  (* let hty_t = Parsing.parse_heap_type
      "{x:eth|x.pkt_in.length==v.pkt_in.length}[v ->
      {z:\\empty|z.pkt_in.length==1}]" header_table [] in *)
   let hty_s =
-    Parsing.heap_type_of_string
-      "{x:eth|x.pkt_in.length==1} + {x:eth|x.pkt_in.length==2}" header_table []
+    Parsing.parse_heap_type header_table []
+      "{x:eth|x.pkt_in.length==1} + {x:eth|x.pkt_in.length==2}"
   in
   let hty_t =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type header_table []
       "{x:eth|x.pkt_in.length==v.pkt_in.length}[v -> {z:\\empty|z.pkt_in.length==1 || z.pkt_in.length==2}]"
-      header_table []
   in
+
   Test.is_subtype hty_s hty_t [] header_table
 
 let test_refine_choice () =
@@ -294,9 +294,9 @@ let test_refine_choice () =
   (* TODO: From the perspective of the formalization we expect this to work
      without the explicit validity check. *)
   let hty_s =
-    Parsing.heap_type_of_string "{x:(a+b)|x.a.a==0x1 ∧ x.a.valid}" ht []
+    Parsing.parse_heap_type ht [] "{x:(a+b)|x.a.a==0x1 ∧ x.a.valid}"
   in
-  let hty_t = Parsing.heap_type_of_string "a" ht [] in
+  let hty_t = Parsing.parse_heap_type ht [] "a" in
   Test.is_subtype hty_s hty_t [] ht
 
 let test_type_extract_nothing () =
@@ -308,7 +308,7 @@ let test_type_extract_nothing () =
       ]
   in
   let hty_var =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht []
       {|
         {y_2:
           {x_2:
@@ -318,10 +318,11 @@ let test_type_extract_nothing () =
               ¬(x_2.b_0.valid)}
           | y_2.pkt_in.length == 4} 
       |}
-      ht []
   in
+
   let hty_s =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht
+      [ ("x_1", Env.VarBind hty_var) ]
       {|
         Σy_0:
           ({z_0:
@@ -355,8 +356,6 @@ let test_type_extract_nothing () =
             y_0.a_1[0:4]@u_0.pkt_in == x_1.pkt_in ∧
             (u_0.pkt_in.length + 4) == x_1.pkt_in.length})
       |}
-      ht
-      [ ("x_1", Env.VarBind hty_var) ]
   in
 
   Test.not_subtype hty_s Nothing [ ("x_1", Env.VarBind hty_var) ] ht
@@ -370,7 +369,7 @@ let test_refinement_not_nothing () =
       ]
   in
   let hty_s =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht []
       {|
       {y_1:
       ⊤
@@ -379,8 +378,8 @@ let test_refinement_not_nothing () =
         ¬(y_1.b_0.valid) ∧
         (y_1.pkt_in.length + 4) == 6}
       |}
-      ht []
   in
+
   Test.not_subtype hty_s Nothing [] ht
 
 let test_sigma_not_nothing () =
@@ -392,7 +391,7 @@ let test_sigma_not_nothing () =
       ]
   in
   let hty_s =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht []
       {|
         Σy_0:
           ({z_0:
@@ -413,8 +412,8 @@ let test_sigma_not_nothing () =
               | (y_1.pkt_in.length + 4) == 4}
             | true})
       |}
-      ht []
   in
+
   Test.not_subtype hty_s Nothing [] ht
 
 let test_subtype_roundtripping () =
@@ -425,7 +424,7 @@ let test_subtype_roundtripping () =
       ]
   in
   let hty_var =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht []
       {|
         {y_9:
           {x_3:
@@ -434,11 +433,11 @@ let test_subtype_roundtripping () =
           | y_9.pkt_in.length == 0 ∧
             y_9.pkt_out.length == 0}
       |}
-      ht []
   in
+
   let env = [ ("x_2", Env.VarBind hty_var) ] in
   let hty_s =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht env
       {|
         ((Σy_6:
           ({z_2:
@@ -529,10 +528,10 @@ let test_subtype_roundtripping () =
                 y_1.pkt_out.length == 1 ∧
                 y_1.pkt_out[0:1] == x_2.h_0[0:1]})]
       |}
-      ht env
   in
+
   let hty_t =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht env
       {|
         {y_10:
           {x_4:
@@ -541,8 +540,8 @@ let test_subtype_roundtripping () =
           | true ∧
             y_10.h_1[0:1] == x_2.h_0[0:1]}
       |}
-      ht env
   in
+
   Test.is_subtype hty_s hty_t env ht
 
 let test_subtype_roundtripping2 () =
@@ -553,7 +552,7 @@ let test_subtype_roundtripping2 () =
       ]
   in
   let hty_var =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht []
       {|
           {y_9:
             {x_3:
@@ -562,11 +561,11 @@ let test_subtype_roundtripping2 () =
             | y_9.pkt_in.length == 0 ∧
               y_9.pkt_out.length == 0}
         |}
-      ht []
   in
+
   let env = [ ("x_2", Env.VarBind hty_var) ] in
   let hty_subst1 =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht env
       {|
         Σx_0:
         ({u_0:
@@ -597,11 +596,11 @@ let test_subtype_roundtripping2 () =
             y_1.pkt_out.length == 1 ∧
             y_1.pkt_out[0:1] == x_2.h_0[0:1]})
         |}
-      ht env
   in
+
   let env' = ("y_0", Env.VarBind hty_subst1) :: env in
   let hty_subst2 =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht env'
       {|
           Σz_0:
             ({y_5:
@@ -623,11 +622,11 @@ let test_subtype_roundtripping2 () =
                   y_4.pkt_in == y_0.pkt_in ∧
                   y_4.pkt_in.length == y_0.pkt_in.length})
         |}
-      ht env'
   in
+
   let env'' = ("y_3", Env.VarBind hty_subst2) :: env' in
   let hty_s =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht env''
       {|
           Σy_6:
             ({z_2:
@@ -669,10 +668,10 @@ let test_subtype_roundtripping2 () =
                 y_6.h_1[0:1]@u_1.pkt_in == y_3.pkt_in ∧
                 (u_1.pkt_in.length + 1) == y_3.pkt_in.length})
         |}
-      ht env''
   in
+
   let hty_t =
-    Parsing.heap_type_of_string
+    Parsing.parse_heap_type ht env''
       {|
           {y_10:
             {x_4:
@@ -681,23 +680,23 @@ let test_subtype_roundtripping2 () =
             | true ∧
               y_10.h_1[0:1] == x_2.h_0[0:1]}
         |}
-      ht env''
   in
+
   Test.is_subtype hty_s hty_t env'' ht
 
 let test_subtype_extract_opt () =
   let header_table =
     HeaderTable.populate
-      [ Parsing.parse_instance "A { a : 4 }";
-        Parsing.parse_instance "B { b : 2 }"
+      [ Parsing.parse_instance_exn "A { a : 4; }";
+        Parsing.parse_instance_exn "B { b : 2; }"
       ]
   in
   let input_type =
-    Parsing.parse_heap_type "{y:ε|y.pkt_in.length > 5}" header_table []
+    Parsing.parse_heap_type header_table [] "{y:ε|y.pkt_in.length > 5}"
   in
   let context = [ ("x", Env.VarBind input_type) ] in
   let subtype =
-    Parsing.parse_heap_type
+    Parsing.parse_heap_type header_table context
       {|
         {z:⊤
           | 
@@ -705,30 +704,28 @@ let test_subtype_extract_opt () =
             z.B.valid ∧ 
             z.pkt_in.length + 4 > 5 ∧
             z.A@z.pkt_in == x.pkt_in ∧ 
-            z.pkt_out == x.pkt_out ∧ 
-            x.A.valid => z.A.valid ∧ z.A == x.A ∧
-            x.B.valid => z.B.valid ∧ z.B == x.B }
+            z.pkt_out == x.pkt_out  }
       |}
-      header_table context
   in
-  let supertype = Parsing.parse_heap_type "Σy:A.B" header_table [] in
+
+  let supertype = Parsing.parse_heap_type header_table [] "Σy:A.B" in
   Test.is_subtype subtype supertype context header_table
 
 let test_subtype_plus () =
   let header_table =
     HeaderTable.populate
-      [ Parsing.parse_instance "A { a : 4 }";
-        Parsing.parse_instance "B { b : 2 }"
+      [ Parsing.parse_instance_exn "A { a : 4; }";
+        Parsing.parse_instance_exn "B { b : 2; }"
       ]
   in
   let subtype =
-    Parsing.parse_heap_type
+    Parsing.parse_heap_type header_table []
       {|
         {x:A|x.pkt_in.length+4 == 0}
       |}
-      header_table []
   in
-  let supertype = Parsing.parse_heap_type "A" header_table [] in
+
+  let supertype = Parsing.parse_heap_type header_table [] "A" in
   Test.is_subtype subtype supertype [] header_table
 
 let test_set =

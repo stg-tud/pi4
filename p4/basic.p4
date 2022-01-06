@@ -36,10 +36,7 @@ struct headers {
     vlan_t vlan;
 }
 
-// @pi4("(x:ε) → (ethernet + Σy:ethernet.ipv4 + Σy:ethernet.vlan + Σy:ethernet.(Σz:vlan.ipv4))")
-@pi4("(x:ε) → ethernet~")
-// @pi4("(x:{y:ε|y.pkt_in.length=320}) → ethernet~")
-// @pi4("(x:{y:ε|y.pkt_in.length=320}) → (ethernet + Σy:ethernet.ipv4 + Σy:ethernet.vlan + Σy:ethernet.(Σz:vlan.ipv4))")
+@pi4("MyParser as (x:ε) -> ethernet~")
 parser MyParser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,

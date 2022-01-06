@@ -86,12 +86,12 @@ and collect_exprs (header_type : HeapType.t) (acc : FormulaSet.t) =
   | Refinement (_, hty, e) -> collect_exprs hty (aux e acc)
   | _ as hty -> (hty, acc)
 
-let rec simplify_command (cmd : command) =
+let rec simplify_command (cmd : Command.t) =
   match cmd with
   | Seq (Skip, c) -> simplify_command c
   | Seq (c, Skip) -> simplify_command c
-  | Seq (c1, c2) -> Seq (simplify_command c1, simplify_command c2)
-  | If (e, c1, c2) -> If (e, simplify_command c1, simplify_command c2)
+  | Seq (c1, c2) -> Command.Seq (simplify_command c1, simplify_command c2)
+  | If (e, c1, c2) -> Command.If (e, simplify_command c1, simplify_command c2)
   | Ascription (c, x, hty_in, hty_out) ->
-    Ascription (simplify_command c, x, hty_in, hty_out)
+    Command.Ascription (simplify_command c, x, hty_in, hty_out)
   | _ as c -> c

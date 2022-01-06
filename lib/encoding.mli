@@ -14,7 +14,7 @@ val id_dedup :
 module type S = sig
   val equal : string -> string -> HeaderTable.t -> Smtlib.term
 
-  val header_type_to_smt :
+  val heap_type_to_smt :
     HeaderTable.t ->
     Env.context ->
     string ->
