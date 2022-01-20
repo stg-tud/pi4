@@ -1,0 +1,59 @@
+---
+layout: default
+title: "Installation"
+---
+
+<div class="w-full">
+  <div class="container mx-auto p-8">
+    <h1 class="text-6xl mb-6 font-extrabold">Setup</h1>
+    <p class="mb-6">
+      There are two options for installing and running Π4. 
+      Using Vagrant allows to create a virtual machine with all dependencies in place.
+      Alternatively, Π4 can be installed directly from source.
+    </p>
+    <h2 class="font-bold text-4xl mb-4">Using Vagrant</h2>
+    <ol class="list-decimal list-inside">
+      <li>First, install Vagrant by downloading the appropriate version for your platform and following the official <a href="https://www.vagrantup.com/docs/installation" class="text-blue-500" target="_blank">installation instructions</a>. Then install <a href="https://www.virtualbox.org/wiki/Downloads" class="text-blue-500" target="_blank">VirtualBox</a>.</li>
+      <li>Get the source code with the vagrant scripts:
+        <pre class="bg-gray-100 p-4 my-4"><code class="language-bash">git clone https://github.com/stg-tud/pi4.git
+cd pi4/vm/</code></pre>
+      </li>
+      <li>Start the virtual machine. This will automatically install all the dependencies and build and install Pi4 in the VM. Depending on the machine used this process will take a couple of minutes. 
+      <pre class="bg-gray-100 p-4 my-4"><code class="language-bash">$ vagrant up</code></pre></li>
+      <li>After the installation is complete, connect to the VM via SSH and change to the directory containing the test data.
+      <pre class="bg-gray-100 p-4 my-4"><code class="language-bash">vagrant ssh
+cd pi4/</code></pre>
+      </li>
+    </ol>
+
+    <h2 class="font-bold text-4xl mb-4">From Source</h2>
+
+    <p>Installing from source requires Linux and has been tested on Ubuntu 21.04 and on macOS.</p>
+    <ol class="list-decimal list-inside">
+      <li>Install the <a href="https://github.com/Z3Prover/z3/releases/tag/z3-4.8.10">Z3 theorem prover</a>. The code has only been tested with version 4.8.10. The binary <code class="text-pink-600">z3</code> must be available in the path.</li>
+      <li>Install <a href="https://opam.ocaml.org/doc/Install.html">opam</a>. This build has only been tested with version 2.0.7. </li>
+      <li>Clone the repository and change to the directory of the codebase. In what follows, all
+        relative paths will be given from this directory.
+        <pre class="bg-gray-100 p-4 my-4"><code>git clone https://github.com/stg-tud/pi4.git
+cd ./pi4/</code></pre>
+      </li>
+      <li>Install the ocaml compiler locally by running <pre class="bg-gray-100 p-4 my-4"><code>opam switch create . ocaml-base-compiler.4.11.1</code></pre></li>
+      <li>Load the current opam environment by running <pre class="bg-gray-100 p-4 my-4"><code>eval $(opam env)</code></pre></li>
+      <li>
+        Use opam to install dune version 2.9.0: <pre class="bg-gray-100 p-4 my-4"><code> opam install dune.2.9.0</code></pre>
+      </li>
+      <li>
+        Pin a custom z3 library: <pre class="bg-gray-100 p-4 my-4"><code>opam pin git@github.com:eichholz/ocaml-z3.git#use-successes</code></pre></li>
+      <li>
+        Pin version 0.1.2 of Petr4: <pre class="bg-gray-100 p-4 my-4"><code>opam pin git@github.com:verified-network-toolchain/petr4.git#0.1.2</code></pre></li>
+      <li>
+        Install the remaining opam dependencies: <pre class="bg-gray-100 p-4 my-4"><code>opam install core fmt landmarks logs owl-base alcotest ANSITerminal menhir</code></pre></li>
+      <li>
+        Execute <code class="text-pink-600">make</code></li>
+      <li>
+        If the build fails due to a missing dependency, let's say its called <code>d</code>, try running <code class="text-pink-600">opam install d</code> before attempting to <code class="text-pink-600">make</code> again.</li>
+      <li>Once the build succeeds, you should have an executable called <code class="text-pink-600">./pi4</code></li>
+    </ol>
+  </div>
+
+</div>
