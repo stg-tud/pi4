@@ -1,0 +1,12 @@
+on:
+  push:
+    branches: [ gh-pages ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: npm install
+      - uses: actions/jekyll-build-pages@v1-beta
+      - uses: actions/upload-artifact@main

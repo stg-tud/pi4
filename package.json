@@ -14,7 +14,8 @@
   },
   "homepage": "https://github.com/stg-tud/pi4#readme",
   "scripts": {
-    "dev": "bundle exec jekyll serve --watch"
+    "dev": "bundle exec jekyll serve --watch",
+    "build": "JEKYLL_ENV=production NODE_ENV=production bundle exec jekyll build"
   },
   "description": "",
   "devDependencies": {
@@ -25,7 +26,5 @@
     "postcss-import": "^14.0.2",
     "tailwindcss": "^3.0.13"
   },
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "^5.15.4"
-  }
+  "dependencies": {}
 }
