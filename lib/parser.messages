@@ -16,6 +16,7 @@ annotation: LPAREN VBAR
 ##
 ## annotation -> LPAREN . typed_annotation_body RPAREN AS pi EOF [ # ]
 ## annotation_body -> LPAREN . annotation_body RPAREN [ SEMI AS ]
+## typed_annotation_body -> LPAREN . annotation_body AS pi RPAREN [ SEMI ]
 ##
 ## The known suffix of the stack is as follows:
 ## LPAREN
@@ -28,6 +29,7 @@ annotation: LPAREN LPAREN VBAR
 ## Ends in an error in state: 3.
 ##
 ## annotation_body -> LPAREN . annotation_body RPAREN [ SEMI RPAREN AS ]
+## typed_annotation_body -> LPAREN . annotation_body AS pi RPAREN [ SEMI RPAREN AS ]
 ##
 ## The known suffix of the stack is as follows:
 ## LPAREN
@@ -35,7 +37,7 @@ annotation: LPAREN LPAREN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN
+annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN VBAR
 ##
 ## Ends in an error in state: 5.
 ##
@@ -44,13 +46,6 @@ annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN
 ##
 ## The known suffix of the stack is as follows:
 ## typed_annotation_body
-##
-## WARNING: This example involves spurious reductions.
-## This implies that, although the LR(1) items shown above provide an
-## accurate view of the past (what has been recognized so far), they
-## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
-## In state 135, spurious reduction of production typed_annotation_body -> annotation_body AS pi
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -153,7 +148,7 @@ annotation: ID SEMI ID VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN ID AS VBAR
+annotation: ID SEMI ID AS VBAR
 ##
 ## Ends in an error in state: 12.
 ##
@@ -1362,6 +1357,7 @@ annotation: LPAREN LPAREN ID VBAR
 ## annotation_body -> LPAREN annotation_body . RPAREN [ SEMI RPAREN AS ]
 ## annotation_body -> annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
 ## annotation_body -> annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+## typed_annotation_body -> LPAREN annotation_body . AS pi RPAREN [ SEMI RPAREN AS ]
 ## typed_annotation_body -> annotation_body . AS pi [ SEMI ]
 ##
 ## The known suffix of the stack is as follows:
@@ -1370,9 +1366,41 @@ annotation: LPAREN LPAREN ID VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
+annotation: LPAREN LPAREN ID AS VBAR
 ##
 ## Ends in an error in state: 138.
+##
+## typed_annotation_body -> LPAREN annotation_body AS . pi RPAREN [ SEMI RPAREN AS ]
+## typed_annotation_body -> annotation_body AS . pi [ SEMI ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN annotation_body AS
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
+##
+## Ends in an error in state: 139.
+##
+## typed_annotation_body -> LPAREN annotation_body AS pi . RPAREN [ SEMI RPAREN AS ]
+## typed_annotation_body -> annotation_body AS pi . [ SEMI ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN annotation_body AS pi
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN VBAR
+##
+## Ends in an error in state: 141.
 ##
 ## annotation -> LPAREN typed_annotation_body . RPAREN AS pi EOF [ # ]
 ## annotation_body -> typed_annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
@@ -1381,19 +1409,12 @@ annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
 ## The known suffix of the stack is as follows:
 ## LPAREN typed_annotation_body
 ##
-## WARNING: This example involves spurious reductions.
-## This implies that, although the LR(1) items shown above provide an
-## accurate view of the past (what has been recognized so far), they
-## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
-## In state 135, spurious reduction of production typed_annotation_body -> annotation_body AS pi
-##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN VBAR
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN RPAREN VBAR
 ##
-## Ends in an error in state: 139.
+## Ends in an error in state: 142.
 ##
 ## annotation -> LPAREN typed_annotation_body RPAREN . AS pi EOF [ # ]
 ##
@@ -1403,9 +1424,9 @@ annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN AS VBAR
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN RPAREN AS VBAR
 ##
-## Ends in an error in state: 140.
+## Ends in an error in state: 143.
 ##
 ## annotation -> LPAREN typed_annotation_body RPAREN AS . pi EOF [ # ]
 ##
@@ -1415,9 +1436,9 @@ annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN AS VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN RPAREN AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI
 ##
-## Ends in an error in state: 141.
+## Ends in an error in state: 144.
 ##
 ## annotation -> LPAREN typed_annotation_body RPAREN AS pi . EOF [ # ]
 ##
@@ -1435,11 +1456,12 @@ annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN AS LPAR
 
 annotation: LPAREN ID VBAR
 ##
-## Ends in an error in state: 143.
+## Ends in an error in state: 146.
 ##
 ## annotation_body -> LPAREN annotation_body . RPAREN [ SEMI AS ]
 ## annotation_body -> annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
 ## annotation_body -> annotation_body . SEMI typed_annotation_body [ SEMI RPAREN AS ]
+## typed_annotation_body -> LPAREN annotation_body . AS pi RPAREN [ SEMI ]
 ## typed_annotation_body -> annotation_body . AS pi [ SEMI RPAREN ]
 ##
 ## The known suffix of the stack is as follows:
@@ -1448,9 +1470,41 @@ annotation: LPAREN ID VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+annotation: LPAREN ID AS VBAR
+##
+## Ends in an error in state: 147.
+##
+## typed_annotation_body -> LPAREN annotation_body AS . pi RPAREN [ SEMI ]
+## typed_annotation_body -> annotation_body AS . pi [ SEMI RPAREN ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN annotation_body AS
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
+##
+## Ends in an error in state: 148.
+##
+## typed_annotation_body -> LPAREN annotation_body AS pi . RPAREN [ SEMI ]
+## typed_annotation_body -> annotation_body AS pi . [ SEMI RPAREN ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN annotation_body AS pi
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 annotation: ID RPAREN
 ##
-## Ends in an error in state: 144.
+## Ends in an error in state: 149.
 ##
 ## annotation -> annotation_body . AS pi EOF [ # ]
 ## annotation_body -> annotation_body . SEMI annotation_body [ SEMI AS ]
@@ -1465,7 +1519,7 @@ annotation: ID RPAREN
 
 annotation: ID AS VBAR
 ##
-## Ends in an error in state: 145.
+## Ends in an error in state: 150.
 ##
 ## annotation -> annotation_body AS . pi EOF [ # ]
 ## typed_annotation_body -> annotation_body AS . pi [ SEMI ]
@@ -1478,7 +1532,7 @@ annotation: ID AS VBAR
 
 annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN
 ##
-## Ends in an error in state: 146.
+## Ends in an error in state: 151.
 ##
 ## annotation -> annotation_body AS pi . EOF [ # ]
 ## typed_annotation_body -> annotation_body AS pi . [ SEMI ]
@@ -1497,7 +1551,7 @@ annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN
 
 command: VBAR
 ##
-## Ends in an error in state: 149.
+## Ends in an error in state: 154.
 ##
 ## command' -> . command [ # ]
 ##
@@ -1509,7 +1563,7 @@ command: VBAR
 
 command: REMIT VBAR
 ##
-## Ends in an error in state: 152.
+## Ends in an error in state: 157.
 ##
 ## cmd -> REMIT . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -1521,7 +1575,7 @@ command: REMIT VBAR
 
 command: REMIT LPAREN VBAR
 ##
-## Ends in an error in state: 153.
+## Ends in an error in state: 158.
 ##
 ## cmd -> REMIT LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -1533,7 +1587,7 @@ command: REMIT LPAREN VBAR
 
 command: REMIT LPAREN ID VBAR
 ##
-## Ends in an error in state: 154.
+## Ends in an error in state: 159.
 ##
 ## cmd -> REMIT LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -1545,7 +1599,7 @@ command: REMIT LPAREN ID VBAR
 
 command: LPAREN VBAR
 ##
-## Ends in an error in state: 156.
+## Ends in an error in state: 161.
 ##
 ## cmd -> LPAREN . cmd RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -1557,7 +1611,7 @@ command: LPAREN VBAR
 
 command: IF VBAR
 ##
-## Ends in an error in state: 157.
+## Ends in an error in state: 162.
 ##
 ## cmd -> IF . cexpr LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> IF . cexpr LBRACE cmd RBRACE ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
@@ -1570,7 +1624,7 @@ command: IF VBAR
 
 command: IF NEG VBAR
 ##
-## Ends in an error in state: 159.
+## Ends in an error in state: 164.
 ##
 ## cexpr -> NEG . cexpr [ RPAREN OR LBRACE AND ]
 ##
@@ -1582,7 +1636,7 @@ command: IF NEG VBAR
 
 command: IF LPAREN VBAR
 ##
-## Ends in an error in state: 160.
+## Ends in an error in state: 165.
 ##
 ## cexpr -> LPAREN . cexpr RPAREN [ RPAREN OR LBRACE AND ]
 ## cterm -> LPAREN . cterm RPAREN [ RPAREN GT EQ BANG ]
@@ -1595,7 +1649,7 @@ command: IF LPAREN VBAR
 
 command: IF ID VBAR
 ##
-## Ends in an error in state: 161.
+## Ends in an error in state: 166.
 ##
 ## cexpr -> ID . DOT VALID [ RPAREN OR LBRACE AND ]
 ## cterm_bv -> ID . DOT ID [ RPAREN MINUS GT EQ BANG ]
@@ -1609,7 +1663,7 @@ command: IF ID VBAR
 
 command: IF ID LSQUARE VBAR
 ##
-## Ends in an error in state: 162.
+## Ends in an error in state: 167.
 ##
 ## cterm_bv -> ID LSQUARE . INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1621,7 +1675,7 @@ command: IF ID LSQUARE VBAR
 
 command: IF ID LSQUARE INT VBAR
 ##
-## Ends in an error in state: 163.
+## Ends in an error in state: 168.
 ##
 ## cterm_bv -> ID LSQUARE INT . COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1633,7 +1687,7 @@ command: IF ID LSQUARE INT VBAR
 
 command: IF ID LSQUARE INT COLON VBAR
 ##
-## Ends in an error in state: 164.
+## Ends in an error in state: 169.
 ##
 ## cterm_bv -> ID LSQUARE INT COLON . INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1645,7 +1699,7 @@ command: IF ID LSQUARE INT COLON VBAR
 
 command: IF ID LSQUARE INT COLON INT VBAR
 ##
-## Ends in an error in state: 165.
+## Ends in an error in state: 170.
 ##
 ## cterm_bv -> ID LSQUARE INT COLON INT . RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1657,7 +1711,7 @@ command: IF ID LSQUARE INT COLON INT VBAR
 
 command: IF ID DOT VBAR
 ##
-## Ends in an error in state: 167.
+## Ends in an error in state: 172.
 ##
 ## cexpr -> ID DOT . VALID [ RPAREN OR LBRACE AND ]
 ## cterm_bv -> ID DOT . ID [ RPAREN MINUS GT EQ BANG ]
@@ -1670,7 +1724,7 @@ command: IF ID DOT VBAR
 
 command: IF BANG VBAR
 ##
-## Ends in an error in state: 173.
+## Ends in an error in state: 178.
 ##
 ## cexpr -> BANG . cexpr [ RPAREN OR LBRACE AND ]
 ##
@@ -1682,7 +1736,7 @@ command: IF BANG VBAR
 
 command: IF PKTIN VBAR
 ##
-## Ends in an error in state: 174.
+## Ends in an error in state: 179.
 ##
 ## cterm_bv -> packet . LSQUARE INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1694,7 +1748,7 @@ command: IF PKTIN VBAR
 
 command: IF PKTIN LSQUARE VBAR
 ##
-## Ends in an error in state: 175.
+## Ends in an error in state: 180.
 ##
 ## cterm_bv -> packet LSQUARE . INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1706,7 +1760,7 @@ command: IF PKTIN LSQUARE VBAR
 
 command: IF PKTIN LSQUARE INT VBAR
 ##
-## Ends in an error in state: 176.
+## Ends in an error in state: 181.
 ##
 ## cterm_bv -> packet LSQUARE INT . COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1718,7 +1772,7 @@ command: IF PKTIN LSQUARE INT VBAR
 
 command: IF PKTIN LSQUARE INT COLON VBAR
 ##
-## Ends in an error in state: 177.
+## Ends in an error in state: 182.
 ##
 ## cterm_bv -> packet LSQUARE INT COLON . INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1730,7 +1784,7 @@ command: IF PKTIN LSQUARE INT COLON VBAR
 
 command: IF PKTIN LSQUARE INT COLON INT VBAR
 ##
-## Ends in an error in state: 178.
+## Ends in an error in state: 183.
 ##
 ## cterm_bv -> packet LSQUARE INT COLON INT . RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1742,7 +1796,7 @@ command: IF PKTIN LSQUARE INT COLON INT VBAR
 
 command: IF BITSTRING VBAR
 ##
-## Ends in an error in state: 180.
+## Ends in an error in state: 185.
 ##
 ## cterm -> cterm_bv . [ SEMI RPAREN RBRACE OR LBRACE GT EQ EOF BANG AS AND ]
 ## cterm_bv -> cterm_bv . MINUS cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
@@ -1755,7 +1809,7 @@ command: IF BITSTRING VBAR
 
 command: IF BITSTRING MINUS VBAR
 ##
-## Ends in an error in state: 181.
+## Ends in an error in state: 186.
 ##
 ## cterm_bv -> cterm_bv MINUS . cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1767,7 +1821,7 @@ command: IF BITSTRING MINUS VBAR
 
 command: IF BITSTRING GT ID VBAR
 ##
-## Ends in an error in state: 182.
+## Ends in an error in state: 187.
 ##
 ## cterm_bv -> ID . DOT ID [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ## cterm_bv -> ID . LSQUARE INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
@@ -1780,7 +1834,7 @@ command: IF BITSTRING GT ID VBAR
 
 command: IF BITSTRING GT ID DOT VBAR
 ##
-## Ends in an error in state: 183.
+## Ends in an error in state: 188.
 ##
 ## cterm_bv -> ID DOT . ID [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
@@ -1792,7 +1846,7 @@ command: IF BITSTRING GT ID DOT VBAR
 
 command: IF BITSTRING MINUS BITSTRING VBAR
 ##
-## Ends in an error in state: 184.
+## Ends in an error in state: 189.
 ##
 ## cterm_bv -> cterm_bv . MINUS cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ## cterm_bv -> cterm_bv MINUS cterm_bv . [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
@@ -1805,7 +1859,7 @@ command: IF BITSTRING MINUS BITSTRING VBAR
 
 command: IF BITSTRING SEMI
 ##
-## Ends in an error in state: 185.
+## Ends in an error in state: 190.
 ##
 ## cexpr -> cterm . EQ EQ cterm [ RPAREN OR LBRACE AND ]
 ## cexpr -> cterm . BANG EQ cterm [ RPAREN OR LBRACE AND ]
@@ -1818,14 +1872,14 @@ command: IF BITSTRING SEMI
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 180, spurious reduction of production cterm -> cterm_bv
+## In state 185, spurious reduction of production cterm -> cterm_bv
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 command: IF BITSTRING GT VBAR
 ##
-## Ends in an error in state: 186.
+## Ends in an error in state: 191.
 ##
 ## cexpr -> cterm GT . cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -1837,7 +1891,7 @@ command: IF BITSTRING GT VBAR
 
 command: IF BITSTRING GT LPAREN VBAR
 ##
-## Ends in an error in state: 187.
+## Ends in an error in state: 192.
 ##
 ## cterm -> LPAREN . cterm RPAREN [ SEMI RPAREN RBRACE OR LBRACE EOF AS AND ]
 ##
@@ -1849,7 +1903,7 @@ command: IF BITSTRING GT LPAREN VBAR
 
 command: IF BITSTRING GT LPAREN BITSTRING SEMI
 ##
-## Ends in an error in state: 188.
+## Ends in an error in state: 193.
 ##
 ## cterm -> LPAREN cterm . RPAREN [ SEMI RPAREN RBRACE OR LBRACE EOF AS AND ]
 ##
@@ -1860,14 +1914,14 @@ command: IF BITSTRING GT LPAREN BITSTRING SEMI
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 180, spurious reduction of production cterm -> cterm_bv
+## In state 185, spurious reduction of production cterm -> cterm_bv
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 command: IF BITSTRING EQ VBAR
 ##
-## Ends in an error in state: 191.
+## Ends in an error in state: 196.
 ##
 ## cexpr -> cterm EQ . EQ cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -1879,7 +1933,7 @@ command: IF BITSTRING EQ VBAR
 
 command: IF BITSTRING EQ EQ VBAR
 ##
-## Ends in an error in state: 192.
+## Ends in an error in state: 197.
 ##
 ## cexpr -> cterm EQ EQ . cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -1891,7 +1945,7 @@ command: IF BITSTRING EQ EQ VBAR
 
 command: IF BITSTRING BANG VBAR
 ##
-## Ends in an error in state: 194.
+## Ends in an error in state: 199.
 ##
 ## cexpr -> cterm BANG . EQ cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -1903,7 +1957,7 @@ command: IF BITSTRING BANG VBAR
 
 command: IF BITSTRING BANG EQ VBAR
 ##
-## Ends in an error in state: 195.
+## Ends in an error in state: 200.
 ##
 ## cexpr -> cterm BANG EQ . cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -1915,7 +1969,7 @@ command: IF BITSTRING BANG EQ VBAR
 
 command: IF BANG FALSE VBAR
 ##
-## Ends in an error in state: 197.
+## Ends in an error in state: 202.
 ##
 ## cexpr -> cexpr . AND cexpr [ RPAREN OR LBRACE AND ]
 ## cexpr -> cexpr . OR cexpr [ RPAREN OR LBRACE AND ]
@@ -1929,7 +1983,7 @@ command: IF BANG FALSE VBAR
 
 command: IF FALSE OR VBAR
 ##
-## Ends in an error in state: 198.
+## Ends in an error in state: 203.
 ##
 ## cexpr -> cexpr OR . cexpr [ RPAREN OR LBRACE AND ]
 ##
@@ -1941,7 +1995,7 @@ command: IF FALSE OR VBAR
 
 command: IF LPAREN BITSTRING SEMI
 ##
-## Ends in an error in state: 200.
+## Ends in an error in state: 205.
 ##
 ## cexpr -> cterm . EQ EQ cterm [ RPAREN OR AND ]
 ## cexpr -> cterm . BANG EQ cterm [ RPAREN OR AND ]
@@ -1955,14 +2009,14 @@ command: IF LPAREN BITSTRING SEMI
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 180, spurious reduction of production cterm -> cterm_bv
+## In state 185, spurious reduction of production cterm -> cterm_bv
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 command: IF LPAREN FALSE VBAR
 ##
-## Ends in an error in state: 201.
+## Ends in an error in state: 206.
 ##
 ## cexpr -> LPAREN cexpr . RPAREN [ RPAREN OR LBRACE AND ]
 ## cexpr -> cexpr . AND cexpr [ RPAREN OR AND ]
@@ -1976,7 +2030,7 @@ command: IF LPAREN FALSE VBAR
 
 command: IF FALSE AND VBAR
 ##
-## Ends in an error in state: 203.
+## Ends in an error in state: 208.
 ##
 ## cexpr -> cexpr AND . cexpr [ RPAREN OR LBRACE AND ]
 ##
@@ -1988,7 +2042,7 @@ command: IF FALSE AND VBAR
 
 command: IF FALSE AND FALSE VBAR
 ##
-## Ends in an error in state: 204.
+## Ends in an error in state: 209.
 ##
 ## cexpr -> cexpr . AND cexpr [ RPAREN OR LBRACE AND ]
 ## cexpr -> cexpr AND cexpr . [ RPAREN OR LBRACE AND ]
@@ -2002,7 +2056,7 @@ command: IF FALSE AND FALSE VBAR
 
 command: IF NEG FALSE VBAR
 ##
-## Ends in an error in state: 205.
+## Ends in an error in state: 210.
 ##
 ## cexpr -> cexpr . AND cexpr [ RPAREN OR LBRACE AND ]
 ## cexpr -> cexpr . OR cexpr [ RPAREN OR LBRACE AND ]
@@ -2016,7 +2070,7 @@ command: IF NEG FALSE VBAR
 
 command: IF FALSE VBAR
 ##
-## Ends in an error in state: 206.
+## Ends in an error in state: 211.
 ##
 ## cexpr -> cexpr . AND cexpr [ OR LBRACE AND ]
 ## cexpr -> cexpr . OR cexpr [ OR LBRACE AND ]
@@ -2031,7 +2085,7 @@ command: IF FALSE VBAR
 
 command: IF FALSE LBRACE VBAR
 ##
-## Ends in an error in state: 207.
+## Ends in an error in state: 212.
 ##
 ## cmd -> IF cexpr LBRACE . cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> IF cexpr LBRACE . cmd RBRACE ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
@@ -2044,7 +2098,7 @@ command: IF FALSE LBRACE VBAR
 
 command: ID VBAR
 ##
-## Ends in an error in state: 208.
+## Ends in an error in state: 213.
 ##
 ## cmd -> ID . DOT ID COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> ID . LSQUARE INT COLON INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
@@ -2057,7 +2111,7 @@ command: ID VBAR
 
 command: ID LSQUARE VBAR
 ##
-## Ends in an error in state: 209.
+## Ends in an error in state: 214.
 ##
 ## cmd -> ID LSQUARE . INT COLON INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2069,7 +2123,7 @@ command: ID LSQUARE VBAR
 
 command: ID LSQUARE INT VBAR
 ##
-## Ends in an error in state: 210.
+## Ends in an error in state: 215.
 ##
 ## cmd -> ID LSQUARE INT . COLON INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2081,7 +2135,7 @@ command: ID LSQUARE INT VBAR
 
 command: ID LSQUARE INT COLON VBAR
 ##
-## Ends in an error in state: 211.
+## Ends in an error in state: 216.
 ##
 ## cmd -> ID LSQUARE INT COLON . INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2093,7 +2147,7 @@ command: ID LSQUARE INT COLON VBAR
 
 command: ID LSQUARE INT COLON INT VBAR
 ##
-## Ends in an error in state: 212.
+## Ends in an error in state: 217.
 ##
 ## cmd -> ID LSQUARE INT COLON INT . RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2105,7 +2159,7 @@ command: ID LSQUARE INT COLON INT VBAR
 
 command: ID LSQUARE INT COLON INT RSQUARE VBAR
 ##
-## Ends in an error in state: 213.
+## Ends in an error in state: 218.
 ##
 ## cmd -> ID LSQUARE INT COLON INT RSQUARE . COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2117,7 +2171,7 @@ command: ID LSQUARE INT COLON INT RSQUARE VBAR
 
 command: ID LSQUARE INT COLON INT RSQUARE COLON VBAR
 ##
-## Ends in an error in state: 214.
+## Ends in an error in state: 219.
 ##
 ## cmd -> ID LSQUARE INT COLON INT RSQUARE COLON . EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2129,7 +2183,7 @@ command: ID LSQUARE INT COLON INT RSQUARE COLON VBAR
 
 command: ID LSQUARE INT COLON INT RSQUARE COLON EQ VBAR
 ##
-## Ends in an error in state: 215.
+## Ends in an error in state: 220.
 ##
 ## cmd -> ID LSQUARE INT COLON INT RSQUARE COLON EQ . cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2141,7 +2195,7 @@ command: ID LSQUARE INT COLON INT RSQUARE COLON EQ VBAR
 
 command: ID DOT VBAR
 ##
-## Ends in an error in state: 217.
+## Ends in an error in state: 222.
 ##
 ## cmd -> ID DOT . ID COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2153,7 +2207,7 @@ command: ID DOT VBAR
 
 command: ID DOT ID VBAR
 ##
-## Ends in an error in state: 218.
+## Ends in an error in state: 223.
 ##
 ## cmd -> ID DOT ID . COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2165,7 +2219,7 @@ command: ID DOT ID VBAR
 
 command: ID DOT ID COLON VBAR
 ##
-## Ends in an error in state: 219.
+## Ends in an error in state: 224.
 ##
 ## cmd -> ID DOT ID COLON . EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2177,7 +2231,7 @@ command: ID DOT ID COLON VBAR
 
 command: ID DOT ID COLON EQ VBAR
 ##
-## Ends in an error in state: 220.
+## Ends in an error in state: 225.
 ##
 ## cmd -> ID DOT ID COLON EQ . cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2189,7 +2243,7 @@ command: ID DOT ID COLON EQ VBAR
 
 command: EXTRACT VBAR
 ##
-## Ends in an error in state: 222.
+## Ends in an error in state: 227.
 ##
 ## cmd -> EXTRACT . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2201,7 +2255,7 @@ command: EXTRACT VBAR
 
 command: EXTRACT LPAREN VBAR
 ##
-## Ends in an error in state: 223.
+## Ends in an error in state: 228.
 ##
 ## cmd -> EXTRACT LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2213,7 +2267,7 @@ command: EXTRACT LPAREN VBAR
 
 command: EXTRACT LPAREN ID VBAR
 ##
-## Ends in an error in state: 224.
+## Ends in an error in state: 229.
 ##
 ## cmd -> EXTRACT LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2225,7 +2279,7 @@ command: EXTRACT LPAREN ID VBAR
 
 command: ADD VBAR
 ##
-## Ends in an error in state: 226.
+## Ends in an error in state: 231.
 ##
 ## cmd -> ADD . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2237,7 +2291,7 @@ command: ADD VBAR
 
 command: ADD LPAREN VBAR
 ##
-## Ends in an error in state: 227.
+## Ends in an error in state: 232.
 ##
 ## cmd -> ADD LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2249,7 +2303,7 @@ command: ADD LPAREN VBAR
 
 command: ADD LPAREN ID VBAR
 ##
-## Ends in an error in state: 228.
+## Ends in an error in state: 233.
 ##
 ## cmd -> ADD LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2261,7 +2315,7 @@ command: ADD LPAREN ID VBAR
 
 command: IF FALSE LBRACE RESET VBAR
 ##
-## Ends in an error in state: 230.
+## Ends in an error in state: 235.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RBRACE AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI RBRACE AS ]
@@ -2276,7 +2330,7 @@ command: IF FALSE LBRACE RESET VBAR
 
 command: RESET SEMI VBAR
 ##
-## Ends in an error in state: 231.
+## Ends in an error in state: 236.
 ##
 ## cmd -> cmd SEMI . cmd [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2288,7 +2342,7 @@ command: RESET SEMI VBAR
 
 command: RESET SEMI RESET VBAR
 ##
-## Ends in an error in state: 232.
+## Ends in an error in state: 237.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI RPAREN RBRACE EOF AS ]
@@ -2302,7 +2356,7 @@ command: RESET SEMI RESET VBAR
 
 command: RESET AS VBAR
 ##
-## Ends in an error in state: 233.
+## Ends in an error in state: 238.
 ##
 ## cmd -> cmd AS . LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2314,7 +2368,7 @@ command: RESET AS VBAR
 
 command: RESET AS LPAREN VBAR
 ##
-## Ends in an error in state: 234.
+## Ends in an error in state: 239.
 ##
 ## cmd -> cmd AS LPAREN . ID COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2326,7 +2380,7 @@ command: RESET AS LPAREN VBAR
 
 command: RESET AS LPAREN ID VBAR
 ##
-## Ends in an error in state: 235.
+## Ends in an error in state: 240.
 ##
 ## cmd -> cmd AS LPAREN ID . COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2338,7 +2392,7 @@ command: RESET AS LPAREN ID VBAR
 
 command: RESET AS LPAREN ID COLON VBAR
 ##
-## Ends in an error in state: 236.
+## Ends in an error in state: 241.
 ##
 ## cmd -> cmd AS LPAREN ID COLON . hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2350,7 +2404,7 @@ command: RESET AS LPAREN ID COLON VBAR
 
 command: RESET AS LPAREN ID COLON EMPTY VALID
 ##
-## Ends in an error in state: 237.
+## Ends in an error in state: 242.
 ##
 ## cmd -> cmd AS LPAREN ID COLON hty . RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ## hty -> hty . PLUS hty [ RPAREN PLUS LSQUARE ]
@@ -2364,7 +2418,7 @@ command: RESET AS LPAREN ID COLON EMPTY VALID
 
 command: RESET AS LPAREN ID COLON EMPTY RPAREN VBAR
 ##
-## Ends in an error in state: 238.
+## Ends in an error in state: 243.
 ##
 ## cmd -> cmd AS LPAREN ID COLON hty RPAREN . ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2376,7 +2430,7 @@ command: RESET AS LPAREN ID COLON EMPTY RPAREN VBAR
 
 command: RESET AS LPAREN ID COLON EMPTY RPAREN ARROW VBAR
 ##
-## Ends in an error in state: 239.
+## Ends in an error in state: 244.
 ##
 ## cmd -> cmd AS LPAREN ID COLON hty RPAREN ARROW . hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2388,7 +2442,7 @@ command: RESET AS LPAREN ID COLON EMPTY RPAREN ARROW VBAR
 
 command: RESET AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY VALID
 ##
-## Ends in an error in state: 240.
+## Ends in an error in state: 245.
 ##
 ## cmd -> cmd AS LPAREN ID COLON hty RPAREN ARROW hty . [ SEMI RPAREN RBRACE EOF AS ]
 ## hty -> hty . PLUS hty [ SEMI RPAREN RBRACE PLUS LSQUARE EOF AS ]
@@ -2402,7 +2456,7 @@ command: RESET AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY VALID
 
 command: IF FALSE LBRACE RESET RBRACE VBAR
 ##
-## Ends in an error in state: 241.
+## Ends in an error in state: 246.
 ##
 ## cmd -> IF cexpr LBRACE cmd RBRACE . [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> IF cexpr LBRACE cmd RBRACE . ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
@@ -2415,7 +2469,7 @@ command: IF FALSE LBRACE RESET RBRACE VBAR
 
 command: IF FALSE LBRACE RESET RBRACE ELSE VBAR
 ##
-## Ends in an error in state: 242.
+## Ends in an error in state: 247.
 ##
 ## cmd -> IF cexpr LBRACE cmd RBRACE ELSE . LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2427,7 +2481,7 @@ command: IF FALSE LBRACE RESET RBRACE ELSE VBAR
 
 command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE VBAR
 ##
-## Ends in an error in state: 243.
+## Ends in an error in state: 248.
 ##
 ## cmd -> IF cexpr LBRACE cmd RBRACE ELSE LBRACE . cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2439,7 +2493,7 @@ command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE VBAR
 
 command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE RESET VBAR
 ##
-## Ends in an error in state: 244.
+## Ends in an error in state: 249.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RBRACE AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI RBRACE AS ]
@@ -2453,7 +2507,7 @@ command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE RESET VBAR
 
 command: LPAREN RESET VBAR
 ##
-## Ends in an error in state: 246.
+## Ends in an error in state: 251.
 ##
 ## cmd -> LPAREN cmd . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RPAREN AS ]
@@ -2467,7 +2521,7 @@ command: LPAREN RESET VBAR
 
 command: RESET VBAR
 ##
-## Ends in an error in state: 249.
+## Ends in an error in state: 254.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI EOF AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI EOF AS ]
@@ -2481,7 +2535,7 @@ command: RESET VBAR
 
 heap_type: VBAR
 ##
-## Ends in an error in state: 251.
+## Ends in an error in state: 256.
 ##
 ## heap_type' -> . heap_type [ # ]
 ##
@@ -2493,7 +2547,7 @@ heap_type: VBAR
 
 heap_type: EMPTY VALID
 ##
-## Ends in an error in state: 252.
+## Ends in an error in state: 257.
 ##
 ## heap_type -> hty . EOF [ # ]
 ## hty -> hty . PLUS hty [ PLUS LSQUARE EOF ]
@@ -2507,7 +2561,7 @@ heap_type: EMPTY VALID
 
 instance: VBAR
 ##
-## Ends in an error in state: 255.
+## Ends in an error in state: 260.
 ##
 ## instance' -> . instance [ # ]
 ##
@@ -2520,7 +2574,7 @@ Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID VBAR
 ##
-## Ends in an error in state: 256.
+## Ends in an error in state: 261.
 ##
 ## instance -> ID . LBRACE nonempty_list(terminated(header_field,SEMI)) RBRACE [ # ]
 ##
@@ -2533,7 +2587,7 @@ Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE VBAR
 ##
-## Ends in an error in state: 257.
+## Ends in an error in state: 262.
 ##
 ## instance -> ID LBRACE . nonempty_list(terminated(header_field,SEMI)) RBRACE [ # ]
 ##
@@ -2546,7 +2600,7 @@ Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE ID VBAR
 ##
-## Ends in an error in state: 258.
+## Ends in an error in state: 263.
 ##
 ## header_field -> ID . COLON INT [ SEMI RBRACE ID ]
 ##
@@ -2559,7 +2613,7 @@ Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE ID COLON VBAR
 ##
-## Ends in an error in state: 259.
+## Ends in an error in state: 264.
 ##
 ## header_field -> ID COLON . INT [ SEMI RBRACE ID ]
 ##
@@ -2572,7 +2626,7 @@ Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE ID COLON INT VBAR
 ##
-## Ends in an error in state: 263.
+## Ends in an error in state: 268.
 ##
 ## nonempty_list(terminated(header_field,SEMI)) -> header_field . SEMI [ RBRACE ]
 ## nonempty_list(terminated(header_field,SEMI)) -> header_field . SEMI nonempty_list(terminated(header_field,SEMI)) [ RBRACE ]
@@ -2586,7 +2640,7 @@ Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE ID COLON INT SEMI VBAR
 ##
-## Ends in an error in state: 264.
+## Ends in an error in state: 269.
 ##
 ## nonempty_list(terminated(header_field,SEMI)) -> header_field SEMI . [ RBRACE ]
 ## nonempty_list(terminated(header_field,SEMI)) -> header_field SEMI . nonempty_list(terminated(header_field,SEMI)) [ RBRACE ]
@@ -2600,7 +2654,7 @@ Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 pi_type: VBAR
 ##
-## Ends in an error in state: 267.
+## Ends in an error in state: 272.
 ##
 ## pi_type' -> . pi_type [ # ]
 ##
@@ -2612,7 +2666,7 @@ pi_type: VBAR
 
 pi_type: LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI
 ##
-## Ends in an error in state: 269.
+## Ends in an error in state: 274.
 ##
 ## pi_type -> pi . EOF [ # ]
 ##
@@ -2630,7 +2684,7 @@ pi_type: LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI
 
 program: VBAR
 ##
-## Ends in an error in state: 271.
+## Ends in an error in state: 276.
 ##
 ## program' -> . program [ # ]
 ##
@@ -2642,7 +2696,7 @@ program: VBAR
 
 program: HEADERTYPE VBAR
 ##
-## Ends in an error in state: 272.
+## Ends in an error in state: 277.
 ##
 ## declaration -> HEADERTYPE . ID LBRACE nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
@@ -2654,7 +2708,7 @@ program: HEADERTYPE VBAR
 
 program: HEADERTYPE ID VBAR
 ##
-## Ends in an error in state: 273.
+## Ends in an error in state: 278.
 ##
 ## declaration -> HEADERTYPE ID . LBRACE nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
@@ -2666,7 +2720,7 @@ program: HEADERTYPE ID VBAR
 
 program: HEADERTYPE ID LBRACE VBAR
 ##
-## Ends in an error in state: 274.
+## Ends in an error in state: 279.
 ##
 ## declaration -> HEADERTYPE ID LBRACE . nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
@@ -2678,7 +2732,7 @@ program: HEADERTYPE ID LBRACE VBAR
 
 program: HEADERTYPE ID LBRACE ID COLON INT VBAR
 ##
-## Ends in an error in state: 277.
+## Ends in an error in state: 282.
 ##
 ## nonempty_list(terminated(header_field,opt_semi)) -> header_field . opt_semi [ RBRACE ]
 ## nonempty_list(terminated(header_field,opt_semi)) -> header_field . opt_semi nonempty_list(terminated(header_field,opt_semi)) [ RBRACE ]
@@ -2691,7 +2745,7 @@ program: HEADERTYPE ID LBRACE ID COLON INT VBAR
 
 program: HEADERTYPE ID LBRACE ID COLON INT SEMI VBAR
 ##
-## Ends in an error in state: 279.
+## Ends in an error in state: 284.
 ##
 ## nonempty_list(terminated(header_field,opt_semi)) -> header_field opt_semi . [ RBRACE ]
 ## nonempty_list(terminated(header_field,opt_semi)) -> header_field opt_semi . nonempty_list(terminated(header_field,opt_semi)) [ RBRACE ]
@@ -2704,7 +2758,7 @@ program: HEADERTYPE ID LBRACE ID COLON INT SEMI VBAR
 
 program: HEADER VBAR
 ##
-## Ends in an error in state: 281.
+## Ends in an error in state: 286.
 ##
 ## declaration -> HEADER . ID COLON ID [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
@@ -2716,7 +2770,7 @@ program: HEADER VBAR
 
 program: HEADER ID VBAR
 ##
-## Ends in an error in state: 282.
+## Ends in an error in state: 287.
 ##
 ## declaration -> HEADER ID . COLON ID [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
@@ -2728,7 +2782,7 @@ program: HEADER ID VBAR
 
 program: HEADER ID COLON VBAR
 ##
-## Ends in an error in state: 283.
+## Ends in an error in state: 288.
 ##
 ## declaration -> HEADER ID COLON . ID [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
@@ -2740,7 +2794,7 @@ program: HEADER ID COLON VBAR
 
 program: RESET VBAR
 ##
-## Ends in an error in state: 287.
+## Ends in an error in state: 292.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI EOF AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI EOF AS ]
@@ -2754,7 +2808,7 @@ program: RESET VBAR
 
 program: HEADER ID COLON ID VBAR
 ##
-## Ends in an error in state: 289.
+## Ends in an error in state: 294.
 ##
 ## list(declaration) -> declaration . list(declaration) [ SKIP RESET REMIT LPAREN IF ID EXTRACT ADD ]
 ##
@@ -2766,7 +2820,7 @@ program: HEADER ID COLON ID VBAR
 
 smt_tactic: VBAR
 ##
-## Ends in an error in state: 291.
+## Ends in an error in state: 296.
 ##
 ## smt_tactic' -> . smt_tactic [ # ]
 ##
@@ -2778,7 +2832,7 @@ smt_tactic: VBAR
 
 smt_tactic: LPAREN VBAR
 ##
-## Ends in an error in state: 297.
+## Ends in an error in state: 302.
 ##
 ## smt_tactic -> LPAREN . PAR_OR smt_tactic smt_tactic RPAREN [ # ]
 ## smt_tactic -> LPAREN . THEN list(smt_tactic) RPAREN [ # ]
@@ -2791,7 +2845,7 @@ smt_tactic: LPAREN VBAR
 
 smt_tactic: LPAREN THEN VBAR
 ##
-## Ends in an error in state: 298.
+## Ends in an error in state: 303.
 ##
 ## smt_tactic -> LPAREN THEN . list(smt_tactic) RPAREN [ # ]
 ##
@@ -2803,7 +2857,7 @@ smt_tactic: LPAREN THEN VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN VBAR
 ##
-## Ends in an error in state: 304.
+## Ends in an error in state: 309.
 ##
 ## smt_tactic -> LPAREN . PAR_OR smt_tactic smt_tactic RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ## smt_tactic -> LPAREN . THEN list(smt_tactic) RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
@@ -2816,7 +2870,7 @@ smt_tactic: LPAREN PAR_OR LPAREN VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN THEN VBAR
 ##
-## Ends in an error in state: 305.
+## Ends in an error in state: 310.
 ##
 ## smt_tactic -> LPAREN THEN . list(smt_tactic) RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ##
@@ -2828,7 +2882,7 @@ smt_tactic: LPAREN PAR_OR LPAREN THEN VBAR
 
 smt_tactic: LPAREN THEN AIG VBAR
 ##
-## Ends in an error in state: 308.
+## Ends in an error in state: 313.
 ##
 ## list(smt_tactic) -> smt_tactic . list(smt_tactic) [ RPAREN ]
 ##
@@ -2840,7 +2894,7 @@ smt_tactic: LPAREN THEN AIG VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN PAR_OR VBAR
 ##
-## Ends in an error in state: 312.
+## Ends in an error in state: 317.
 ##
 ## smt_tactic -> LPAREN PAR_OR . smt_tactic smt_tactic RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ##
@@ -2852,7 +2906,7 @@ smt_tactic: LPAREN PAR_OR LPAREN PAR_OR VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG VBAR
 ##
-## Ends in an error in state: 313.
+## Ends in an error in state: 318.
 ##
 ## smt_tactic -> LPAREN PAR_OR smt_tactic . smt_tactic RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ##
@@ -2864,7 +2918,7 @@ smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG AIG VBAR
 ##
-## Ends in an error in state: 314.
+## Ends in an error in state: 319.
 ##
 ## smt_tactic -> LPAREN PAR_OR smt_tactic smt_tactic . RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ##
@@ -2876,7 +2930,7 @@ smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG AIG VBAR
 
 smt_tactic: LPAREN PAR_OR VBAR
 ##
-## Ends in an error in state: 318.
+## Ends in an error in state: 323.
 ##
 ## smt_tactic -> LPAREN PAR_OR . smt_tactic smt_tactic RPAREN [ # ]
 ##
@@ -2888,7 +2942,7 @@ smt_tactic: LPAREN PAR_OR VBAR
 
 smt_tactic: LPAREN PAR_OR AIG VBAR
 ##
-## Ends in an error in state: 319.
+## Ends in an error in state: 324.
 ##
 ## smt_tactic -> LPAREN PAR_OR smt_tactic . smt_tactic RPAREN [ # ]
 ##
@@ -2900,7 +2954,7 @@ smt_tactic: LPAREN PAR_OR AIG VBAR
 
 smt_tactic: LPAREN PAR_OR AIG AIG VBAR
 ##
-## Ends in an error in state: 320.
+## Ends in an error in state: 325.
 ##
 ## smt_tactic -> LPAREN PAR_OR smt_tactic smt_tactic . RPAREN [ # ]
 ##
