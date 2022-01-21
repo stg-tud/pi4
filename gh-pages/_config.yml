@@ -1,0 +1,17 @@
+url: "https://stg-tud.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+baseurl: "/pi4" # the subpath of your site, e.g. /blog
+title: "Π4" # the name of your site, e.g. ACME Corp.
+
+css_dir: "assets/css"
+
+plugins:
+  - jekyll-postcss
+
+exclude:
+  - package-lock.json
+  - package.json
+  - postcss.config.js
+  - tailwind.config.js
+
+postcss:
+  cache: false
