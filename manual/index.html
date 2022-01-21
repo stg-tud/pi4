@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
-    <title>Π4 - Installation</title>
+    <title>Π4 - Manual</title>
     <link rel="stylesheet" href=https://stg-tud.github.io/pi4/assets/css/main.css>
     <script src="https://kit.fontawesome.com/565688f2b2.js" crossorigin="anonymous"></script>
   </head>
@@ -51,7 +51,7 @@ cd pi4/</code></pre>
 
     <h2 class="font-bold text-4xl mb-4">From Source</h2>
 
-    <p>Installing from source requires Linux and has been tested on Ubuntu 21.04 and on macOS.</p>
+    <p class="my-6">Installing from source requires Linux and has been tested on Ubuntu 21.04 and on macOS.</p>
     <ol class="list-decimal list-inside">
       <li>Install the <a href="https://github.com/Z3Prover/z3/releases/tag/z3-4.8.10">Z3 theorem prover</a>. The code has only been tested with version 4.8.10. The binary <code class="text-pink-600">z3</code> must be available in the path.</li>
       <li>Install <a href="https://opam.ocaml.org/doc/Install.html">opam</a>. This build has only been tested with version 2.0.7. </li>
@@ -77,8 +77,340 @@ cd ./pi4/</code></pre>
         If the build fails due to a missing dependency, let's say its called <code>d</code>, try running <code class="text-pink-600">opam install d</code> before attempting to <code class="text-pink-600">make</code> again.</li>
       <li>Once the build succeeds, you should have an executable called <code class="text-pink-600">./pi4</code></li>
     </ol>
-  </div>
 
+    <p class="my-6"><b><i>Pro-tip</i></b>. If, after installing a dependency, opam still
+      complains that its missing when you try to <code class="text-pink-600">make</code>, run
+      <code class="text-pink-600">eval $(opam env)</code> before trying again.
+    </p>
+
+    <h1 class="text-6xl mb-6 mt-12 font-extrabold">Running the Examples from the Paper</h1>
+
+    <p class="my-6">
+      The code examples from the paper live in
+      the <code class="text-pink-600">artifact-examples</code> directory. To run
+      these examples, first build the code by running <code class="language-bash">make</code>.
+    </p>
+
+    <p class="my-6">
+      Now, <code class="text-pink-600">make artifact</code> will run the
+      examples from sections 5 and 6 of the paper. The output has 17 entries, each
+      corresponding to the results of running one of the examples.
+    </p>
+
+    <p class="my-6">
+      For example, you should see the following output describing the
+      implementation of the Determined Forwarding (Safe) example from the
+      Section 5.2 on the left of Figure 12.
+    </p>
+
+    <pre class="bg-gray-100 p-4 my-4 overflow-scroll"><code>artifact-examples/determined_forwarding_safe.pi4 using type artifact-examples/determined_forwarding_safe.pi4_type
+[✓] passed typechecker</code></pre>
+
+    <p class="my-6">
+      This says that the Determined Forwarding (Safe) example implemented in Π4's 
+      IR passes our type checker (as expected). The program lives in
+    <code class="text-pink-600">
+      artifact-examples/determined_forwarding_safe.pi4
+    </code>
+    and type lives in
+    <code class="text-pink-600">
+    artifact-examples/determined_forwarding_safe.pi4_type
+    </code></p>
+
+    <p class="my-6">
+      The following general naming conventions can help with interpreting the
+      results.
+    </p>
+    <ul class="list-disc list-inside">
+      <li>For all examples e, <code class="text-pink-600">artifact-examples/e_safe.pi4_type</code> contains the safe example and
+         <code class="text-pink-600">artifact-examples/e_unsafe.pi4_type</code> contains the unsafe example. 
+         In some cases, the files are identical and only the type used to check the program differs.
+      </li>
+      <li>
+        If the filename contains the
+        substring <code class="text-pink-600">_safe</code> it should pass the typechecker with the message
+        <pre class="bg-gray-100 p-4 my-4"><code>[✓] passed typechecker</code></pre>
+      </li>
+
+      <li>
+        If the filename substring the
+        <code class="text-pink-600">_unsafe</code> it should fail the
+        typechecker with an error message
+        <pre class="bg-gray-100 p-4 my-4"><code class="language-bash">[×] ... some error message ...</code></pre>
+      </li>
+    </ul>
+
+    <p class="my-6">
+      The following table identifies the sample code
+      in <code class="text-pink-600">artifact-examples</code> with the
+      examples the paper. The filenames are given relative to
+      the <code class="text-pink-600">artifact-examples</code> directory.
+    </p>
+
+    <div class="flex flex-col">
+      <div class="overflow-x-auto">
+        <table class="divide-y divide-gray-200">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Example</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Figure</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Output</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr>
+              <td>IPv4 TTL (Safe)</td>
+              <td>5.1</td>
+              <td>9 (Right)</td>
+              <td>ipv4_ttl_safe.pi4</td>
+              <td>ipv4_ttl_safe.pi4_type</td>
+              <td>[✓]</td>
+            </tr>
+            <tr>
+              <td>IPv4 TTL (Unsafe)</td>
+              <td>5.1</td>
+              <td>9 (Left)</td>
+              <td>ipv4_ttl_unsafe.pi4</td>
+              <td>ipv4_ttl_unsafe.pi4_type</td>
+              <td>[×]</td>
+            </tr>
+            <tr>
+              <td>IPv4 Options (Safe)</td>
+              <td>5.1</td>
+              <td>10 (Right)</td>
+              <td>ipv4_opt_safe.pi4</td>
+              <td>ipv4_opt_safe.pi4_type</td>
+              <td>[✓]</td>
+            </tr>
+            <tr>
+              <td>IPv4 Options (Unsafe)</td>
+              <td>5.1</td>
+              <td>10 (Left)</td>
+              <td>ipv4_opt_unsafe.pi4</td>
+              <td>ipv4_opt_unsafe.pi4_type</td>
+              <td>[×]</td>
+            </tr>
+            <tr>
+              <td>Header Dependency (Safe)</td>
+              <td>5.1</td>
+              <td>11 (Right)</td>
+              <td>header_dependency_safe.pi4</td>
+              <td>header_dependency_safe.pi4_type</td>
+              <td>[✓]</td>
+            </tr>
+            <tr>
+              <td>Header Dependency (Unsafe)</td>
+              <td>5.1</td>
+              <td>11 (Left)</td>
+              <td>header_dependency_unsafe.pi4</td>
+              <td>header_dependency_unsafe.pi4_type</td>
+              <td>[×]</td>
+            </tr>
+            <tr>
+              <td>Determined Forwarding (Safe)</td>
+              <td>5.2</td>
+              <td>12 (Right)</td>
+              <td>determined_forwarding_safe.pi4</td>
+              <td>determined_forwarding_safe.pi4_type</td>
+              <td>[✓]</td>
+            </tr>          <tr>
+              <td>Determined Forwarding (Unsafe)</td>
+              <td>5.2</td>
+              <td>12 (Left)</td>
+              <td>determined_forwarding_unsafe.pi4</td>
+              <td>determined_forwarding_unsafe.pi4_type</td>
+              <td>[×]</td>
+            </tr>
+            <tr>
+              <td>Roundtripping (Safe)</td>
+              <td>5.3</td>
+              <td>13 (Right)</td>
+              <td>roundtripping_safe.pi4</td>
+              <td>roundtripping_safe.pi4_type</td>
+              <td>[✓]</td>
+            </tr>
+            <tr>
+              <td>Roundtripping (Unsafe)</td>
+              <td>5.3</td>
+              <td>13 (Left)</td>
+              <td>roundtripping_unsafe.pi4</td>
+              <td>roundtripping_unsafe.pi4_type</td>
+              <td>[×]</td>
+            </tr>
+            <tr>
+              <td>Mutual Exclusion Parser</td>
+              <td>5.4</td>
+              <td>14 (Top)</td>
+              <td>mutual_exclusion_parser.pi4</td>
+              <td>mutual_exclusion_parser.pi4_type</td>
+              <td>[✓]</td>
+            </tr>
+            <tr>
+              <td>Mutual Exclusion Ingress (Safe)</td>
+              <td>5.4</td>
+              <td>14 (Right)</td>
+              <td>mutual_exclusion_ingress_safe.pi4</td>
+              <td>mutual_exclusion_ingress_safe.pi4_type</td>
+              <td>[✓]</td>
+            </tr>
+            <tr>
+              <td>Mutual Exclusion Ingress (Unsafe)</td>
+              <td>5.4</td>
+              <td>14 (Left)</td>
+              <td>mutual_exclusion_ingress_unsafe.pi4</td>
+              <td>mutual_exclusion_ingress_unsafe.pi4_type</td>
+              <td>[×]</td>
+            </tr>
+            <tr>
+              <td>Modular Router Default</td>
+              <td>6.2</td>
+              <td>17 (Top Left)</td>
+              <td>modular_router_default_safe.pi4</td>
+              <td>modular_router_default_safe.pi4_type</td>
+              <td>[✓]</td>
+            </tr>
+            <tr>
+              <td>Modular Router Table</td>
+              <td>6.2</td>
+              <td>17 (Bottom Left)</td>
+              <td>modular_router_table_safe.pi4</td>
+              <td>modular_router_table_safe.pi4_type</td>
+              <td>[✓]</td>
+            </tr>
+            <tr>
+              <td>Modular Router Overwrite</td>
+              <td>6.2</td>
+              <td>17 (Top Right)</td>
+              <td>modular_router_table_overwrite_unsafe.pi4</td>
+              <td>modular_router_table_overwrite_unsafe.pi4_type</td>
+              <td>[×]</td>
+            </tr>
+            <tr>
+              <td>Modular Router Unsafe Actions</td>
+              <td>6.2</td>
+              <td>17 (Bottom Right)</td>
+              <td>modular_router_unsafe_actions_overwrite_unsafe.pi4</td>
+              <td>modular_router_unsafe_actions_overwrite_unsafe.pi4_type</td>
+              <td>[×]</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+ 
+    <h1 id="running" class="text-6xl mb-6 mt-12 font-extrabold">Running Π4</h1>
+
+    <p class="my-6">Make should have produced a binary at the artifact top-level
+    called <code>./pi4</code>.</p>
+    <p class="my-6">
+      To use <code class="text-pink-600">./pi4</code> to check a Π4 program <code class="text-pink-600">main.pi4</code>,
+      at type <code class="text-pink-600">main.pi4_type</code>, with MTU <code class="text-pink-600">M</code>, run the following command:
+      <pre class="bg-gray-100 p-4 my-4"><code>./pi4 main.pi4 -ir -m M -typ main.p4_type</code></pre>
+    </p>
+
+    <h2 class="font-bold text-4xl mb-4">Checking P4 Programs</h2>
+
+    <p class="my-6">
+      Let's assume we want to check the following P4 program.
+    </p>
+
+    <pre class="bg-gray-100 p-4 my-4"><code>#include &lt;core.p4&gt;
+#include &lt;v1model.p4&gt;
+
+header ethernet_t {
+    bit<48> dstAddr;
+    bit<48> srcAddr;
+    bit<16> etherType;
+}
+
+header vlan_t {
+    bit<3> prio; 
+    bit<1> id; 
+    bit<12> vlan; 
+    bit<16> etherType;
+}
+
+struct metadata { }
+struct headers { 
+    ethernet_t ethernet;
+    vlan_t vlan;
+}
+
+parser MyParser(packet_in packet,
+                out headers hdr,
+                inout metadata meta,
+                inout standard_metadata_t standard_metadata) {
+    state start {
+        packet.extract(hdr.ethernet);
+        transition select(hdr.ethernet.etherType) {
+            0x8100: parse_vlan;
+            default: accept;
+        }
+    }
+
+    state parse_vlan {
+        packet.extract(hdr.vlan);
+        transition accept;
+    }
+}
+
+control MyChecksum(inout headers hdr, inout metadata meta) {
+    apply { }
+}
+
+control MyIngress(inout headers hdr,
+                  inout metadata meta,
+                  inout standard_metadata_t standard_metadata) {
+    apply {
+      if(!hdr.vlan.isValid()) {
+        hdr.vlan.setValid();
+        hdr.ethernet.etherType = 0x8100;
+      }
+    }
+}
+
+control MyEgress(inout headers hdr,
+                  inout metadata meta,
+                  inout standard_metadata_t standard_metadata) {
+    apply { }
+}
+
+control MyDeparser(packet_out packet, in headers hdr) {
+    apply { 
+      packet.emit(hdr.ethernet);
+      packet.emit(hdr.vlan);
+    }
+}
+
+V1Switch(MyParser(), MyChecksum(), MyIngress(), MyEgress(), MyChecksum(), MyDeparser()) main;
+    </code></pre>
+
+    <p class="my-6">
+      Since the program includes <code class="text-pink-600">core.p4</code> and <code class="text-pink-600">v1model.p4</code>, we have to specify the path where to find these files.
+      Assuming both files can be found in the folder <code class="text-pink-600">p4/includes/</code> and the example code resides in <code class="text-pink-600">p4/example.p4</code>,
+      we can check the program with the following command.
+      <pre class="bg-gray-100 p-4 my-4"><code>./pi4 -i p4/includes/ p4/example.p4</code></pre>
+    </p>
+
+    <p class="my-6">
+      Before we can check any property, we have to add a corresponding type annotation to the program.
+      This is done by using P4's annotation mechanism. For example, we can add the following annotation to the program,
+      to check the parser to assert that if we start in a state where no header instances are valid and the input packet is at least 144 bits long, we end in a state where either just Ethernet is valid, if the EtherType is different from 0x8100, or 
+      both Ethernet and VLAN are valid and the EtherType is 0x8100.
+    </p>
+    <div class="overflow-scroll">
+      <pre class="bg-gray-100 p-4 my-4"><code>@pi4("MyParser as (x:{y:ε|y.pkt_in.length > 144}) -> {y:ethernet|y.ethernet.etherType != 0x8100} + {y:ethernet~| y.vlan.valid && y.ethernet.etherType == 0x8100}")</code></pre>
+    </div>
+    <p class="my-6">
+      Of course it is also possible to check properties including parser and controls.
+      For example, the following type annotation checks that the parser followed by the ingress and the deparser executed in a state where no header instances are valid and the input packet provides 144 bits, 
+      end up in heap where it is guaranteed that both Ethernet and VLAN are valid.
+    </p>
+      <pre class="bg-gray-100 p-4 my-4"><code>@pi4("(MyParser;MyIngress;MyDeparser) as (x:{y:ε|y.pkt_in.length > 144}) -> {y:⊤|y.ethernet.valid && y.vlan.valid}")</code></pre>
+  </div>
 </div>
 
   </body>
