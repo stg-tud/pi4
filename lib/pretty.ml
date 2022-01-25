@@ -187,11 +187,11 @@ let rec pp_command (pp : Format.formatter) (cmd : Command.t) =
       value
   | Remit inst -> pf pp "remit(%s)" inst.name
   | Reset -> pf pp "reset"
-  | Seq (c1, c2) -> pf pp "@[<v>(%a;@ %a)@]" pp_command c1 pp_command c2
+  | Seq (c1, c2) -> pf pp "@[<v>%a;@ %a@]" pp_command c1 pp_command c2
   | Skip -> pf pp "skip"
   | Add inst -> pf pp "add(%s)" inst.name
   | Ascription (cmd, x, hty_in, hty_out) ->
-    pf pp "@[%a@ as@ (%a:%a)@ -> %a@]" pp_command cmd string x
+    pf pp "@[(%a@ as@ (%a:%a)@ -> %a)@]" pp_command cmd string x
       (pp_header_type []) hty_in
       (pp_header_type [ (x, Env.NameBind) ])
       hty_out
@@ -272,3 +272,12 @@ let rec pp_tactic (pp : Format.formatter) (tactic : Z3.Smtlib.tactic) =
   | Then ts -> pf pp "@[<v 2>(then@ %a)@]" (list pp_tactic) ts
   | ParOr (t1, t2) ->
     pf pp "@[<v 2>(par-or@ %a@ %a)@]" pp_tactic t1 pp_tactic t2
+
+let rec pp_annotation_body (pp : Format.formatter)
+    (annot : Annotation.annotation_body) =
+  match annot with
+  | Reset -> pf pp "reset"
+  | Block b -> pf pp "%s" b
+  | TypedBlock (body, typ) ->
+    pf pp "@[((%a) as %a)@]" pp_annotation_body body (pp_pi_type []) typ
+  | Sequence (l, r) -> pf pp "%a;%a" pp_annotation_body l pp_annotation_body r

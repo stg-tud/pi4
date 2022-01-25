@@ -57,17 +57,44 @@ let pi4_check program_filename type_filename maxlen : unit =
 let p4_check filename includes _maxlen verbose =
   match P4Parse.parse_file includes filename verbose with
   | `Ok p4prog -> (
-    let result =
-      let%map header_table = Frontend.build_header_table p4prog in
-      Log.debug (fun m ->
-          m "Header table: %a\n" Pretty.pp_header_table header_table);
-      let annotations = Frontend.collect_annotations header_table p4prog in
-      Log.debug (fun m ->
-          m "Annotations: %s"
-            (Sexplib.Sexp.to_string_hum
-               (List.sexp_of_t Syntax.Annotation.sexp_of_t annotations)))
-    in
-    match result with Ok _ -> () | _ -> print_endline "error")
+    Prover.make_prover "z3";
+    let module C = Typechecker.SemanticChecker (struct
+      let maxlen = _maxlen
+    end) in
+    let module T = Typechecker.Make (C) in
+    match p4prog with
+    | Petr4.Types.Program decls -> (
+      let result =
+        let%map header_table = Frontend.build_header_table p4prog in
+        Log.debug (fun m ->
+            m "Header table: %a\n" Pretty.pp_header_table header_table);
+        let annotations = Frontend.collect_annotations header_table p4prog in
+        List.iter annotations ~f:(fun annot ->
+            match annot with
+            | TypeAnnotation (body, typ) -> (
+              let result =
+                let%map prog =
+                  Frontend.annotation_to_command header_table decls annot
+                in
+                Log.debug (fun m -> m "Program: %a" Pretty.pp_command prog);
+                T.check_type prog typ header_table
+              in
+              match result with
+              | Ok tc_result ->
+                tc_result
+                |> to_result
+                     ~success:
+                       (Fmt.str "@[%a passed the typechecker with type\n @[%a@]@]\n"
+                          Pretty.pp_annotation_body body (Pretty.pp_pi_type [])
+                          typ)
+                |> union |> print_endline
+              | Error `FrontendError e -> print_endline e
+              | Error _ -> print_endline "An error occurred."))
+      in
+      match result with
+      | Ok _ -> ()
+      | Error (`FrontendError e) -> print_endline e
+      | _ -> print_endline "An error occurred"))
   | `Error (_, _) -> print_endline "Petr4 could not parse the input file."
 
 let command =
@@ -101,7 +128,7 @@ let command =
           (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug;     *)
           (* Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug; *)
           (* Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Debug; *)
-        else ();
+        else Logs.set_level @@ Some Logs.Info;
         if ir then
           match typ with
           | Some typfile -> pi4_check filename typfile maxlen

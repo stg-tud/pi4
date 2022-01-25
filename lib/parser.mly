@@ -113,6 +113,9 @@ annotation_body:
 }
 
 typed_annotation_body:
+| LPAREN body = annotation_body AS typ=pi RPAREN {
+  fun ht -> Syntax.Annotation.TypedBlock (body ht, typ ht)
+}
 | body = annotation_body AS typ=pi {
   fun ht -> Syntax.Annotation.TypedBlock (body ht, typ ht)
 }

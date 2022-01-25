@@ -1,0 +1,42 @@
+---
+layout: default
+title: "Dependently-Typed Data Plane Programming"
+---
+<div class="bg-gray-100 flex flex-col justify-center py-10 px-5 lg:px-10 lg:py-20">
+  <div class="relative w-full max-w-full lg:max-w-6xl xl:max-w-screen-2xl mx-auto">
+    <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 leading-none text-center mb-24">
+      Dependently-Typed Data Plane Programming
+    </h1>
+    <div class="flex justify-center">
+      <a href={{ "/manual" | absolute_url }} class="p-4 bg-amber-300 rounded-lg">Get Started</a>
+    </div>
+  </div>
+</div>
+
+<div class="container mx-auto px-8 py-10">
+  <div class="mx-auto max-w-7xl">
+    <h2 id="about" class="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 text-center">About</h2>
+    <p class="text-gray-500 text-xl font-light mt-12 mb-6 text-justify">The P4 programming language enables modeling the behavior of the network data plane in software. 
+      With increasingly powerful and complex applications running in the network, the risk of errors also increases, especially, since P4's main abstraction for representing packet data lacks basic safety guarantees. 
+      This reinforces the need for methods and tools to statically verify the correctness of data plane programs. 
+      Existing data plane verification tools employ closed-world monolithic reasoning. 
+      However, data plane programming languages have begun to specify rich packet-processing functionality by composing simple functions defined in reusable libraries. 
+      Verifying such composable functionality requires compositional reasoning tools. 
+      Type systems are a lightweight compositional verification technique that features modular reasoning. 
+      However, there is a significant gap between guarantees provided by verification tools like p4v and those provided by type checkers based on traditional typing disciplines like SafeP4, which cannot reason about runtime values. 
+    </p>
+    <p class="text-gray-500 text-xl font-light my-6 text-justify">
+      Π4 is a dependently-typed variant of P4 based on regular types with decidable refinements that closes this gap. 
+      Π4 is capable of expressing and modularly reasoning about a rich set of network properties. 
+    </p>
+  </div>
+</div>
+
+<div class="container mx-auto px-8 py-10">
+  <div class="mx-auto max-w-7xl">
+    <h2 id="publications" class="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 text-center">Publications</h2>
+    <ul class="my-12 text-gray-500 font-light text-xl">
+      <li>Matthias Eichholz, Eric Hayden Campbell, Matthias Krebs, Nate Foster, and Mira Mezini. 2022. Dependently-typed data plane programming. Proc. ACM Program. Lang. 6, POPL, Article 40 (January 2022), 28 pages. DOI:<a href="https://doi.org/10.1145/3498701" class="text-blue-500" target="_blank">https://doi.org/10.1145/3498701</a></li>
+    </ul>
+  </div>
+</div>

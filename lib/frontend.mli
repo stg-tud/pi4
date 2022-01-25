@@ -40,6 +40,15 @@ val collect_annotations :
   Syntax.HeaderTable.t -> Petr4.Types.program -> Syntax.Annotation.t list
 
 val annotation_to_command :
+  Syntax.HeaderTable.t ->
   Petr4.Types.Declaration.t list ->
   Syntax.Annotation.t ->
-  (Syntax.Command.t, 'a) result
+  ( Syntax.Command.t,
+    [> `ConversionError of string
+    | `FieldAccessError of string
+    | `FrontendError of string
+    | `InvalidArgumentError of string
+    | `LookupError of string
+    | `NotImplementedError of string
+    ] )
+  result

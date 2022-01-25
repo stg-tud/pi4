@@ -32,3 +32,5 @@ pi4
 .vagrant/
 .jekyll-cache/
 .DS_Store
+_site/
+node_modules/

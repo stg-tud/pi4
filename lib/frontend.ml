@@ -739,47 +739,41 @@ let collect_annotations (header_table : Syntax.HeaderTable.t)
         find_pi4_annotations header_table annotations @ acc
       | _ -> acc)
 
-(* let find_declaration_by_name (decls : Petr4.Types.Declaration.t list)
-   (block_name : string) = List.find_ma decls ~f:(fun decl -> match snd decl
-   with | Parser { name; _ } when String.(snd name = block_name) -> true | _ ->
-   false) *)
-
-(* let declaration_to_command (header_table : Syntax.HeaderTable.t)
+let declaration_to_command (header_table : Syntax.HeaderTable.t)
     (decls : Petr4.Types.Declaration.t list) (name : string) =
   List.find_map decls ~f:(fun decl ->
       match snd decl with
       | Parser { name = n; states; params; _ } when String.(snd n = name) ->
         let parser_cmd = parser_to_command header_table states params in
         Some parser_cmd
+      | Control { name = n; apply; params; _ } when String.(snd n = name) ->
+        Some (control_to_command header_table apply params)
       | _ -> None)
   |> Option.value
        ~default:
          (Error
             (`FrontendError
-              (Fmt.str "No declaration with name '%s' found." name))) *)
+              (Fmt.str "No declaration with name '%s' found." name)))
 
-let rec annotation_body_to_command (decls : Petr4.Types.Declaration.t list)
+let rec annotation_body_to_command (header_table : Syntax.HeaderTable.t)
+    (decls : Petr4.Types.Declaration.t list)
     (annotation_body : Syntax.Annotation.annotation_body) =
   match annotation_body with
   | Reset -> return Syntax.Command.Reset
-  | Block _name ->
-    return Syntax.Command.Skip
-    (* let maybe_decl = find_declaration_by_name decls name in match maybe_decl
-       with | Some decl ->
-
-       return Syntax.Command.Skip | None -> Error (`AnnotationError (Fmt.str
-       "Parser or Control with name '%s' not found." name)) *)
+  | Block _name -> declaration_to_command header_table decls _name
   | TypedBlock (body, typ) -> (
-    let%map body_cmd = annotation_body_to_command decls body in
+    let%map body_cmd = annotation_body_to_command header_table decls body in
     match typ with
     | Pi (binder, input, output) ->
       Syntax.Command.Ascription (body_cmd, binder, input, output))
   | Sequence (l, r) ->
-    let%bind l_cmd = annotation_body_to_command decls l in
-    let%map r_cmd = annotation_body_to_command decls r in
+    let%bind l_cmd = annotation_body_to_command header_table decls l in
+    let%map r_cmd = annotation_body_to_command header_table decls r in
     Syntax.Command.Seq (l_cmd, r_cmd)
 
-let annotation_to_command (decls : Petr4.Types.Declaration.t list)
-    (annotation : Syntax.Annotation.t) =
+let annotation_to_command (header_table : Syntax.HeaderTable.t)
+    (decls : Petr4.Types.Declaration.t list) (annotation : Syntax.Annotation.t)
+    =
   match annotation with
-  | TypeAnnotation (body, _) -> annotation_body_to_command decls body
+  | TypeAnnotation (body, _) ->
+    annotation_body_to_command header_table decls body
