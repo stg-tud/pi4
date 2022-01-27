@@ -106,6 +106,14 @@ end = struct
       (T.check_type cmd ty ht)
 
   let is_equiv hty1 hty2 ctx ht =
+    if Config.verbose then
+      Fmt.pr "@[<v>Checking eqivalence relation:@ %a\n⇔ %a@]@."
+        (Pretty.pp_header_type ctx)
+        hty1
+        (Pretty.pp_header_type ctx)
+        hty2
+    else
+      ();
     Alcotest.(check bool)
       "types are equivalent" true
       (check_subtype hty1 hty2 ctx ht && check_subtype hty2 hty1 ctx ht)

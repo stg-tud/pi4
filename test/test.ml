@@ -1,7 +1,8 @@
 (* open Landmark *)
 
 let test_suite =
-  [ ("z3_encoding", Test_encoding.test_set);
+  [ 
+    ("z3_encoding", Test_encoding.test_set);
     ("equivalence", Test_equiv.test_set);
     ("subtyping", Test_subtyping.test_set);
     ("term_chomping", Test_chomp_term.test_set);
@@ -20,7 +21,9 @@ let test_suite =
     ("parser", Test_parser.test_set);
     ("simplification", Test_simplify.test_set);
     ("cisco_example", Test_cisco.test_set);
-    ("composition", Test_composition.test_set)
+    ("composition", Test_composition.test_set);
+    ("examples", Test_examples.test_set);
+    ("substitution", Test_substitution.test_set)
   ]
 
 let () =
