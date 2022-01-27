@@ -28,7 +28,8 @@ let inst_ipv4 =
     ]
 
 let test_parse_header_table () =
-  let input = Parsing.read_file "./test/examples/headers.pi4" in
+  print_endline (Sys.getcwd());
+  let input = Parsing.read_file "./examples/headers.pi4" in
   let expected =
     Program.
       { declarations =
@@ -54,21 +55,21 @@ let test_parse_header_table () =
     (Parsing.parse_program input)
 
 let test_parse_extract () =
-  let input = Parsing.read_file "./test/examples/extract.pi4" in
+  let input = Parsing.read_file "./examples/extract.pi4" in
   let prog = Parsing.parse_program input in
 
   Alcotest.(check Testable.command)
     "commands are equal" (Extract inst_ether) prog.command
 
 let test_parse_sequence () =
-  let input = Parsing.read_file "./test/examples/sequence.pi4" in
+  let input = Parsing.read_file "./examples/sequence.pi4" in
   let prog = Parsing.parse_program input in
   let expected = Command.Seq (Extract inst_ether, Extract inst_ipv4) in
 
   Alcotest.(check Testable.command) "commands are equal" expected prog.command
 
 let test_parse_conditional () =
-  let input = Parsing.read_file "./test/examples/conditional.pi4" in
+  let input = Parsing.read_file "./examples/conditional.pi4" in
   let prog = Parsing.parse_program input in
   let expected =
     Command.Seq
@@ -84,7 +85,7 @@ let test_parse_conditional () =
   Alcotest.(check Testable.command) "commands are equal" expected prog.command
 
 let test_parse_optional_else () =
-  let input = Parsing.read_file "./test/examples/optional-else.pi4" in
+  let input = Parsing.read_file "./examples/optional-else.pi4" in
   let prog = Parsing.parse_program input in
   let expected =
     Command.Seq
@@ -100,7 +101,7 @@ let test_parse_optional_else () =
   Alcotest.(check Testable.command) "commands are equal" expected prog.command
 
 let test_parse_nested_if () =
-  let input = Parsing.read_file "./test/examples/nested-if.pi4" in
+  let input = Parsing.read_file "./examples/nested-if.pi4" in
   let prog = Parsing.parse_program input in
   let expected =
     Command.Seq
@@ -123,7 +124,7 @@ let test_parse_nested_if () =
   Alcotest.(check Testable.command) "commands are equal" expected prog.command
 
 let test_parse_reset () =
-  let input = Parsing.read_file "./test/examples/reset.pi4" in
+  let input = Parsing.read_file "./examples/reset.pi4" in
   let prog = Parsing.parse_program input in
   let expected =
     Command.Seq
@@ -144,7 +145,7 @@ let test_parse_reset () =
   Alcotest.(check Testable.command) "commands are equal" expected prog.command
 
 let test_parse_add () =
-  let input = Parsing.read_file "./test/examples/add_vlan.pi4" in
+  let input = Parsing.read_file "./examples/add_vlan.pi4" in
   let prog = Parsing.parse_program input in
   let eth_l, eth_r =
     match Instance.field_bounds inst_ether "etherType" with
@@ -172,7 +173,7 @@ let test_parse_add () =
   Alcotest.(check Testable.command) "commands are equal" expected prog.command
 
 let test_parse_ascription () =
-  let input = Parsing.read_file "./test/examples/ascription.pi4" in
+  let input = Parsing.read_file "./examples/ascription.pi4" in
   let prog = Parsing.parse_program input in
   let header_table = HeaderTable.of_decls prog.declarations in
   let hty_in =
