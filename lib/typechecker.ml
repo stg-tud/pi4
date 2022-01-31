@@ -1005,10 +1005,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
       let y = Env.pick_fresh_name ctx "y" in
       return
-        (Refinement
-           ( y,
-             shift_header_type hty_arg 0 1,
-             Syntax.heap_equality 1 0 header_table ))
+        (Refinement ( y, Top, Syntax.heap_equality 0 1 header_table))
 
   let check_subtype = P.check_subtype
 end
