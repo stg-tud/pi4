@@ -194,26 +194,27 @@ let rec simplify_formula (form : Formula.t) (map : (FormulaId.t , Formula.t , Fo
     | Ok f -> f
     | _ -> form
 
-let simplify (hty : HeapType.t) : HeapType.t = 
+
+let rec simplify (hty : HeapType.t) : HeapType.t =
   let hty = Simplify.fold_refinements hty in
   Log.debug (fun m -> m "@[Simplifying %a@]" Pretty.pp_header_type_raw hty);
-  let smpl hty = 
+  let result = (
     match hty with
-    | Substitution(h, str, subs) -> (
-      Log.debug (fun m -> m "@[Substituting %s@]" str);
-      match h with
-        | Refinement(s,ht,f) -> (
+      | Substitution (h, _, subs) -> (
+        let h = simplify h in
+        let subs = simplify subs in
+        let%bind subs_map = 
           match subs with
-          Refinement(_,_,f_subs) -> (
-          let subs_map = extract_to_map f_subs in
-          Refinement(s, ht, simplify_formula f subs_map))
-        | _ -> (
-          Log.debug (fun m -> m "@[subs is not a Refinement: %a@]" Pretty.pp_header_type_raw subs);
-          hty))
-      | _ -> (
-        Log.debug (fun m -> m "@[h is not a Refinement: %a@]" Pretty.pp_header_type_raw h);
-        h) 
-    )
-    | _ -> hty
+          | Refinement(_,_,f_subs) -> Ok (extract_to_map f_subs)
+          | _ ->  Error (Error.of_string "subs is not a Refinement")
+        in
+        match h with
+        |Refinement(s,ht,f) -> (
+          Ok (Refinement(s, ht, simplify_formula f subs_map))
+        )
+        | _ ->  Error (Error.of_string "h is not a Refinement"))     
+      | _ -> Error (Error.of_string "hty is not a substitution"))
   in
-  smpl hty
+  match result with
+  | Ok ht -> ht
+  | _ -> hty 
