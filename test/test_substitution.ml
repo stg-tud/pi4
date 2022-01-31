@@ -34,7 +34,7 @@ let types_equiv program_str type_str (simpl_method : HeapType.t -> HeapType.t) (
       Test.is_equiv ht simplified ctx header_table
     | Error(_) -> ()
 
-let extract_str =
+let default_header = 
   {|
     header_type  ethernet_t {
       dstAddr: 48;
@@ -58,17 +58,60 @@ let extract_str =
 
     header ether : ethernet_t
     header ipv4 : ipv4_t
-
-    extract(ether);
-    extract(ipv4)
   |}
 
-let type_str = 
+let default_type_str = 
   {|(x:{y:ε | y.pkt_in.length > 272}) -> 
-    {y:⊤| y.ether.valid}|}
+    {y:⊤| true}|}
+  
+let extract_str =
+  default_header ^
+  {|
+    extract(ether);
+    extract(ipv4);
+    skip
+  |}
+let extract_add_str =
+  default_header ^
+  {|
+    extract(ether);
+    add(ipv4);
+    skip
+  |}
 
-    
+let extract_skip_str =
+  default_header ^
+  {|
+    extract(ether);
+    skip
+  |}
+
+let extract_remit_str =
+  default_header ^
+  {|
+    extract(ether);
+    remit(ether)
+  |}
+
+let add_skip_str =
+  default_header ^
+  {|
+    extract(ether);
+    skip
+  |}
+
+let add_extract_str =
+  default_header ^
+  {|
+    add(ether);
+    extract(ether)
+  |}
 let test_set = 
   [
-    test_case "T1 Extract" `Quick (types_equiv extract_str type_str Substitution.simplify)
+    test_case "T1 Extract-Extract" `Quick (types_equiv extract_str default_type_str Substitution.simplify);
+    test_case "T2 Extract-Add" `Quick (types_equiv extract_add_str default_type_str Substitution.simplify);
+    test_case "T3 Extract-Skip" `Quick (types_equiv extract_add_str default_type_str Substitution.simplify);
+    test_case "T4 Extract-Remit" `Quick (types_equiv extract_remit_str default_type_str Substitution.simplify);
+    test_case "T5 Add-Skip" `Quick (types_equiv add_skip_str default_type_str Substitution.simplify);
+    test_case "T6 Add-Extract" `Quick (types_equiv add_extract_str default_type_str Substitution.simplify);
   ]
