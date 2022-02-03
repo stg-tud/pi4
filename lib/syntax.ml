@@ -198,7 +198,7 @@ module BitVector = struct
     | 'c' | 'C' -> of_bit_str "1100"
     | 'd' | 'D' -> of_bit_str "1101"
     | 'e' | 'E' -> of_bit_str "1110"
-    | 'f' | 'F' -> of_bit_str "1110"
+    | 'f' | 'F' -> of_bit_str "1111"
     | _ -> failwith (Printf.sprintf "Unrecognized character '%c'" c)
 
   let of_hex_str hex_str =
