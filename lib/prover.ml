@@ -55,7 +55,7 @@ let declare_constants consts =
     ~f:(fun (ident, sort) -> Smtlib.declare_const (get prover) ident sort)
     consts
 
-let print_assert pp term =
+(* let print_assert pp term =
   let open Fmt in
   pf pp "@[<v 2>(assert@ %a)@]" Pretty.pp_smtlib_term term
 
@@ -66,7 +66,7 @@ let pp_declare_const pp consts =
 
 let print_consts pp consts =
   let open Fmt in
-  pf pp "@[<v 0>%a@]" (list pp_declare_const) consts
+  pf pp "@[<v 0>%a@]" (list pp_declare_const) consts *)
 
 let heur_checks s t =
   let open Syntax.HeapType in
@@ -109,7 +109,7 @@ end
 module Make (Enc : Encoding.S) : S = struct
   let check_subtype_with_tactic (s_hty : HeapType.t) (t_hty : HeapType.t)
       (ctx : Env.context) (header_table : Syntax.HeaderTable.t)
-      (tactic : Smtlib.tactic) =
+      (_ : Smtlib.tactic) =
     let s_hty = Simplify.fold_refinements s_hty in
     let t_hty = Simplify.fold_refinements t_hty in
     let ctx =
@@ -136,13 +136,13 @@ module Make (Enc : Encoding.S) : S = struct
       let annot_ctx = freshen_context ctx in
       let annot_t = Encoding.freshen_binders t_hty pick_unique_name in
 
-      Log.debug (fun m ->
+      (* Log.debug (fun m ->
           m
             "@[<v>Encoding subtype relation@ %a@ <:@ %a@ to SMT using context@ %a @]"
             (Pretty.pp_header_type annot_ctx)
             annot_s
             (Pretty.pp_header_type annot_ctx)
-            annot_t Pretty.pp_context annot_ctx);
+            annot_t Pretty.pp_context annot_ctx); *)
 
       let consts_s = Enc.smt_consts annot_s svar header_table in
       let consts_t = Enc.smt_consts annot_t tvar header_table in
@@ -190,10 +190,10 @@ module Make (Enc : Encoding.S) : S = struct
 
       let assert__ = Smtlib.assert_ (get prover) in
 
-      Log.debug (fun m ->
+      (* Log.debug (fun m ->
           m "@[<v>%a@;<2 0>%a@ (@[<v 2>check-sat-using@ %a@])@ @]@."
             print_consts smt_consts (Fmt.list print_assert) smt_terms
-            Pretty.pp_tactic tactic);
+            Pretty.pp_tactic tactic); *)
 
       declare_constants smt_consts;
       List.iter smt_terms ~f:(fun term -> assert__ term);
@@ -231,10 +231,10 @@ module Make (Enc : Encoding.S) : S = struct
     let annot_s = Encoding.freshen_binders hty pick_unique_name in
     let annot_ctx = freshen_context ctx in
 
-    Log.debug (fun m ->
+    (* Log.debug (fun m ->
         m "@[<v>Encoding header type@ %a@ to SMT using context@ %a @]"
           (Pretty.pp_header_type annot_ctx)
-          annot_s Pretty.pp_context annot_ctx);
+          annot_s Pretty.pp_context annot_ctx); *)
 
     let consts_s = Enc.smt_consts annot_s svar header_table in
     let free_consts =
@@ -269,9 +269,9 @@ module Make (Enc : Encoding.S) : S = struct
 
     let assert__ = Smtlib.assert_ (get prover) in
 
-    Log.debug (fun m ->
+    (* Log.debug (fun m ->
         m "@[<v>%a@;<2 0>%a@ (@[<v 2>check-sat-using@ %a@])@ @]@." print_consts
-          smt_consts (Fmt.list print_assert) smt_terms Pretty.pp_tactic tactic);
+          smt_consts (Fmt.list print_assert) smt_terms Pretty.pp_tactic tactic); *)
 
     declare_constants smt_consts;
     List.iter smt_terms ~f:(fun term -> assert__ term);
