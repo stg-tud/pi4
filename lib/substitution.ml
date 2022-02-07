@@ -9,14 +9,15 @@ module Log = (val Logs.src_log Logging.substitution_src : Logs.LOG)
 module FormulaId = struct
   module T = struct
     type t =
-      | Invalid of Instance.t
-      | Valid of Instance.t
-      | InstEqual of Instance.t
-      | EqBv of Expression.t
-      | EqInst of Instance.t
-      | EqBvSl of (Sliceable.t * int * int)
-      | EqArith of Expression.t
-      | EqVal of Expression.t
+      | Invalid of int * Instance.t                     (* ¬(x.τ.vald) *)
+      | Valid of int * Instance.t                       (* x.τ.valid *)
+      | InstEqual of int * Instance.t                   (* x.τ == y.τ *)
+      | ValidEqual of int * Instance.t                  (* x.τ.valid == y.τ.valid *)
+      | EqExp of Expression.t                           (* x.exp == y.exp *)
+      | GtExp of Expression.t                           (* x.exp > y.exp *)
+      | EqInst of int * Instance.t                      (* x.τ == y.exp_bv *)
+      | EqBvSl of (Sliceable.t * int * int)             (* x.τ[hi:lo] == y.exp_bv *)
+      | EqBv of Expression.t                            (* x.τ == y.bv *)
       | Err of string
       [@@deriving compare, sexp] 
   end
@@ -30,14 +31,15 @@ type fid_map =
 let pp_fromula_id (pp : Format.formatter) (fid :FormulaId.t) = 
   let open Fmt in
   match fid with
-    | Invalid i -> pf pp "invalid_%s" i.name
-    | Valid i -> pf pp "valid_%s" i.name
-    | InstEqual i -> pf pp "inst_equal_%s" i.name
-    | EqBv e -> pf pp "eq_bv_%a" Pretty.pp_expr_raw e
+    | Invalid (v, i)-> pf pp "invalid_%i.%s" v i.name
+    | Valid (v, i) -> pf pp "valid_%i.%s" v i.name
+    | InstEqual (v, i) -> pf pp "inst_equal_%i.%s" v i.name
+    | ValidEqual (v, i) ->  pf pp "valid_equal_%i.%s" v i.name
+    | GtExp e -> pf pp "gt_exp_%a" Pretty.pp_expr_raw e
+    | EqExp e -> pf pp "eq_exp_%a" Pretty.pp_expr_raw e
+    | EqInst (v, i) -> pf pp "eq_inst_%i.%s" v i.name
     | EqBvSl (i, s, e) -> pf pp "eq_bv_sl_%a[%i:%i]" Pretty.pp_sliceable_raw i s e
-    | EqInst i -> pf pp "eq_inst_%s" i.name
-    | EqArith e -> pf pp "eq_arith_%a" Pretty.pp_expr_raw e
-    | EqVal e -> pf pp "eq_val_%a" Pretty.pp_expr_raw e
+    | EqBv e -> pf pp "eq_bv_%a" Pretty.pp_expr_raw e
     | Err e -> pf pp "Error: %s" e
 
 
@@ -47,6 +49,44 @@ let merge_map (map1 : (FormulaId.t , 'b, 'c) Map.t) (map2 : (FormulaId.t, 'b, 'c
     v1
   in
   Map.merge_skewed  map1 map2 ~combine:combine
+
+let var_from_sliceable s =
+  let open Sliceable in
+  match s with
+  | Packet(v, _)
+  | Instance(v, _) -> v
+
+let rec get_var expr = 
+  let open Expression in
+  let check_vars v1 v2 =
+    match v1 with
+    | Ok a1 -> (
+      match v2 with
+      | Ok a2 -> (
+        if phys_equal a1 a2 
+          then Ok a1
+          else Error (Error.of_string "Found conflictng vars"))
+      | Error _ -> Ok a1)
+    | Error _ -> (
+      match v2 with
+      | Ok a2 -> (Ok a2)
+      | Error _ -> Error (Error.of_string "No valid vars found"))
+  in
+  match expr with
+  | ArithExpr(Length(v, _)) -> Ok(v)
+  | ArithExpr(Plus(arith1, arith2)) -> (
+    let a1_res = get_var (ArithExpr (arith1)) in
+    let  a2_res = get_var (ArithExpr (arith2)) in
+    check_vars a1_res a2_res)
+  | BvExpr(Concat(bv1, bv2))
+  | BvExpr(Minus(bv1, bv2)) -> (
+    let b1_res = get_var (BvExpr (bv1)) in
+    let  b2_res = get_var (BvExpr (bv2)) in
+    check_vars b1_res b2_res)
+  | ArithExpr(Num _)
+  | BvExpr(Bv(_)) -> Error (Error.of_string "No var found")
+  | BvExpr(Slice(s, _, _)) -> Ok (var_from_sliceable s)
+  | BvExpr(Packet(v, _)) -> Ok v
 
 let rec get_subs_expr exp : (Expression.t option) =
   let open Expression in
@@ -104,78 +144,94 @@ let replace_expression exp_i exp_o exp_r =
 
 
 let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness) Map.t=
-  let rec ext (f : Formula.t) 
-    (m_in : (FormulaId.t, Formula.t , FormulaId.comparator_witness) Map.t ) 
-    : (FormulaId.t, Formula.t , FormulaId.comparator_witness) Map.t =
+  let update_instance m_in i_exp exp = 
+    let open FormulaId in
+    match i_exp with
+    | Sliceable.Instance(var, inst) -> (
+      let k_i = EqInst (var, inst) in
+      Log.debug (fun m -> m "@[Searching for %a@]" pp_fromula_id k_i);
+      let inst_opt = Map.find m_in k_i in
+      let data =
+        match inst_opt with
+        | Some inst -> 
+          Log.debug (fun m -> m "@[Found %a@]" Pretty.pp_form_raw inst);
+          And(inst, exp)
+        | None -> 
+          Log.debug (fun m -> m "@[Nothing found@]");
+          exp
+        in
+        Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k_i Pretty.pp_form_raw  data);
+        let m_t = Map.set m_in ~key:k_i ~data:data in
+        (* Log.debug (fun m -> m "@[Retruning: %s@]" (Sexp.to_string_hum (sexp_of_fid_map  m_t))); *)
+        m_t)
+    | _ -> (
+      Log.debug (fun m -> m "@[Nothing to update since %a is no instance@]" Pretty.pp_sliceable_raw i_exp);
+      m_in)
+  in
+  let rec ext f m_in : (FormulaId.t, Formula.t , FormulaId.comparator_witness) Core.Map.t =
+    let open FormulaId in
     match f with
     | And(f1, f2) -> 
       let m_tmp1 = ext f1 m_in in
       ext f2 m_tmp1
-    | Or(And(Neg(IsValid(v1, i1)),Neg(IsValid(v2,i2))), And(And(IsValid(v3,i3),IsValid(v4,i4)), Eq (BvExpr(_), BvExpr(_)))) -> 
-      if phys_equal v1 v3 && phys_equal v2 v4 && phys_equal i1 i2  && phys_equal i3 i4  && phys_equal i2 i3
-        then (
-          let k = FormulaId.InstEqual i1 in
-          Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
-          Map.set m_in ~key:k ~data:f
-        )
-        else (
-          Log.debug (fun m -> m "@[Suspicious Or-Expression: this should not happen @]");
-          Map.set m_in ~key:(Err "Suspicious Or-Expression") ~data:f
-        )
+
+      (* x.τ.valid == y.τ.valid *)
+    | Or(And(Neg(IsValid(v1, i1)),Neg(IsValid(_))), And(IsValid(_),IsValid(_))) ->
+      let k = ValidEqual(v1, i1) in
+      Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
+      Map.set m_in ~key:k ~data:f
+
+      (* x.τ == y.τ *)
+    | Or(And(Neg(IsValid(v1, i1)),Neg(IsValid(_))), And(And(IsValid(_),IsValid(_)), And(_)))
+    | Or(And(Neg(IsValid(v1, i1)),Neg(IsValid(_))), And(And(IsValid(_),IsValid(_)), Eq (BvExpr(_), BvExpr(_)))) -> 
+      let k = InstEqual (v1, i1) in
+      Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
+      Map.set m_in ~key:k ~data:f
+
+      (* true --> ignore *)
     | True -> m_in
-    | Eq (exp1, _) 
+
     | Gt (exp1, _) -> (
-      let opt = get_subs_expr exp1 in 
-      match opt with
-      | Some o -> (
-        match o with 
-        | BvExpr(Slice(inst, s, e)) -> 
-          let k = FormulaId.EqBvSl (inst, s, e ) in
-          let m_tmp = match inst with
-          | Instance(_, inst) -> 
-            let k_i = FormulaId.EqInst inst in
-            Log.debug (fun m -> m "@[Searching for %a@]" pp_fromula_id k_i);
-            let inst_opt = Map.find m_in k_i in
-            (* Log.debug (fun m -> m "@[Searching in: %s@]" (Sexp.to_string_hum (sexp_of_fid_map  m_in))); *)
-            let data = match inst_opt with
-            | Some inst -> 
-              Log.debug (fun m -> m "@[Found %a@]" Pretty.pp_form_raw inst);
-              And(inst, f)
-            | None -> 
-              Log.debug (fun m -> m "@[Nothing found@]");
-              f
-            in
-            Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k_i Pretty.pp_form_raw  data);
-            let m_t = Map.set m_in ~key:k_i ~data:data in
-            (* Log.debug (fun m -> m "@[Retruning: %s@]" (Sexp.to_string_hum (sexp_of_fid_map  m_t))); *)
-            m_t
-          | _ -> m_in
-          in
-          Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
-          Map.set m_tmp ~key:k ~data:f
-        | BvExpr _ ->  
-          let k = FormulaId.EqBv o in
-          Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
-          Map.set m_in ~key:k ~data:f
-        | ArithExpr _ ->  
-          let k = FormulaId.EqArith o in
-          Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
-          Map.set m_in ~key:k ~data:f)
-      | None -> m_in)
-    | Neg(IsValid(_,i)) -> 
-      let k = FormulaId.Invalid i in
+      match exp1 with
+      | ArithExpr _ ->  
+        let k = GtExp exp1 in
+        Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
+        Map.set m_in ~key:k ~data:f
+      | _ -> m_in)
+
+    | Eq (exp1, _) -> (
+      match exp1 with
+      | BvExpr(Slice(inst, hi, lo)) -> (
+        let k = EqBvSl (inst, hi, lo) in
+        let m_in = update_instance m_in inst f in
+        Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
+        Map.set m_in ~key:k ~data:f)
+      | BvExpr _ ->  
+        let k = EqBv exp1 in
+        Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
+        Map.set m_in ~key:k ~data:f
+      | ArithExpr _ ->  
+        let k = EqExp exp1 in
+        Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
+        Map.set m_in ~key:k ~data:f)
+
+      (* x.τ.valid  *)
+    | Neg(IsValid(v, i)) -> 
+      let k = Invalid (v, i) in
       Log.debug(fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw f);
       Map.set m_in ~key:k ~data:f
-    | IsValid(_, i) -> 
-      let k = FormulaId.Valid i in
+
+
+    | IsValid(v, i) -> 
+      let k = Valid (v, i) in
       Log.debug(fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw f);
       Map.set m_in ~key:k ~data:f
     | _ -> 
       Log.debug(fun m -> m "@[Unmatched Form: %a@]" Pretty.pp_form_raw f);
       m_in
-  in
-  let map = Map.empty(module FormulaId) in
-  ext form map
+    in
+    let map = Map.empty(module FormulaId) in
+    ext form map
 
 let rec append_slices form lst : Formula.t =
   match lst with
