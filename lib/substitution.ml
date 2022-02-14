@@ -280,12 +280,19 @@ let shift_exp_var v_new exp : Expression.t =
   | ArithExpr arith -> ArithExpr(shift_arith v_new arith)
   | BvExpr bv -> BvExpr(shift_bv v_new bv)
 
+let some_or_default opt def =
+  match opt with
+  | Some x -> x
+  | None -> def
 
-let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.comparator_witness) Map.t) : Formula.t =
+let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.comparator_witness) Map.t) : Formula.t option=
   let result = 
     let open FormulaId in
     match form with
-    | And(f1, f2) -> Ok (And(simplify_formula f1 m_in, simplify_formula  f2 m_in))
+    | And(f1, f2) -> 
+      let fs1 = some_or_default (simplify_formula f1 m_in) f1 in
+      let fs2 = some_or_default (simplify_formula f2 m_in) f2 in
+      Ok (And(fs1, fs2))
     | Or(And(Neg(IsValid(v1, i1)),Neg(IsValid(_))), And(IsValid(_),IsValid(_))) -> (
       let valid_opt = Map.find m_in (Valid(v1, i1, true)) in
       let invalid_opt = Map.find m_in (Valid(v1, i1, false)) in
@@ -305,11 +312,14 @@ let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.compa
       let f_l_neg = And(Neg(IsValid(v1, i1)),Neg(IsValid(v2, i2))) in
       let f_l_pos = And(IsValid(v3, i3),IsValid(v4, i4)) in
       let f_l = Or(f_l_neg, f_l_pos)in
-      let smpl_l =  simplify_formula f_l m_in in
+      let smpl_l =  some_or_default (simplify_formula f_l m_in) f_l in
       let smpl_r = simplify_formula f_r m_in in
       match smpl_l with
-      | Neg(IsValid(_)) | IsValid(_) -> Ok(And(smpl_l, smpl_r))
-      | _ -> Ok(Or(f_l_neg, And(f_l_pos, smpl_r))))
+      | Neg(IsValid(_)) | IsValid(_) -> (
+        match smpl_r with
+        | Some s -> Ok(And(smpl_l, s))
+        | None -> Ok smpl_l)
+      | _ -> Ok(Or(f_l_neg, And(f_l_pos, some_or_default smpl_r f_r))))
     
     | Eq(exp1, exp2) -> (
       let subs_id =
@@ -318,12 +328,13 @@ let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.compa
         | BvExpr Slice(s, hi, lo) -> (
           match s with
           | Packet (_,p) -> Some (EqBv (BvExpr (Slice (Packet (0,p), hi, lo))))
-          | Instance (_, i) -> Some (EqBv (BvExpr (Slice (Instance (0,i), hi, lo)))))
+          | Instance (_, i) -> Some (EqBvSl (Instance (0,i), hi, lo)))
         | BvExpr Packet (_, p) -> Some (EqBv (BvExpr (Packet (0,p))))
         | _ -> None 
       in
       match subs_id with
       | Some id -> (
+        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id id); 
         let%bind subs = Core.Map.find_or_error m_in id in
         let%bind substitution_l = 
           match subs with
@@ -344,6 +355,7 @@ let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.compa
           | EqBv exp
           | EqExp exp
           | GtExp exp -> Ok exp
+          | EqBvSl (s, hi, lo) -> Ok (BvExpr(Slice(s,hi, lo)))
           | _ -> Error (Error.of_string "Unexpected FormulaId")
         in
         Log.debug (fun m -> m "@[exp_old: %a@]" Pretty.pp_expr_raw exp_old);
@@ -354,12 +366,16 @@ let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.compa
         Pretty.pp_expr_raw exp1 
         Pretty.pp_expr_raw substitution_l);
         Ok (Eq(exp_new, substitution_r)))
-      | _ -> Ok form)
-    | _ -> Ok form
+      | _ ->
+        Log.debug (fun m -> m "@[--> replaced nothing @]");
+        Ok form)
+    | _ -> 
+      Log.debug (fun m -> m "@[--> replaced nothing @]");
+      Ok form
   in 
   match result with
-  | Ok f -> f
-  | _ -> form
+  | Ok f -> Some f
+  | _ -> None
 
 
 let rec simplify (hty : HeapType.t) : HeapType.t =
@@ -377,9 +393,10 @@ let rec simplify (hty : HeapType.t) : HeapType.t =
       match h with
       |Refinement(s,ht,f) -> 
         Log.debug (fun m -> m "====== Simplifying formula ======");
-        Ok (Refinement(s, ht, simplify_formula f subs_map))
+        Ok (Refinement(s, ht, some_or_default (simplify_formula f subs_map) f))
       |Choice(Refinement(s1,ht1,f1), Refinement(s2,ht2,f2)) -> 
-        Ok (Choice(Refinement(s1, ht1, simplify_formula f1 subs_map), Refinement(s2, ht2, simplify_formula f2 subs_map)))
+        Ok (Choice(Refinement(s1, ht1, some_or_default (simplify_formula f1 subs_map) f1),
+         Refinement(s2, ht2, some_or_default (simplify_formula f2 subs_map) f2)))
       | _ ->  Error (Error.of_string "h is not a Refinement"))   
     | _ -> Error (Error.of_string "hty is not a substitution"))
   in
