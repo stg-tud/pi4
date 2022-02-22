@@ -19,7 +19,7 @@ module C = Typechecker.SemanticChecker (Config)
 
 module Test = Test_utils.TestRunner (TestConfig)
 
-let types_equiv program_str type_str (simpl_method : HeapType.t -> HeapType.t) () = 
+let types_equiv program_str type_str ()= 
   let program = Parsing.parse_program program_str in
   let header_table = HeaderTable.of_decls program.declarations in
   let ty = Parsing.parse_type type_str header_table in
@@ -30,7 +30,7 @@ let types_equiv program_str type_str (simpl_method : HeapType.t -> HeapType.t) (
     match tycout with
     | Ok ht -> 
       let ctx = [ (x, Env.VarBind annot_tyin) ] in
-      let simplified = simpl_method ht in
+      let simplified = Substitution.simplify ht TestConfig.maxlen in
       Test.is_equiv ht simplified ctx header_table
     | Error(_) -> ()
 
@@ -60,11 +60,26 @@ let default_header =
     header ipv4 : ipv4_t
   |}
 
+let eth_header =
+  {|
+  header_type  ethernet_t {
+    dstAddr: 48;
+    srcAddr: 48;
+    etherType: 16;
+  }
+    header ether : ethernet_t
+  |}
 let default_type_str = 
   {|(x:{y:ε | y.pkt_in.length > 272}) -> 
     {y:⊤| true}|}
   
 let extract_str =
+  eth_header ^
+  {|
+    extract(ether);
+    skip
+  |}
+let extract_extract_str =
   default_header ^
   {|
     extract(ether);
@@ -125,12 +140,13 @@ let add_extract_str =
 
 let test_set = 
   [
-    test_case "Extract-Extract" `Quick (types_equiv extract_str default_type_str Substitution.simplify);
-    test_case "Extract-Add" `Quick (types_equiv extract_add_str default_type_str Substitution.simplify);
-    test_case "Extract-Skip" `Quick (types_equiv extract_skip_str default_type_str Substitution.simplify);
-    test_case "Extract-Remit" `Quick (types_equiv extract_remit_str default_type_str Substitution.simplify);
-    test_case "Extract-Assign" `Quick (types_equiv ext_assign_str default_type_str Substitution.simplify);
-    test_case "Extract-If" `Quick (types_equiv ext_if_str default_type_str Substitution.simplify);
-    test_case "Add-Skip" `Quick (types_equiv add_skip_str default_type_str Substitution.simplify);
-    test_case "Add-Extract" `Quick (types_equiv add_extract_str default_type_str Substitution.simplify);
+    test_case "Extract" `Quick (types_equiv extract_str default_type_str);
+    test_case "Extract-Extract" `Quick (types_equiv extract_extract_str default_type_str);
+    test_case "Extract-Add" `Quick (types_equiv extract_add_str default_type_str);
+    test_case "Extract-Skip" `Quick (types_equiv extract_skip_str default_type_str);
+    test_case "Extract-Remit" `Quick (types_equiv extract_remit_str default_type_str);
+    test_case "Extract-Assign" `Quick (types_equiv ext_assign_str default_type_str);
+    test_case "Extract-If" `Quick (types_equiv ext_if_str default_type_str);
+    test_case "Add-Skip" `Quick (types_equiv add_skip_str default_type_str);
+    test_case "Add-Extract" `Quick (types_equiv add_extract_str default_type_str);
   ]

@@ -3,6 +3,7 @@ open Syntax
 open Formula
 open HeapType
 open Result
+open Expression
 open Let_syntax
 module Log = (val Logs.src_log Logging.substitution_src : Logs.LOG)
 
@@ -15,6 +16,7 @@ module FormulaId = struct
       | EqExp of Expression.t                           (* x.exp == y.exp *)
       | GtExp of Expression.t                           (* x.exp > y.exp *)
       | EqInst of int * Instance.t                      (* x.τ == y.exp_bv *)
+      | EqPkt of int * Syntax.packet
       | EqBvSl of (Sliceable.t * int * int)             (* x.τ[hi:lo] == y.exp_bv *)
       | EqBv of Expression.t                            (* x.τ == y.bv *)
       | Err of string
@@ -36,10 +38,14 @@ let pp_fromula_id (pp : Format.formatter) (fid :FormulaId.t) =
     | GtExp e -> pf pp "gt_exp_%a" Pretty.pp_expr_raw e
     | EqExp e -> pf pp "eq_exp_%a" Pretty.pp_expr_raw e
     | EqInst (v, i) -> pf pp "eq_inst_%i.%s" v i.name
+    | EqPkt (v, p) -> pf pp "eq_pkt_%i.%a" v Pretty.pp_packet p
     | EqBvSl (i, s, e) -> pf pp "eq_bv_sl_%a[%i:%i]" Pretty.pp_sliceable_raw i s e
     | EqBv e -> pf pp "eq_bv_%a" Pretty.pp_expr_raw e
     | Err e -> pf pp "Error: %s" e
 
+let pp_pkt_slice (pp : Format.formatter) (sl, hi, lo) =
+  let open Fmt in
+  pf pp "@[%a[%i:%i] @]" Pretty.pp_sliceable_raw sl hi lo 
 
 let merge_map (map1 : (FormulaId.t , 'b, 'c) Map.t) (map2 : (FormulaId.t, 'b, 'c) Map.t) =
   let combine ~(key : FormulaId.t ) (v1 : 'b) (_ : 'b) : 'b =
@@ -153,7 +159,6 @@ let replace_expression exp_i exp_o exp_r =
 
 
 let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness) Map.t=
-  Log.debug (fun m -> m "====== Building substitution map ======");
   let update_instance m_in i_exp exp = 
     let open FormulaId in
     match i_exp with
@@ -218,6 +223,10 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
         let m_in = update_instance m_in inst f in
         Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
         Map.set m_in ~key:k ~data:f)
+      | BvExpr (Packet(v,p)) -> 
+        let k = EqPkt (v, p) in
+        Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
+        Map.set m_in ~key:k ~data:f
       | BvExpr _ ->  
         let k = EqBv subs_exp in
         Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
@@ -245,22 +254,22 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
     let map = Map.empty(module FormulaId) in
     ext form map
 
-let rec append_slices form lst : Formula.t =
+(* let rec append_slices form lst : Formula.t =
   match lst with
   | (key, vl)::t ->( 
     let open FormulaId in
     match (key, vl) with 
     | (EqBvSl _, vl) -> And(vl, append_slices form t)
     | _ -> append_slices form t)
-  | [] -> form
+  | [] -> form *)
 
-let shift_slice_var v_new sl =
+(* let shift_slice_var v_new sl =
   let open Sliceable in
   match sl with
   | Instance (_, p) -> Instance (v_new, p)
-  | Packet (_, p) -> Packet (v_new, p)
+  | Packet (_, p) -> Packet (v_new, p) *)
 
-let shift_exp_var v_new exp : Expression.t = 
+(* let shift_exp_var v_new exp : Expression.t = 
   let open Expression in
   let rec shift_arith v_new arith =
     match arith with
@@ -278,20 +287,99 @@ let shift_exp_var v_new exp : Expression.t =
   in
   match exp with
   | ArithExpr arith -> ArithExpr(shift_arith v_new arith)
-  | BvExpr bv -> BvExpr(shift_bv v_new bv)
+  | BvExpr bv -> BvExpr(shift_bv v_new bv) *)
+
+let split_concat_eqn eqn maxlen =
+  let split_inst inst =
+    let open Instance in
+    let rec splt (fields : Declaration.field list) =
+      match fields with
+      | f :: [] -> 
+        let%bind hi, lo = field_bounds inst f.name in
+        Ok (Eq(BvExpr(Slice(Instance(0, inst), hi,lo)), BvExpr(Slice(Instance(1, inst), hi,lo))))
+      | f :: tail -> 
+        let%bind hi, lo = field_bounds inst f.name in
+        let rslt_l = Eq(BvExpr(Slice(Instance(0, inst), hi,lo)), BvExpr(Slice(Instance(1, inst), hi,lo))) in
+        let%bind rslt_r = splt tail in
+        Ok (And(rslt_l, rslt_r))
+      | [] -> Error(`InvalidArgumentError "Nothing to split in given instance")
+    in
+    splt inst.fields in
+  
+  let split_inst_pkt v inst pkt_sl =
+    (* Log.debug (fun m -> m "@[Splitting expression %a with %a in %i@]" Pretty.pp_instance inst pp_pkt_slice pkt_sl v ); *)
+    let open Instance in
+    let rec splt (fields : Declaration.field list) = 
+      match fields with
+      | f :: [] -> 
+        let%bind hi, lo = field_bounds inst f.name in
+        let p, hi_p,_ = pkt_sl in
+        let rexp = Eq(BvExpr(Slice(Instance(v, inst), hi, lo)), BvExpr(Slice(p, hi_p + hi, hi_p + lo))) in
+        (* Log.debug (fun m -> m "P: [%i:%i] I:[%i:%i]" hi_p lo_p hi lo );
+        Log.debug (fun m -> m "Returning: %a" Pretty.pp_form_raw rexp); *)
+        Ok (rexp)
+      | f :: tail -> 
+        let%bind hi, lo = field_bounds inst f.name in
+        let p, hi_p,_ = pkt_sl in
+        (* Log.debug (fun m -> m "P: [%i:%i] I:[%i:%i]" hi_p lo_p hi lo ); *)
+        let rslt_l = Eq(BvExpr(Slice(Instance(v, inst), hi, lo)), BvExpr(Slice(p, hi_p + hi, hi_p + lo))) in
+        let%bind rslt_r = splt tail in
+        (* Log.debug (fun m -> m "Returning: %a" Pretty.pp_form_raw (And(rslt_l, rslt_r))); *)
+        Ok (And(rslt_l, rslt_r))
+      | [] -> Error(`InvalidArgumentError "Nothing to split in given instance")
+    in
+    let%bind rsplt = splt inst.fields in
+    let len = Instance.sizeof inst in
+    let (p, hi, lo) = pkt_sl in
+    Ok(rsplt, (p, hi + len, lo))
+  in
+  let rec split_exp exp pkt=
+    (* Log.debug (fun m -> m "@[Splitting expression %a with %a@]" Pretty.pp_expr_raw (BvExpr(exp)) pp_pkt_slice pkt); *)
+    match exp with
+    | Concat(Slice(Instance(v_l,i_l), _, _), bv_exp_r) -> 
+      let%bind rslt_l, pkt_l = split_inst_pkt v_l i_l pkt in
+      let%bind rslt_r = split_exp bv_exp_r pkt_l in
+      Ok (And(rslt_l, rslt_r))
+    | _ -> 
+      let pkt_p, pkt_hi, pkt_lo = pkt in
+      Ok (Eq(BvExpr(exp), BvExpr(Slice(pkt_p, pkt_hi, pkt_lo))))
+  in 
+  let rec sce e =
+    (* Log.debug (fun m -> m "@[Splitting %a@]" Pretty.pp_form_raw e); *)
+    match e with
+    | Eq(BvExpr(Concat(bv1, bv2)), BvExpr(Slice(pkt, hi_pkt, lo_pkt))) -> 
+      split_exp (Concat(bv1, bv2)) (pkt, hi_pkt, lo_pkt)
+    | Eq(BvExpr(exp), BvExpr(Packet(var, pkt))) -> 
+      sce (Eq(BvExpr(exp), BvExpr(Slice(Packet(var, pkt), 0, maxlen))))
+    | Eq(BvExpr(Slice(Instance(_,i_l), _,_)), BvExpr(Slice(Instance(_,i_r), _,_))) ->
+      if [%compare.equal: Instance.t] i_l i_r then
+        split_inst i_l
+      else
+        Error (`InvalidArgumentError "Cannot split different instances")
+    | And(e1, e2) -> 
+      let%bind sce1 = sce e1 in
+      let%bind sce2 = sce e2 in
+      Ok (And(sce1, sce2))
+    | Or(e1, e2) -> 
+      let%bind sce1 = sce e1 in
+      let%bind sce2 = sce e2 in
+      Ok (Or(sce1, sce2))
+    | _ -> Ok e
+    in
+  sce eqn
 
 let some_or_default opt def =
   match opt with
   | Some x -> x
   | None -> def
 
-let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.comparator_witness) Map.t) : Formula.t option=
+let rec simplify_formula form m_in maxlen: Formula.t option=
   let result = 
     let open FormulaId in
     match form with
     | And(f1, f2) -> 
-      let fs1 = some_or_default (simplify_formula f1 m_in) f1 in
-      let fs2 = some_or_default (simplify_formula f2 m_in) f2 in
+      let fs1 = some_or_default (simplify_formula f1 m_in maxlen) f1 in
+      let fs2 = some_or_default (simplify_formula f2 m_in maxlen) f2 in
       Ok (And(fs1, fs2))
     | Or(And(Neg(IsValid(v1, i1)),Neg(IsValid(_))), And(IsValid(_),IsValid(_))) -> (
       let valid_opt = Map.find m_in (Valid(v1, i1, true)) in
@@ -312,8 +400,8 @@ let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.compa
       let f_l_neg = And(Neg(IsValid(v1, i1)),Neg(IsValid(v2, i2))) in
       let f_l_pos = And(IsValid(v3, i3),IsValid(v4, i4)) in
       let f_l = Or(f_l_neg, f_l_pos)in
-      let smpl_l =  some_or_default (simplify_formula f_l m_in) f_l in
-      let smpl_r = simplify_formula f_r m_in in
+      let smpl_l =  some_or_default (simplify_formula f_l m_in maxlen) f_l in
+      let smpl_r = simplify_formula f_r m_in maxlen in
       match smpl_l with
       | Neg(IsValid(_)) | IsValid(_) -> (
         match smpl_r with
@@ -327,12 +415,32 @@ let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.compa
         | ArithExpr Length (_, pkt) -> Some (EqExp(ArithExpr(Length(0, pkt))))
         | BvExpr Slice(s, hi, lo) -> (
           match s with
-          | Packet (_,p) -> Some (EqBv (BvExpr (Slice (Packet (0,p), hi, lo))))
-          | Instance (_, i) -> Some (EqBvSl (Instance (0,i), hi, lo)))
-        | BvExpr Packet (_, p) -> Some (EqBv (BvExpr (Packet (0,p))))
+          | Packet (_,p) -> 
+            if [%compare.equal: var] hi 0 && [%compare.equal: var] lo maxlen 
+            then
+              Some (EqPkt(0,p))
+            else
+              Some (EqBv (BvExpr (Slice (Packet (0,p), hi, lo))))
+          | Instance (_, i) -> 
+            if [%compare.equal: var](lo - hi) (Instance.sizeof i) 
+            then
+              Some (EqInst (0,i))
+            else
+              Some (EqBvSl (Instance (0,i), hi, lo)))
+        | BvExpr Packet (_, p) -> Some (EqPkt(0,p))
         | _ -> None 
       in
       match subs_id with
+      | Some (EqInst (v,i)) -> 
+        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id (EqInst(v,i))); 
+        let%bind subs = Core.Map.find_or_error m_in (EqInst(v,i)) in
+        Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw subs);
+        Ok(subs)
+      | Some (EqPkt (v,p)) -> 
+        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id (EqPkt(v,p))); 
+        let%bind subs = Core.Map.find_or_error m_in (EqPkt(v,p)) in
+        Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw subs);
+        Ok(subs)
       | Some id -> (
         Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id id); 
         let%bind subs = Core.Map.find_or_error m_in id in
@@ -377,32 +485,44 @@ let rec simplify_formula form (m_in : (FormulaId.t , Formula.t , FormulaId.compa
   | Ok f -> Some f
   | _ -> None
 
-
-let rec simplify (hty : HeapType.t) : HeapType.t =
+let rec simplify hty maxlen : HeapType.t =
   let hty = Simplify.fold_refinements hty in
   let result = (
     match hty with
     | Substitution (h, _, subs) -> (
-      let h = simplify h in
-      let subs = simplify subs in
+      let h = simplify h maxlen in
+      let subs = simplify subs maxlen in
+      Log.debug (fun m -> m "====== Building substitution map ======");
       let%bind subs_map = 
         match subs with
-        | Refinement(_,_,f_subs) -> Ok (extract_to_map f_subs)
-        | _ ->  Error (Error.of_string "subs is not a Refinement")
+        | Refinement(_,_,f_subs) -> 
+          let%bind split_subs = split_concat_eqn f_subs maxlen in
+          Log.debug (fun m -> m "@[Extracting formula %a@]" Pretty.pp_form_raw split_subs);
+          Ok (extract_to_map split_subs)
+        | _ ->  Error (`InvalidArgumentError "subs is not a Refinement")
       in
       match h with
       |Refinement(s,ht,f) -> 
         Log.debug (fun m -> m "====== Simplifying formula ======");
-        Ok (Refinement(s, ht, some_or_default (simplify_formula f subs_map) f))
+        let%bind split_f = split_concat_eqn f maxlen in
+        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw split_f);
+        Ok (Refinement(s, ht, some_or_default (simplify_formula split_f subs_map maxlen) f))
       |Choice(Refinement(s1,ht1,f1), Refinement(s2,ht2,f2)) -> 
-        Ok (Choice(Refinement(s1, ht1, some_or_default (simplify_formula f1 subs_map) f1),
-         Refinement(s2, ht2, some_or_default (simplify_formula f2 subs_map) f2)))
-      | _ ->  Error (Error.of_string "h is not a Refinement"))   
-    | _ -> Error (Error.of_string "hty is not a substitution"))
+        let%bind split_f1 = split_concat_eqn f1 maxlen in
+        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw split_f1);
+        let%bind split_f2 = split_concat_eqn f2 maxlen in
+        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw split_f2);
+        Ok (Choice(Refinement(s1, ht1, some_or_default (simplify_formula split_f1 subs_map maxlen) f1),
+         Refinement(s2, ht2, some_or_default (simplify_formula split_f2 subs_map maxlen) f2)))
+      | _ ->  Error (`InvalidArgumentError  "h is not a Refinement"))   
+    | _ -> Error (`InvalidArgumentError  "hty is not a substitution"))
   in
   match result with
   | Ok ht -> 
     Log.debug (fun m -> m "@[Simplfied %a@]" Pretty.pp_header_type_raw hty);
     Log.debug (fun m -> m "@[Resulting hty %a@]" Pretty.pp_header_type_raw ht);
     ht
-  | _ -> hty 
+  | Error (`FieldAccessError e)
+  | Error (`InvalidArgumentError e) -> 
+    Log.debug(fun m -> m "Error: %s" e);
+    hty 
