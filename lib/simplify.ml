@@ -29,6 +29,12 @@ let rec fold_concat t =
       fold_concat (Concat (Slice (s1, ll, rr), t22))
     else
       Concat (t1, fold_concat (Concat (t21, t22)))
+  | Concat
+      (Concat ( t11, (Slice (s1, ll, lr) as t12)), (Slice (s2, rl, rr) as t2)) ->
+    if [%compare.equal: Sliceable.t] s1 s2 && lr = rl then
+      fold_concat (Concat (t11, Slice (s1, ll, rr)))
+    else
+      Concat (fold_concat (Concat (t11, t12)), t2)
   | Concat (t1, t2) -> Concat (fold_concat t1, fold_concat t2)
   | _ -> t
 
