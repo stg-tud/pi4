@@ -286,6 +286,39 @@ let find_or_err map key =
   | Some v -> Ok(v)
   | None -> Error(`NotFoundError "No entry found for given key")
  
+let clean_concat_eqn form =
+  Log.debug(fun m -> m "Called Cleanup");
+  let rec cce f = 
+    match f with
+    | Eq(BvExpr(Packet(_, p_l) as pkt_l), BvExpr(Slice(Packet(v_r, p_r) as pkt_r, hi, _))) -> 
+      if [%compare.equal: Syntax.packet] p_l p_r then
+        if hi > 0 then
+          Eq
+          ( BvExpr ( Concat
+            ( Slice(pkt_r, 0, hi),
+              pkt_l
+            )),
+            BvExpr(Packet(v_r, p_r))
+          )
+        else
+          Eq
+          ( BvExpr ( pkt_l),
+            BvExpr(Packet(v_r, p_r))
+          )
+      else
+        f
+    | And(f1, f2) -> 
+      let cce1 = cce f1 in
+      let cce2 = cce f2 in
+      And( cce1, cce2)
+    | Or(f1, f2) -> 
+      let cce1 = cce f1 in
+      let cce2 = cce f2 in
+      Or( cce1, cce2)
+    | _ -> f
+    in
+  cce form
+  
 let split_concat_eqn eqn maxlen =
   let split_inst inst =
     let open Instance in
@@ -570,20 +603,23 @@ let rec simplify hty maxlen : HeapType.t =
       match h with
       |Refinement(s,ht,f) -> 
         Log.debug (fun m -> m "====== Simplifying formula ======");
-        let%bind split_f = split_concat_eqn f maxlen in
-        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw split_f);
-        Ok (Refinement(s, ht, some_or_default (simplify_formula split_f subs_map maxlen) f))
+        let%bind f_split = split_concat_eqn f maxlen in
+        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f_split);
+        Ok
+        ( Refinement(s, ht, some_or_default (simplify_formula f_split subs_map maxlen) f))
 
       |Choice(Refinement(s1,ht1,f1), Refinement(s2,ht2,f2)) -> 
-        let%bind split_f1 = split_concat_eqn f1 maxlen in
-        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw split_f1);
-        let%bind split_f2 = split_concat_eqn f2 maxlen in
-        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw split_f2);
-        Ok (Choice(Refinement(s1, ht1, some_or_default (simplify_formula split_f1 subs_map maxlen) f1),
-         Refinement(s2, ht2, some_or_default (simplify_formula split_f2 subs_map maxlen) f2)))
+        let%bind f1_split = split_concat_eqn f1 maxlen in
+        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
+        let%bind f2_split = split_concat_eqn f2 maxlen in
+        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f2_split);
+        Ok 
+          ( Choice
+            ( Refinement(s1, ht1, some_or_default (simplify_formula f1_split subs_map maxlen) f1),
+              Refinement(s2, ht2, some_or_default (simplify_formula f2_split subs_map maxlen) f2)))
 
       | _ ->  Error (`InvalidArgumentError  "h is not a Refinement"))   
-      
+
     | _ -> Error (`InvalidArgumentError  "hty is not a substitution"))
   in
   match result with
