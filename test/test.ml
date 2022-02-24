@@ -23,7 +23,8 @@ let test_suite =
     ("cisco_example", Test_cisco.test_set);
     ("composition", Test_composition.test_set);
     ("examples", Test_examples.test_set);
-    ("substitution", Test_substitution.test_set)
+    ("substitution", Test_substitution.test_set);
+    ("split_concat", Test_split_concat.test_set);
   ]
 
 let () =
