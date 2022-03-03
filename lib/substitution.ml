@@ -319,29 +319,86 @@ let clean_concat_eqn form =
     in
   cce form
   
+
+
+
 let split_concat_eqn eqn maxlen =
-  let split_inst inst =
+  let rec get_bv bv ln = 
+    match bv with
+    | BitVector.Cons(b, tail) ->  
+      if ln > 0 then
+        let%bind t, c = get_bv tail (ln - 1) in
+        Ok (BitVector.Cons(b, t), c)
+      else
+        Ok (BitVector.Cons(b, Nil), tail)
+    | _ -> Error(`InvalidArgumentError "Index exceeded BitVector length")
+  in 
+
+  let split_assign inst hib lob bv = 
+    let open Instance in
+    let rec splt (fields : Declaration.field list) b =
+      match fields with
+      | f :: [] -> 
+        let%bind hi, lo = field_bounds inst f.name in
+        if hi < hib || lo > lob then
+          Ok(True)
+        else
+          let%bind sl, _ = get_bv b (lo - hi) in
+          Ok(
+            Eq
+              ( BvExpr(Slice(Instance(0, inst), hi,lo)),
+                BvExpr(Bv(sl)))
+          )
+      | f :: tail -> 
+        let%bind hi, lo = field_bounds inst f.name in
+        if hi < hib || lo > lob then
+          splt tail b
+        else
+          let%bind sl, b = get_bv b (lo - hi) in
+          let%bind tl = splt tail b in
+          Ok 
+          ( And
+            ( Eq
+              ( BvExpr(Slice(Instance(0, inst), hi,lo)),
+                BvExpr(Bv(sl))),
+                tl
+            )
+          )
+      | [] -> Error(`InvalidArgumentError "Nothing to split in given instance")
+    in 
+    splt inst.fields bv
+  in
+
+
+  let split_inst inst hib lob=
     let open Instance in
     let rec splt (fields : Declaration.field list) =
       match fields with
       | f :: [] -> 
         let%bind hi, lo = field_bounds inst f.name in
-        Ok ( Eq
-          ( BvExpr(Slice(Instance(0, inst), hi,lo)),
-            BvExpr(Slice(Instance(1, inst), hi,lo))))
+        if hi < hib || lo > lob then
+          Ok (True)
+        else
+          Ok ( Eq
+            ( BvExpr(Slice(Instance(0, inst), hi,lo)),
+              BvExpr(Slice(Instance(1, inst), hi,lo))))
 
       | f :: tail -> 
         let%bind hi, lo = field_bounds inst f.name in
-        let rslt_l = 
-          Eq
-          ( BvExpr(Slice(Instance(0, inst), hi,lo)),
-            BvExpr(Slice(Instance(1, inst), hi,lo))) in
-        let%bind rslt_r = splt tail in
-        Ok (And(rslt_l, rslt_r))
+        if hi < hib || lo > lob then
+          splt tail
+        else
+          let rslt_l = 
+            Eq
+            ( BvExpr(Slice(Instance(0, inst), hi,lo)),
+              BvExpr(Slice(Instance(1, inst), hi,lo))) in
+          let%bind rslt_r = splt tail in
+          Ok (And(rslt_l, rslt_r))
 
       | [] -> Error(`InvalidArgumentError "Nothing to split in given instance")
     in
-    splt inst.fields in
+    splt inst.fields 
+  in
   
   let split_inst_pkt v inst pkt_sl =
     let open Instance in
@@ -394,6 +451,11 @@ let split_concat_eqn eqn maxlen =
     (* Log.debug (fun m -> m "@[Splitting %a@]" Pretty.pp_form_raw e); *)
     match e with
     | Eq
+      ( BvExpr(Slice(Instance(_,i_l), hi , lo)),
+        BvExpr(Bv(bv))
+      ) -> split_assign i_l hi lo bv
+
+    | Eq
       ( BvExpr(Concat(bv1, bv2)),
         BvExpr(Slice(pkt, hi_pkt, lo_pkt))
       ) -> 
@@ -409,11 +471,11 @@ let split_concat_eqn eqn maxlen =
           )
 
     | Eq 
-      ( BvExpr(Slice(Instance(_,i_l), _,_)),
+      ( BvExpr(Slice(Instance(_,i_l), hi , lo)),
         BvExpr(Slice(Instance(_,i_r), _,_))
       ) ->
       if [%compare.equal: Instance.t] i_l i_r then
-        split_inst i_l
+        split_inst i_l hi lo
       else
         Error (`InvalidArgumentError "Cannot split different instances")
 
@@ -435,13 +497,34 @@ let some_or_default opt def =
   | Some x -> x
   | None -> def
 
-let rec simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_witness) Map_intf.Map.t) maxlen: Formula.t option=
-  let result = 
+let ok_or_default result def = 
+  match result with
+  | Ok v -> v
+  | _ ->  def
+
+let shift_slices form n =
+  Log.debug(fun m -> m "Shifting slices by: %i" n);
+  let rec ss f = 
+    match f with 
+    | Eq(BvExpr(Packet(0,PktIn)), BvExpr(Slice(Packet(1, PktIn), hi, lo))) ->
+      Eq(BvExpr(Packet(0,PktIn)), BvExpr(Slice(Packet(1, PktIn), hi + n, lo)))
+    | Eq(BvExpr(Slice(Instance(_),_,_)) as bv_l, BvExpr(Slice(Packet(1, PktIn), hi, lo))) ->
+      Eq( bv_l, BvExpr(Slice(Packet(1, PktIn), hi + n, lo + n)))
+    | And(f1, f2) -> And(ss f1, ss f2)
+    | Or(f1, f2) -> Or(ss f1, ss f2)
+    | _ -> f
+  in
+  let fm = ss form in
+  Log.debug(fun m -> m "Result: %a" Pretty.pp_form_raw fm);
+  fm
+
+let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_witness) Map_intf.Map.t) maxlen: Formula.t option=
+  let rec sf form m_in maxlen = 
     let open FormulaId in
     match form with
     | And(f1, f2) -> 
-      let fs1 = some_or_default (simplify_formula f1 m_in maxlen) f1 in
-      let fs2 = some_or_default (simplify_formula f2 m_in maxlen) f2 in
+      let fs1 = ok_or_default (sf f1 m_in maxlen) f1 in
+      let fs2 = ok_or_default (sf f2 m_in maxlen) f2 in
       Ok (And(fs1, fs2))
       
     | Or
@@ -492,15 +575,15 @@ let rec simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparat
           IsValid(v4, i4))
         in
       let f_l = Or(f_l_neg, f_l_pos)in
-      let smpl_l =  some_or_default (simplify_formula f_l m_in maxlen) f_l in
-      let smpl_r = simplify_formula f_r m_in maxlen in
+      let smpl_l =  ok_or_default (sf f_l m_in maxlen) f_l in
+      let smpl_r = sf f_r m_in maxlen in
       match smpl_l with
 
       | Neg(IsValid(_)) | IsValid(_) -> (
         match smpl_r with
-        | Some s -> Ok(And(smpl_l, s))
-        | None -> Ok smpl_l)
-      | _ -> Ok(Or(f_l_neg, And(f_l_pos, some_or_default smpl_r f_r))))
+        | Ok s -> Ok(And(smpl_l, s))
+        | _ -> Ok smpl_l)
+      | _ -> Ok(Or(f_l_neg, And(f_l_pos, ok_or_default smpl_r f_r))))
     
     | Eq(exp1, exp2) -> (
       let subs_id =
@@ -530,7 +613,7 @@ let rec simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparat
       match subs_id with
       | Some (EqInst (v,i)) -> 
         Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id (EqInst(v,i))); 
-        let%bind subs = find_or_err m_in (EqInst(v,i)) in
+        let subs = ok_or_default (find_or_err m_in (EqInst(v,i))) True in
         Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw subs);
         Ok(subs)
 
@@ -580,14 +663,31 @@ let rec simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparat
       Log.debug (fun m -> m "@[--> replaced nothing @]");
       Ok form
   in 
+
+  let pkt_in = Map.find m_in (FormulaId.EqPkt(0, PktIn)) in
+  let form = 
+    match pkt_in with
+    | Some(Eq(_, BvExpr(Slice(Packet(1, PktIn), hi ,_ )))) ->
+      shift_slices form hi
+    | _ -> form
+  in
+  let result = sf form m_in maxlen in
   match result with
-  | Ok f -> Some f
+  | Ok f -> 
+    Some (clean_concat_eqn f)
   | _ -> None
 
 let rec simplify hty maxlen : HeapType.t =
   let hty = Simplify.fold_refinements hty in
   let result = (
     match hty with
+    | Choice (hty1, hty2) ->
+      Ok 
+      ( Choice
+        ( simplify hty1 maxlen,
+          simplify hty2 maxlen))
+    | Refinement( s, h ,f) ->
+      Ok (Refinement (s, simplify h maxlen, f))
     | Substitution (h, _, subs) -> (
       let h = simplify h maxlen in
       let subs = simplify subs maxlen in
@@ -601,14 +701,36 @@ let rec simplify hty maxlen : HeapType.t =
         | _ ->  Error (`InvalidArgumentError "subs is not a Refinement")
       in
       match h with
-      |Refinement(s,ht,f) -> 
+      | Refinement(s,ht,f) -> 
         Log.debug (fun m -> m "====== Simplifying formula ======");
         let%bind f_split = split_concat_eqn f maxlen in
         Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f_split);
         Ok
         ( Refinement(s, ht, some_or_default (simplify_formula f_split subs_map maxlen) f))
+      | Choice(Refinement(s1,ht1,f1), (Choice(_,_) as ch)) ->
+        let%bind f1_split = split_concat_eqn f1 maxlen in
+        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
+        Ok 
+          ( Choice
+            ( Refinement(s1, ht1, some_or_default (simplify_formula f1_split subs_map maxlen) f1),
+              simplify ch maxlen)
+          )
+      | Choice((Choice(_,_) as ch), Refinement(s1,ht1,f1)) ->
+        let%bind f1_split = split_concat_eqn f1 maxlen in
+        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
+        Ok 
+          ( Choice
+            (simplify ch maxlen,
+            Refinement(s1, ht1, some_or_default (simplify_formula f1_split subs_map maxlen) f1))
+          )
 
-      |Choice(Refinement(s1,ht1,f1), Refinement(s2,ht2,f2)) -> 
+      | Choice((Choice(_,_) as ch1), (Choice(_,_) as ch2)) ->
+        Ok 
+          ( Choice
+            ( simplify ch1 maxlen,
+              simplify ch2 maxlen)
+          )
+      | Choice(Refinement(s1,ht1,f1), Refinement(s2,ht2,f2)) -> 
         let%bind f1_split = split_concat_eqn f1 maxlen in
         Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
         let%bind f2_split = split_concat_eqn f2 maxlen in
@@ -617,6 +739,12 @@ let rec simplify hty maxlen : HeapType.t =
           ( Choice
             ( Refinement(s1, ht1, some_or_default (simplify_formula f1_split subs_map maxlen) f1),
               Refinement(s2, ht2, some_or_default (simplify_formula f2_split subs_map maxlen) f2)))
+
+      | Choice(hty1, hty2) ->
+        Ok 
+        ( Choice
+          ( simplify hty1 maxlen,
+            simplify hty2 maxlen))
 
       | _ ->  Error (`InvalidArgumentError  "h is not a Refinement"))   
 

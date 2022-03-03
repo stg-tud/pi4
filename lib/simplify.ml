@@ -8,9 +8,6 @@ let rec fold_plus (term : Expression.arith) =
   | Plus (Num m, Num n) -> Num (m + n)
   | Plus (Plus (t, Num m), Num n) -> fold_plus (Plus (t, Num (m + n)))
   | _ as t -> t
-
-(* TODO: - nested concats: <0>@(<0>@slice) -> <00> @ slice - s[0:1]@s[1:2] ->
-   s[0:2] *)
 let rec fold_concat t =
   match t with
   | Concat (Bv Nil, t2) -> fold_concat t2
