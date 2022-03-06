@@ -20,7 +20,8 @@ let test_suite =
     ("parser", Test_parser.test_set);
     ("simplification", Test_simplify.test_set);
     ("cisco_example", Test_cisco.test_set);
-    ("composition", Test_composition.test_set)
+    ("composition", Test_composition.test_set);
+    ("split_concat", Test_split_concat.test_set)
   ]
 
 let () =

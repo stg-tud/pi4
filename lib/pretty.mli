@@ -6,6 +6,8 @@ val pp_packet : Format.formatter -> Syntax.packet -> unit
 val pp_sliceable : Env.context -> Format.formatter -> Sliceable.t -> unit
 val pp_sliceable_raw : Format.formatter -> Sliceable.t -> unit
 val pp_expr_raw : Format.formatter -> Expression.t -> unit
+val pp_bv_expr : Env.context -> Format.formatter -> Expression.bv -> unit
+val pp_bv_expr_raw : Format.formatter -> Expression.bv -> unit
 val pp_expr : Env.context -> Format.formatter -> Expression.t -> unit
 val pp_form : Env.context -> Format.formatter -> Formula.t -> unit
 val pp_form_raw : Format.formatter -> Formula.t -> unit

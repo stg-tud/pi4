@@ -2,7 +2,6 @@ open Core_kernel
 open Result.Let_syntax
 open Syntax
 open Z3
-
 module Log = (val Logs.src_log Logging.encoding_src : Logs.LOG)
 
 let id_access var inst = Smtlib.Id (String.concat ~sep:"." [ var; inst ])
@@ -14,21 +13,13 @@ let id_pkt_length var pkt =
   Smtlib.Id (String.concat ~sep:"." [ var; pkt; "length" ])
 
 let const_access var inst = Smtlib.Const (id_access var inst)
-
 let const_valid var inst = Smtlib.Const (id_valid var inst)
-
 let const_pkt_len var pkt = Smtlib.Const (id_pkt_length var pkt)
-
 let const_pkt_in var = const_access var "pkt_in"
-
 let const_pkt_out var = const_access var "pkt_out"
-
 let const_pkt_in_len var = const_pkt_len var "pkt_in"
-
 let const_pkt_out_len var = const_pkt_len var "pkt_out"
-
 let true_ = Smtlib.bool_to_term true
-
 let false_ = Smtlib.bool_to_term false
 
 let zero_extend i term =
@@ -83,8 +74,7 @@ let bv_to_string v =
 
 let bv_to_smt v size =
   let l = Syntax.BitVector.sizeof v in
-  if l = 0 then
-    Error (`EncodingError "Cannot encode an empty bitvector")
+  if l = 0 then Error (`EncodingError "Cannot encode an empty bitvector")
   else
     let%map s = bv_to_string v in
     let i = Int.of_string s in
@@ -96,22 +86,14 @@ module DynamicSize = struct
     | Static of int
     | Sum of t * t
 
-  (* let rec is_static = function | Dynamic _ -> false | Static _ -> true | Sum
-     (s1, s2) -> is_static s1 && is_static s2 *)
-
-  let rec max_value maxlen = function
-    | Dynamic _ -> maxlen
-    | Static n -> n
-    | Sum (n, m) -> max_value maxlen n + max_value maxlen m
-
-  let rec static_value = function
+  (* let rec static_value = function
     | Dynamic _ -> None
     | Static n -> Some n
     | Sum (n, m) ->
       let open Option.Let_syntax in
       let%bind n_val = static_value n in
       let%map m_val = static_value m in
-      n_val + m_val
+      n_val + m_val *)
 end
 
 let fresh_name ctx x =
@@ -137,8 +119,7 @@ let rec dynamic_size_to_smt (bv : DynamicSize.t) (len : int) (maxlen : int) =
         let_bindings = [];
         constraints = []
       }
-    else
-      { smt_term = const; let_bindings = []; constraints = [] }
+    else { smt_term = const; let_bindings = []; constraints = [] }
   | Static n ->
     { smt_term = Smtlib.bv n len; let_bindings = []; constraints = [] }
   | Sum (s1, s2) ->
@@ -169,7 +150,6 @@ let rec max_arith_value (term : Expression.arith) (maxlen : int) =
     v1 + v2
 
 let id_fst_compare (Smtlib.Id x, _) (Smtlib.Id y, _) : int = String.compare x y
-
 let id_dedup = List.dedup_and_sort ~compare:id_fst_compare
 
 let valid_expr_to_smt (ctx : Env.context) (x : var) (inst : Instance.t) =
@@ -220,9 +200,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
     let rec smt_consts_aux (hty : HeapType.t)
         (acc : (Smtlib.identifier * Smtlib.sort) list) =
       match hty with
-      | Nothing
-      | Top ->
-        acc
+      | Nothing | Top -> acc
       | Choice (hty1, hty2) -> smt_consts_aux hty1 acc |> smt_consts_aux hty2
       | Sigma (x, hty1, hty2) ->
         let x1 = x ^ "_l" in
@@ -391,10 +369,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       in
       let ssize_diff = length - min_bit_width C.maxlen in
       let smt =
-        if ssize_diff > 0 then
-          zero_extend ssize_diff smt_pkt
-        else
-          smt_pkt
+        if ssize_diff > 0 then zero_extend ssize_diff smt_pkt else smt_pkt
       in
       { smt_term = smt;
         dynamic_size = DynamicSize.Static length;
@@ -423,165 +398,124 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       }
 
   let rec bv_expr_to_smt (term : Expression.bv) (length : int)
-      (ctx : Env.context) =
+      (ctx : Env.context) : (term_encoding, 'a) result =
     match term with
     | Minus (tm1, tm2) ->
-      let%bind tm1_smt, _ = bv_expr_to_smt tm1 length ctx in
-      let%map tm2_smt, _ = bv_expr_to_smt tm2 length ctx in
-      (Smtlib.bvsub tm1_smt tm2_smt, DynamicSize.Static length)
+      let%bind { smt_term = tm1_smt; _ } = bv_expr_to_smt tm1 length ctx in
+      let%map { smt_term = tm2_smt; _ } = bv_expr_to_smt tm2 length ctx in
+      { smt_term = Smtlib.bvsub tm1_smt tm2_smt;
+        dynamic_size = DynamicSize.Static length;
+        let_bindings = [];
+        constraints = []
+      }
     | Bv v ->
       let%map bv_smt = bv_to_smt v length in
       let size = Syntax.BitVector.sizeof v in
-      (bv_smt, DynamicSize.Static size)
-    | Concat (tm1, tm2) ->
-      let%bind tm1_smt, tm1_size = bv_expr_to_smt tm1 length ctx in
-      let%map tm2_smt, tm2_size = bv_expr_to_smt tm2 length ctx in
-      let tm1_size_smt = dynamic_size_to_smt tm1_size length C.maxlen in
-
-      let ff t =
-        let c =
-          List.fold tm1_size_smt.constraints ~init:t ~f:(fun acc c ->
-              Smtlib.and_ c acc)
-        in
-        List.fold tm1_size_smt.let_bindings ~init:c ~f:(fun acc l ->
-            Smtlib.Let (fst l, snd l, acc))
+      { smt_term = bv_smt;
+        dynamic_size = DynamicSize.Static size;
+        let_bindings = [];
+        constraints = []
+      }
+    | Concat (e1, e2) ->
+      let%bind { smt_term = e1_smt; dynamic_size = e1_dsize; _ } =
+        bv_expr_to_smt e1 length ctx
       in
+      let%map { smt_term = e2_smt; dynamic_size = e2_dsize; _ } =
+        bv_expr_to_smt e2 length ctx
+      in
+      let e1_dsize_smt = dynamic_size_to_smt e1_dsize length C.maxlen in
+      let e2_dsize_smt = dynamic_size_to_smt e2_dsize length C.maxlen in
 
-      if
-        (* Check if we can determine the size of tm1 is statically known and if
-           so, if it is not 0 *)
-        DynamicSize.static_value tm1_size
-        |> Option.map ~f:(fun v -> v <> 0)
-        |> Option.value ~default:false
-      then
-        ( ff Smtlib.(bvor tm1_smt (bvshl tm2_smt tm1_size_smt.smt_term)),
-          DynamicSize.Sum (tm1_size, tm2_size) )
-      else
-        ( ff
-            (Smtlib.ite
-               (Smtlib.equals tm1_size_smt.smt_term (Smtlib.bv 0 length))
-               tm2_smt
-               Smtlib.(bvor tm1_smt (bvshl tm2_smt tm1_size_smt.smt_term))),
-          DynamicSize.Sum (tm1_size, tm2_size) )
+      { smt_term =
+          Smtlib.ite
+            (Smtlib.equals e1_dsize_smt.smt_term (Smtlib.bv 0 length))
+            e2_smt
+            Smtlib.(bvor e1_smt (bvshl e2_smt e1_dsize_smt.smt_term));
+        dynamic_size = DynamicSize.Sum (e1_dsize, e2_dsize);
+        let_bindings = e1_dsize_smt.let_bindings @ e2_dsize_smt.let_bindings;
+        constraints = e1_dsize_smt.constraints @ e2_dsize_smt.constraints
+      }
     | Slice (Instance (x, inst), 0, r) when r = Instance.sizeof inst ->
       let%map name = Env.index_to_name ctx x in
       let svar = Smtlib.const (Fmt.str "%s.%s" name inst.name) in
       let size_diff = length - r in
       let smt =
-        if size_diff > 0 then
-          zero_extend size_diff svar
+        if size_diff > 0 then zero_extend size_diff svar
         else
           (* If the instance slice covers the whole range, we can just use the
              variable *)
           svar
       in
-      (smt, DynamicSize.Static r)
+      { smt_term = smt;
+        dynamic_size = DynamicSize.Static r;
+        let_bindings = [];
+        constraints = []
+      }
     | Slice (s, l, r) ->
       assert (length >= r - l);
       let svar = Fmt.str "%a" (Pretty.pp_sliceable ctx) s in
       let extract = Smtlib.(extract (r - 1) l (const svar)) in
       let size_diff = length - (r - l) in
       let smt =
-        if size_diff > 0 then
-          zero_extend size_diff extract
-        else
-          extract
+        if size_diff > 0 then zero_extend size_diff extract else extract
       in
-      return (smt, DynamicSize.Static (r - l))
+      return
+        { smt_term = smt;
+          dynamic_size = DynamicSize.Static (r - l);
+          let_bindings = [];
+          constraints = []
+        }
     | Packet (x, p) ->
       let%map binder = Env.index_to_name ctx x in
       let pvar = Fmt.str "%s.%a" binder Pretty.pp_packet p in
       let const = Smtlib.const pvar in
       let smt =
-        if length > C.maxlen then
-          zero_extend (length - C.maxlen) const
-        else
-          const
+        if length > C.maxlen then zero_extend (length - C.maxlen) const
+        else const
       in
-      (smt, DynamicSize.Dynamic (Fmt.str "%s.length" pvar))
+      { smt_term = smt;
+        dynamic_size = DynamicSize.Dynamic (Fmt.str "%s.length" pvar);
+        let_bindings = [];
+        constraints = []
+      }
 
   let encode_bv_expr_comparison (ctx : Env.context)
-      (f :
-        Smtlib.term ->
-        Smtlib.term ->
-        DynamicSize.t ->
-        DynamicSize.t ->
-        Smtlib.term) (e1 : Expression.bv) (e2 : Expression.bv) =
+      (f : Smtlib.term -> Smtlib.term -> Smtlib.term) (e1 : Expression.bv)
+      (e2 : Expression.bv) =
     let%bind ssize_tm1 = static_size_of_bv_expr C.maxlen e1 in
     let%bind ssize_tm2 = static_size_of_bv_expr C.maxlen e2 in
     let len = max ssize_tm1 ssize_tm2 in
-    let%bind tm1_smt, tm1_dsize = bv_expr_to_smt e1 len ctx in
-    let%map tm2_smt, tm2_dsize = bv_expr_to_smt e2 len ctx in
-    f tm1_smt tm2_smt tm1_dsize tm2_dsize
-
-  let encode_bv_expr_eq (e1_smt : Smtlib.term) (e2_smt : Smtlib.term)
-      (e1_dsize : DynamicSize.t) (e2_dsize : DynamicSize.t) =
+    let%bind { smt_term = e1_smt;
+               dynamic_size = e1_dsize;
+               let_bindings = e1_bindings;
+               constraints = e1_constraints
+             } =
+      bv_expr_to_smt e1 len ctx
+    in
+    let%map { smt_term = e2_smt;
+              dynamic_size = e2_dsize;
+              let_bindings = e2_bindings;
+              constraints = e2_constraints
+            } =
+      bv_expr_to_smt e2 len ctx
+    in
     match (e1_dsize, e2_dsize) with
     | Static n, Static m ->
       assert (n = m);
-      Smtlib.equals e1_smt e2_smt
+      f e1_smt e2_smt
     | _ ->
-      let dyn_size_num_bits =
-        min_bit_width
-          (max
-             (DynamicSize.max_value C.maxlen e1_dsize)
-             (DynamicSize.max_value C.maxlen e2_dsize))
-      in
-      let e1_size_smt =
-        dynamic_size_to_smt e1_dsize dyn_size_num_bits C.maxlen
-      in
-      let e2_size_smt =
-        dynamic_size_to_smt e2_dsize dyn_size_num_bits C.maxlen
-      in
-      let init =
-        List.fold
-          (e1_size_smt.constraints @ e2_size_smt.constraints)
-          ~init:
-            Smtlib.(
-              and_
-                (equals e1_size_smt.smt_term e2_size_smt.smt_term)
-                (or_
-                   (equals (bv 0 dyn_size_num_bits) e1_size_smt.smt_term)
-                   (Smtlib.equals e1_smt e2_smt)))
+      let constr =
+        List.fold (e1_constraints @ e2_constraints) ~init:(f e1_smt e2_smt)
           ~f:(fun acc c -> Smtlib.and_ c acc)
       in
-      List.fold (e1_size_smt.let_bindings @ e2_size_smt.let_bindings) ~init
-        ~f:(fun acc l -> Smtlib.Let (fst l, snd l, acc))
+      List.fold (e1_bindings @ e2_bindings) ~init:constr ~f:(fun acc l ->
+          Smtlib.Let (fst l, snd l, acc))
 
-  let encode_bv_expr_gt (e1_smt : Smtlib.term) (e2_smt : Smtlib.term)
-      (e1_dsize : DynamicSize.t) (e2_dsize : DynamicSize.t) =
-    match (e1_dsize, e2_dsize) with
-    | Static n, Static m ->
-      assert (n = m);
-      Smtlib.bvugt e1_smt e2_smt
-    | _ ->
-      let dyn_size_num_bits =
-        min_bit_width
-          (max
-             (DynamicSize.max_value C.maxlen e1_dsize)
-             (DynamicSize.max_value C.maxlen e2_dsize))
-      in
-      let e1_size_smt =
-        dynamic_size_to_smt e1_dsize dyn_size_num_bits C.maxlen
-      in
-      let e2_size_smt =
-        dynamic_size_to_smt e2_dsize dyn_size_num_bits C.maxlen
-      in
+  let encode_bv_expr_eq (e1_smt : Smtlib.term) (e2_smt : Smtlib.term) =
+    Smtlib.equals e1_smt e2_smt
 
-      let init =
-        List.fold
-          (e1_size_smt.constraints @ e2_size_smt.constraints)
-          ~init:
-            Smtlib.(
-              and_
-                (equals e1_size_smt.smt_term e2_size_smt.smt_term)
-                (or_
-                   (equals (bv 0 dyn_size_num_bits) e1_size_smt.smt_term)
-                   (Smtlib.bvugt e1_smt e2_smt)))
-          ~f:(fun acc c -> Smtlib.and_ c acc)
-      in
-      List.fold (e1_size_smt.let_bindings @ e2_size_smt.let_bindings) ~init
-        ~f:(fun acc l -> Smtlib.Let (fst l, snd l, acc))
+  let encode_bv_expr_gt (e1_smt : Smtlib.term) (e2_smt : Smtlib.term) =
+    Smtlib.bvugt e1_smt e2_smt
 
   let encode_arith_expr_comparison (ctx : Env.context)
       (f : Smtlib.term -> Smtlib.term -> Smtlib.term) (e1 : Expression.arith)
@@ -613,8 +547,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       encode_arith_expr_comparison ctx Smtlib.bvugt e1 e2
     | Gt (BvExpr e1, BvExpr e2) ->
       encode_bv_expr_comparison ctx encode_bv_expr_gt e1 e2
-    | Eq _
-    | Gt _ ->
+    | Eq _ | Gt _ ->
       Error
         (`EncodingError "Expressions must have the same type to be comparable.")
     | Neg e ->
