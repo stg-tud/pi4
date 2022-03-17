@@ -587,6 +587,20 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
   let rec sf form m_in maxlen = 
     let open FormulaId in
     match form with
+    | Neg(IsValid((1,i))) -> (
+      let rslt_pos = Map.find m_in (Valid(0, i, true)) in
+      let rslt_neg = Map.find m_in (Valid(0, i, false)) in
+      match rslt_pos, rslt_neg with
+      | Some f, _ -> Ok (Neg(f))
+      | _, Some f -> Ok (Neg(f))
+      | _ -> Ok form)
+    | IsValid((1,i)) -> (
+      let rslt_pos = Map.find m_in (Valid(0, i, true)) in
+      let rslt_neg = Map.find m_in (Valid(0, i, false)) in
+      match rslt_pos, rslt_neg with
+      | Some f, _ -> Ok f
+      | _, Some f -> Ok f
+      | _ -> Ok form)
     | Neg(f) -> 
       Ok(Neg(ok_or_default (sf f m_in maxlen) f))
     | And(f1, f2) -> 
