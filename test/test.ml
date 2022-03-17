@@ -26,6 +26,7 @@ let test_suite =
     ("substitution", Test_substitution.test_set);
     ("substitution_ext", Test_substitution_ext.test_set);
     ("ipv4opt", Test_ipv4opt.test_set);
+    ("performance", Test_performance.test_set);
   ]
 
 let () =

@@ -122,12 +122,13 @@ let rec refresh_binders (hty : HeapType.t) (ctx : Env.context) =
     Substitution (refresh_binders hty1 ctx', x', refresh_binders hty2 ctx)
 
 module type S = sig
-  val check_type : Command.t -> pi_type -> HeaderTable.t -> TypecheckingResult.t
+  val check_type : Command.t -> ?smpl_subs:bool -> pi_type -> HeaderTable.t -> TypecheckingResult.t
 end
 
 module type Checker = sig
   val compute_type :
     Command.t ->
+    ?smpl_subs:bool ->
     string * HeapType.t ->
     Env.context ->
     HeaderTable.t ->
@@ -282,9 +283,11 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
   module C = Chomp.Optimized (P)
   include HeapTypeOps (P)
 
-  let rec compute_type (cmd : Command.t)
+  let rec compute_type (cmd : Command.t) 
+      ?(smpl_subs = true)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
       (header_table : HeaderTable.t) =
+    let _ = smpl_subs in
     let open HeapType in
     match cmd with
     | Add inst ->
@@ -676,8 +679,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
     |> List.filter ~f:(fun i -> not ([%compare.equal: Instance.t] i inst))
 
   let rec compute_type (cmd : Command.t)
+      ?(smpl_subs = true)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
-      (header_table : HeaderTable.t) =
+      (header_table : HeaderTable.t)=
     let open HeapType in
     match cmd with
     | Add inst ->
@@ -999,7 +1003,11 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             hty_subst);
       Log.debug (fun m ->
           m "Context for substitution type:@ %a" Pretty.pp_context ctx');
-      return hty_subst
+      if smpl_subs then
+        let hty_subst = Substitution.simplify_substitutions hty_subst C.maxlen in
+        return hty_subst
+      else 
+        return hty_subst
     | Skip ->
       Log.debug (fun m -> m "@[<v>Typechecking skip...@]");
       Log.debug (fun m ->
@@ -1012,11 +1020,11 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
 end
 
 module Make (C : Checker) : S = struct
-  let check_type (cmd : Command.t) (ty : pi_type) (header_table : HeaderTable.t) =
+  let check_type (cmd : Command.t) ?(smpl_subs = true) (ty : pi_type) (header_table : HeaderTable.t) =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
       let result =
-        let%bind tycout = C.compute_type cmd (x, annot_tyin) [] header_table in
+        let%bind tycout = C.compute_type cmd ~smpl_subs:smpl_subs (x, annot_tyin) [] header_table in
         let ctx = [ (x, Env.VarBind annot_tyin) ] in
         Log.debug (fun m ->
             m
