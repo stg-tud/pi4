@@ -34,3 +34,4 @@ pi4
 .DS_Store
 _site/
 node_modules/
+.vscode/

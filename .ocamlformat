@@ -1,0 +1,17 @@
+version=0.21.0
+break-separators=after
+dock-collection-brackets=false
+break-sequences=true
+doc-comments=before
+field-space=loose
+let-and=sparse
+sequence-style=terminator
+type-decl=sparse
+wrap-comments=true
+let-and=sparse
+space-around-records
+space-around-lists
+space-around-arrays
+cases-exp-indent=2
+indicate-nested-or-patterns=unsafe-no
+parse-docstrings=true
