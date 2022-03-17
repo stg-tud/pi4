@@ -25,12 +25,12 @@ let types_equiv program_str type_str ()=
   let ty = Parsing.parse_type type_str header_table in
   match ty with
   | Pi (x, annot_tyin, _) ->  
-    let tycout = C.compute_type program.command (x, annot_tyin) [] header_table
+    let tycout = C.compute_type program.command (x, annot_tyin) [] header_table ~smpl_subs:false
     in
     match tycout with
     | Ok ht -> 
       let ctx = [ (x, Env.VarBind annot_tyin) ] in
-      let simplified = Substitution.simplify ht TestConfig.maxlen in
+      let simplified = Substitution.simplify_substitutions ht TestConfig.maxlen in
       Test.is_equiv ht simplified ctx header_table
     | Error(_) -> ()
 
@@ -55,9 +55,13 @@ let default_header =
       src: 32; 
       dst: 32;
     }
+    header_type ipv4opt_t{
+      type: 8;
+    }
 
     header ether : ethernet_t
     header ipv4 : ipv4_t
+    header ipv4opt : ipv4opt_t
   |}
 
 let eth_header =
@@ -70,7 +74,7 @@ let eth_header =
     header ether : ethernet_t
   |}
 let default_type_str = 
-  {|(x:{y:ε | y.pkt_in.length > 272}) -> 
+  {|(x:{y:ε | y.pkt_in.length > 280}) -> 
     {y:⊤| true}|}
   
 let extract_str =
@@ -120,7 +124,7 @@ let ext_if_str =
     if(ether.valid) {
       skip
     } else {
-      skip
+      add(ipv4)
     }
   |}
 
@@ -144,7 +148,7 @@ let test_set =
     test_case "Extract-Extract" `Quick (types_equiv extract_extract_str default_type_str);
     test_case "Extract-Add" `Quick (types_equiv extract_add_str default_type_str);
     test_case "Extract-Skip" `Quick (types_equiv extract_skip_str default_type_str);
-    test_case "Extract-Remit" `Quick (types_equiv extract_remit_str default_type_str);
+    (* test_case "Extract-Remit" `Quick (types_equiv extract_remit_str default_type_str); *)
     test_case "Extract-Assign" `Quick (types_equiv ext_assign_str default_type_str);
     test_case "Extract-If" `Quick (types_equiv ext_if_str default_type_str);
     test_case "Add-Skip" `Quick (types_equiv add_skip_str default_type_str);

@@ -3,6 +3,7 @@ open Pi4
 open Syntax
 open Core_kernel
 open Result
+module Log = (val Logs.src_log Logging.substitution_src : Logs.LOG)
 
 module TestConfig = struct
   let verbose = true
@@ -30,7 +31,9 @@ let types_equiv program_str type_str ()=
     match tycout with
     | Ok ht -> 
       let ctx = [ (x, Env.VarBind annot_tyin) ] in
-      let simplified = Substitution.simplify ht TestConfig.maxlen in
+      let ht = Substitution.fold_refinement ht in
+      let simplified = Substitution.simplify_substitutions ht TestConfig.maxlen in
+      Log.debug(fun m -> m "SMPL RAW: %a" Pretty.pp_header_type_raw simplified);
       Test.is_equiv ht simplified ctx header_table
     | Error(_) -> ()
 
@@ -98,10 +101,41 @@ let ipv4_opt_str =
     }
   |}
 
-  let ipv4_opt_hty_str = 
+let ipv4_opt_hty_str = 
+{|
+(x:{y:ε | y.pkt_in.length > 280}) -> 
+  {y:⊤|((y.ipv4.valid && y.ipv4.ihl!=0x5) => y.ipv4opt.valid) && ((y.ipv4.valid && y.ipv4.ihl==0x5) => !y.ipv4opt.valid)}
+|}
+
+let mod_router_table_str = 
   {|
-  (x:{y:ε | y.pkt_in.length > 280}) -> 
-    {y:⊤|((y.ipv4.valid && y.ipv4.ihl!=0x5) => y.ipv4opt.valid) && ((y.ipv4.valid && y.ipv4.ihl==0x5) => !y.ipv4opt.valid)}
+    header_type vlan_t {
+      vid: 2;
+    }
+    header_type meta_t {
+      egress_spec: 9;
+    }
+    header_type vlan_tbl_t {
+      vid: 2;
+      act: 1;
+    }
+
+    header vlan : vlan_t
+    header meta : meta_t
+    header vlan_tbl : vlan_tbl_t
+
+    if (vlan.vid == vlan_tbl.vid) {
+      if (vlan_tbl.act == 0b0) {
+        meta.egress_spec := 0b111111111
+      } else {
+        meta.egress_spec := 0b000000001
+      }
+    }
+  |}
+  
+let mod_router_table_hty_str = 
+  {|
+  (x : {x:⊤| x.meta.valid ∧ x.vlan.valid ∧ x.vlan_tbl.valid }) -> { y:⊤ | y.vlan.valid ∧ x.vlan.vid == y.vlan.vid}
   |}
 
 
@@ -109,4 +143,5 @@ let test_set =
   [
     test_case "ipv4_ttl" `Quick (types_equiv ipv4_ttl_str ipv4_ttl_hty_str);
     test_case "ipv4_opt" `Quick (types_equiv ipv4_opt_str ipv4_opt_hty_str);
+    test_case "mod_router_table" `Quick (types_equiv mod_router_table_str mod_router_table_hty_str);
   ]

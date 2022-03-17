@@ -25,15 +25,15 @@ let test_suite =
     ("examples", Test_examples.test_set);
     ("substitution", Test_substitution.test_set);
     ("substitution_ext", Test_substitution_ext.test_set);
-    ("split_concat", Test_split_concat.test_set);
+    ("ipv4opt", Test_ipv4opt.test_set);
   ]
 
 let () =
   Format.pp_set_geometry Format.err_formatter ~max_indent:239 ~margin:240;
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter @@ Logs.format_reporter ();
-  Logs.set_level ~all:true @@ Some Logs.Debug;
-  Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
+  Logs.set_level ~all:true @@ Some Logs.Info;
+  Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Debug;
 
 
   (* start_profiling (); *)
