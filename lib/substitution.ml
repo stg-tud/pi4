@@ -30,6 +30,9 @@ end
 type fid_map =
   Formula.t Map.M(FormulaId).t
 [@@deriving sexp]
+
+(* ======== Pretty Printing ======== *)
+
 let pp_fromula_id (pp : Format.formatter) (fid :FormulaId.t) = 
   let open Fmt in
   match fid with
@@ -49,45 +52,48 @@ let pp_pkt_slice (pp : Format.formatter) (sl, hi, lo) =
   let open Fmt in
   pf pp "@[%a[%i:%i] @]" Pretty.pp_sliceable_raw sl hi lo 
 
-let var_from_sliceable s =
+
+(* ======== Utility ======== *)
+
+(* Extract var from a Packet/Instance *)
+let var_from_sl (s:Sliceable.t) : var = 
   let open Sliceable in
   match s with
   | Packet(v, _)
   | Instance(v, _) -> v
 
-let rec get_var expr = 
-  let open Expression in
+
+(* Extract var from an Expression. Returns lower value when multiple vars are found *)
+let rec var_from_exp (expr:Expression.t) = 
+let open Expression in
+
   let check_vars v1 v2 =
-    match v1 with
-    | Ok a1 -> (
-      match v2 with
-      | Ok a2 -> (
-        if phys_equal a1 a2 
-          then 
-            Ok a1
-          else 
-            Error (`InvalidArgumentError "Found conflictng vars"))
-      | Error _ -> Ok a1)
-    | Error _ -> (
-      match v2 with
-      | Ok a2 -> Ok a2
-      | Error _ -> Error (`InvalidArgumentError "No valid vars found"))
+    match (v1,v2) with
+    | Some(a1), Some(a2) ->
+      if a1 > a2 then
+        Some(a2)
+      else
+        Some(a1)
+    | (Some(_) as a), _
+    | _, (Some(_) as a) -> a
+    | _ -> None
   in
+
   match expr with
-  | ArithExpr(Length(v, _)) -> Ok(v)
+  | ArithExpr(Length(v, _)) -> Some(v)
   | ArithExpr(Plus(arith1, arith2)) -> (
-    let a1_res = get_var (ArithExpr (arith1)) in
-    let  a2_res = get_var (ArithExpr (arith2)) in
+    let a1_res = var_from_exp (ArithExpr(arith1)) in
+    let a2_res = var_from_exp (ArithExpr(arith2)) in
     check_vars a1_res a2_res)
   | BvExpr(Concat(bv1, bv2))
   | BvExpr(Minus(bv1, bv2)) -> (
-    let b1_res = get_var (BvExpr (bv1)) in
-    let  b2_res = get_var (BvExpr (bv2)) in
+    let b1_res = var_from_exp (BvExpr(bv1)) in
+    let b2_res = var_from_exp (BvExpr(bv2)) in
     check_vars b1_res b2_res)
   | ArithExpr(Num _)
-  | BvExpr(Bv(_)) -> Error (`InvalidArgumentError "No var found")
-  | BvExpr(Slice(s, _, _)) -> Ok (var_from_sliceable s)
-  | BvExpr(Packet(v, _)) -> Ok v
+  | BvExpr(Bv(_)) -> None
+  | BvExpr(Slice(s, _, _)) -> Some (var_from_sl s)
+  | BvExpr(Packet(v, _)) -> Some v
 
 let some_or_default opt def =
   match opt with
@@ -99,48 +105,54 @@ let ok_or_default result def =
   | Ok v -> v
   | _ ->  def
 
-let rec fold_double_negation hty = 
-  let rec ff form = 
-    match form with
-    | And(f1, f2) -> And(ff f1, ff f2)
-    | Or(f1, f2) -> Or(ff f1, ff f2)
-    | Neg(Neg(f)) -> ff f
-    | Neg(f) -> Neg(ff f)
-    | _ -> form
-  in
-  let open HeapType in
-  match hty with
-  | Sigma(x, hty1, hty2) ->
-    Sigma(x, fold_double_negation hty1, fold_double_negation hty2)
-  | Choice(hty1, hty2) -> Choice(fold_double_negation hty1, fold_double_negation hty2)
-  | Substitution(hty1, x, hty2) -> Substitution(fold_double_negation hty1, x, fold_double_negation hty2)
-  | Refinement(x, hty, form) -> Refinement(x, fold_double_negation hty, ff form)
-  | _ -> hty
+let combine_or_create m k v =
+  let opt = Map.find m k in
+  match opt with
+  | Some (f) -> Map.set m ~key:k ~data:(Formula.And(f,v))
+  | None -> Map.set m ~key:k ~data:v
 
-let fold_refinement hty = 
-  let open HeapType in
-  let rec fr h r =
-    match h with
-    | Sigma (x, hty1, hty2) ->
-      Sigma (x, fr hty1 r, fr hty2 r)
-    | Choice (hty1, hty2) -> Choice (fr hty1 r, fr hty2 r)
-    | Substitution (hty1, x, hty2) ->
-      Substitution (fr hty1 [], x, fr hty2 r)
-    | Refinement(x, hty, form) -> (
-      match hty with 
-      | Top -> Refinement(x, Top, Formula.ands (form::r) )
-      | _ -> fr hty (form::r))
-    | _ as hty -> hty
+let fold hty =   
+  let rec fold_double_negation hty = 
+    let rec ff form = 
+      match form with
+      | And(f1, f2) -> And(ff f1, ff f2)
+      | Or(f1, f2) -> Or(ff f1, ff f2)
+      | Neg(Neg(f)) -> ff f
+      | Neg(f) -> Neg(ff f)
+      | _ -> form
     in
-  fr hty []
 
+    let open HeapType in
+    match hty with
+    | Sigma(x, hty1, hty2) ->
+      Sigma(x, fold_double_negation hty1, fold_double_negation hty2)
+    | Choice(hty1, hty2) -> Choice(fold_double_negation hty1, fold_double_negation hty2)
+    | Substitution(hty1, x, hty2) -> Substitution(fold_double_negation hty1, x, fold_double_negation hty2)
+    | Refinement(x, hty, form) -> Refinement(x, fold_double_negation hty, ff form)
+    | _ -> hty
+  in
 
-let fold hty =
-  let hty = fold_double_negation hty in
-  fold_refinement hty
+  let fold_refinement hty = 
+    let open HeapType in
+    let rec fr h r =
+      match h with
+      | Sigma (x, hty1, hty2) ->
+        Sigma (x, fr hty1 r, fr hty2 r)
+      | Choice (hty1, hty2) -> Choice (fr hty1 r, fr hty2 r)
+      | Substitution (hty1, x, hty2) ->
+        Substitution (fr hty1 [], x, fr hty2 r)
+      | Refinement(x, hty, form) -> (
+        match hty with 
+        | Top -> Refinement(x, Top, Formula.ands (form::r) )
+        | _ -> fr hty (form::r))
+      | _ as hty -> hty
+      in
+    fr hty []
+  in
+  fold_double_negation (fold_refinement hty)
 
+(* Get expression substitution *)
 let get_subs_expr exp =
-  (* Log.debug (fun m -> m "@[Finding substitution for %a @]" Pretty.pp_expr_raw exp); *)
   let open Expression in
   let rec get_exp e = 
     match e with
@@ -168,49 +180,47 @@ let get_subs_expr exp =
   in
   let exp_o = get_exp exp in
   match exp_o with
-  | Some e -> 
-      (* Log.debug (fun m -> m "@[Found: %a @]" Pretty.pp_expr_raw e);  *)
-      e
-  | None -> 
-      (* Log.debug (fun m -> m "@[Nothing found, returning: %a @]" Pretty.pp_expr_raw exp); *)
-      exp
+  | Some e -> e
+  | None -> exp
 
-let replace_expression exp_i exp_o exp_r =
-  let open Expression in
-  if [%compare.equal: Expression.t ] exp_i exp_o then Ok exp_r
-  else
-  let rec replace_arith exp_i exp_o exp_r : Expression.arith = 
+(* Replace all occurances if exp_o in exp_i by exp_r *)
+  let replace_expression exp_i exp_o exp_r =
     let open Expression in
-    if [%compare.equal: Expression.arith ] exp_i exp_o then exp_r
+    if [%compare.equal: Expression.t ] exp_i exp_o then 
+      Ok exp_r
+    
     else
-    match exp_i with
-    | Plus (a1, a2) -> Plus(replace_arith a1 exp_o exp_r, replace_arith a2 exp_o exp_r)
-    | Length (_)
-    | Num (_) ->  exp_i
-  in
-  let rec replace_bv exp_i exp_o exp_r : Expression.bv = 
-    let open Expression in
-    if [%compare.equal: Expression.bv ] exp_i exp_o then exp_r
-    else
-    match exp_i with
-    | Concat (b1, b2) -> Concat(replace_bv b1 exp_o exp_r, replace_bv b2 exp_o exp_r)
-    | Minus (b1, b2) -> Minus(replace_bv b1 exp_o exp_r, replace_bv b2 exp_o exp_r)
-    | Slice (_)
-    | Packet (_)
-    | Bv (_) -> exp_i
-  in
-  match exp_i, exp_o, exp_r with
-  | ArithExpr exp1, ArithExpr exp2, ArithExpr exp3 -> Ok (ArithExpr(replace_arith exp1 exp2 exp3))
-  | BvExpr exp1, BvExpr exp2, BvExpr exp3 -> Ok (BvExpr(replace_bv exp1 exp2 exp3))
-  | _ -> Error(`InvalidArgumentError "All arguments must be of type ArithExpr or BvExpr")
+    let rec replace_arith exp_i exp_o exp_r : Expression.arith = 
+      let open Expression in
+      if [%compare.equal: Expression.arith ] exp_i exp_o then exp_r
+      else
+      match exp_i with
+      | Plus (a1, a2) -> Plus(replace_arith a1 exp_o exp_r, replace_arith a2 exp_o exp_r)
+      | Length (_)
+      | Num (_) ->  exp_i
+    in
+  
+    let rec replace_bv exp_i exp_o exp_r : Expression.bv = 
+      let open Expression in
+      if [%compare.equal: Expression.bv ] exp_i exp_o then exp_r
+      else
+      match exp_i with
+      | Concat (b1, b2) -> Concat(replace_bv b1 exp_o exp_r, replace_bv b2 exp_o exp_r)
+      | Minus (b1, b2) -> Minus(replace_bv b1 exp_o exp_r, replace_bv b2 exp_o exp_r)
+      | Slice (_)
+      | Packet (_)
+      | Bv (_) -> exp_i
+    in
+    
+    match exp_i, exp_o, exp_r with
+    | ArithExpr exp1, ArithExpr exp2, ArithExpr exp3 -> Ok (ArithExpr(replace_arith exp1 exp2 exp3))
+    | BvExpr exp1, BvExpr exp2, BvExpr exp3 -> Ok (BvExpr(replace_bv exp1 exp2 exp3))
+    | _ -> Error(`InvalidArgumentError "All arguments must be of type ArithExpr or BvExpr")
 
-let combine_or_create m k v =
-  let opt = Map.find m k in
-  match opt with
-  | Some (f) -> Map.set m ~key:k ~data:(Formula.And(f,v))
-  | None -> Map.set m ~key:k ~data:v
-
+(* Extract terms to a <FormulaId,Formula>Map *)   
 let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness) Map.t=
+
+  (* Updates an instance by adding a field reference *)
   let update_instance m_in i_exp exp = 
     let open FormulaId in
     match i_exp with
@@ -231,13 +241,12 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
       Log.debug (fun m -> m "@[Nothing to update since %a is no instance@]" Pretty.pp_sliceable_raw i_exp);
       m_in)
   in
+
   let rec ext f m_in : (FormulaId.t, Formula.t , FormulaId.comparator_witness) Core.Map.t =
     let open FormulaId in
     match f with
-    | And(f1, f2) -> 
-      let m_tmp1 = ext f1 m_in in
-      ext f2 m_tmp1
-
+    | True | False -> m_in
+    | And(f1, f2) -> ext f2 (ext f1 m_in)
       (* x.τ.valid == y.τ.valid *)
     | Or
       ( And
@@ -286,9 +295,6 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
       Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
       Map.set m_in ~key:k ~data:f
 
-      (* true --> ignore *)
-    | True -> m_in
-
     | Gt (exp1, _) -> (
       let subs_exp = get_subs_expr exp1 in
       match subs_exp with
@@ -327,16 +333,24 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
         Map.set m_in ~key:k ~data:f)
 
       (* x.τ.valid  *)
-    | Neg(IsValid(_, i)) -> 
-      let k = Valid (0, i, false) in
+    | Neg(IsValid(x, i)) -> 
+      let k = Valid (x, i, false) in
       Log.debug(fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw f);
-      Map.set m_in ~key:k ~data:f
+      let m_in = Map.set m_in ~key:k ~data:f in
+      if [%compare.equal: Syntax.var] x 1 then
+        combine_or_create m_in Preserve f
+      else
+        m_in
 
-
-    | IsValid(_, i) -> 
-      let k = Valid (0, i, true) in
+    | IsValid(x , i) -> 
+      let k = Valid (x, i, true) in
       Log.debug(fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw f);
-      Map.set m_in ~key:k ~data:f
+      let m_in = Map.set m_in ~key:k ~data:f in
+      if [%compare.equal: Syntax.var] x 1 then
+        combine_or_create m_in Preserve f
+      else
+        m_in
+
     | _ -> 
       Log.debug(fun m -> m "@[Unmatched Form: %a@]" Pretty.pp_form_raw f);
       m_in
@@ -350,7 +364,7 @@ let find_or_err map key =
   | Some v -> Ok(v)
   | None -> Error(`NotFoundError "No entry found for given key")
  
-let clean_concat_eqn form =
+let clean_eqn form =
   Log.debug(fun m -> m "Called Cleanup");
   let rec cce f = 
     match f with
@@ -373,14 +387,12 @@ let clean_concat_eqn form =
           )
       else
         f
+    | And(True, f)
+    | And(f, True) -> f 
     | And(f1, f2) -> 
-      let cce1 = cce f1 in
-      let cce2 = cce f2 in
-      And( cce1, cce2)
+      And(cce f1, cce f2)
     | Or(f1, f2) -> 
-      let cce1 = cce f1 in
-      let cce2 = cce f2 in
-      Or( cce1, cce2)
+      Or(cce f1, cce f2)
     | _ -> f
     in
   cce form
@@ -388,7 +400,7 @@ let clean_concat_eqn form =
 
 
 
-let split_concat_eqn eqn maxlen =
+let split_eqn eqn maxlen =
   let rec get_bv bv ln = 
     match bv with
     | BitVector.Cons(b, tail) ->  
@@ -400,11 +412,7 @@ let split_concat_eqn eqn maxlen =
     | _ -> Error(`InvalidArgumentError "Index exceeded BitVector length")
   in 
 
-  let split_assign x inst hib lob bv = 
-    (* Log.debug(fun m -> m "Split Assign: %a[%i:%i]=%a"
-      Pretty.pp_instance inst
-      hib lob
-      Pretty.pp_bitvector bv); *)
+  let split_assign x inst hib lob bv =
     let open Instance in
     let rec splt (fields : Declaration.field list) b =
       match fields with
@@ -501,7 +509,6 @@ let split_concat_eqn eqn maxlen =
     Ok(rsplt, (p, hi + len, lo))
   in
   let rec split_exp exp pkt=
-    (* Log.debug (fun m -> m "@[Splitting expression %a with %a@]" Pretty.pp_expr_raw (BvExpr(exp)) pp_pkt_slice pkt); *)
     match exp with
     | Concat
       ( Slice(Instance(v_l,i_l), _, _),
@@ -518,7 +525,6 @@ let split_concat_eqn eqn maxlen =
             BvExpr(Slice(pkt_p, pkt_hi, pkt_lo))))
   in 
   let rec sce e =
-    (* Log.debug (fun m -> m "@[Splitting %a@]" Pretty.pp_form_raw e); *)
     match e with
     | Eq
       ( BvExpr(Slice(Instance(x,i_l), hi , lo)),
@@ -584,6 +590,7 @@ let shift_slices form n =
   fm
 
 let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_witness) Map_intf.Map.t) maxlen: Formula.t option=
+  
   let rec sf form m_in maxlen = 
     let open FormulaId in
     match form with
@@ -767,89 +774,112 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
   match result with
   | Ok f -> (
     match Map.find m_in FormulaId.Preserve with
-    | Some prsv -> Some (clean_concat_eqn (And(f, prsv)))
-    | None -> Some (clean_concat_eqn f))
+    | Some prsv -> Some (clean_eqn (And(f, prsv)))
+    | None -> Some (clean_eqn f))
   | _ -> None
 
-let rec simplify hty maxlen : HeapType.t =
+
+let rec simplify_subs hty maxlen : HeapType.t =
   Log.debug (fun m -> m "====== Simplifiying: %a" Pretty.pp_header_type_raw hty);
   let result = (
     match hty with
     | Choice (hty1, hty2) ->
       Ok 
       ( Choice
-        ( simplify hty1 maxlen,
-          simplify hty2 maxlen))
+        ( simplify_subs hty1 maxlen,
+          simplify_subs hty2 maxlen))
     | Refinement(_, Top, _ ) as rf->
       Ok rf
     | Refinement( s, h ,f) ->
-      Ok (Refinement (s, simplify h maxlen, f))
+      Ok (Refinement (s, simplify_subs h maxlen, f))
+    | Substitution (h, x, Choice(ch_l, ch_r)) -> 
+      Ok
+      ( Choice
+        ( simplify_subs (Substitution (h, x, ch_l)) maxlen,
+          simplify_subs (Substitution (h, x, ch_r)) maxlen
+        )
+      )
     | Substitution (h, x, subs) -> (
-      let h = simplify h maxlen in
-      let subs = simplify subs maxlen in
-      Log.debug (fun m -> m "====== Building substitution map ======");
-      let%bind subs_map = 
-        match subs with
-        | Refinement(_,_,f_subs) -> 
-          let%bind split_subs = split_concat_eqn f_subs maxlen in
-          Log.debug (fun m -> m "@[Extracting formula %a@]" Pretty.pp_form_raw split_subs);
-          Ok (extract_to_map split_subs)
-        | _ ->  Error (`InvalidArgumentError "subs is not a Refinement")
-      in
-      match h with
-      | Refinement(s,ht,f) -> 
-        Log.debug (fun m -> m "====== Simplifying formula ======");
-        let%bind f_split = split_concat_eqn f maxlen in
-        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f_split);
+      let h = simplify_subs h maxlen in
+      let subs = simplify_subs subs maxlen in
+      match subs with
+      | Choice(ch_l, ch_r) ->
         Ok
-        ( Refinement(s, ht, some_or_default (simplify_formula f_split subs_map maxlen) f))
-      | Choice(Refinement(s1,ht1,f1), (Choice(_,_) as ch)) ->
-        let%bind f1_split = split_concat_eqn f1 maxlen in
-        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
-        let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
-        Ok 
-          ( Choice
-            ( Refinement(s1, simplify ht1 maxlen, f1_smpl),
-              simplify (Substitution(ch, x, subs)) maxlen)
-          )
-      | Choice((Choice(_,_) as ch), Refinement(s1,ht1,f1)) ->
-        let%bind f1_split = split_concat_eqn f1 maxlen in
-        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
-        let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
-        Ok 
-          ( Choice
-            (simplify (Substitution(ch, x, subs)) maxlen,
-            Refinement(s1, simplify ht1 maxlen, f1_smpl))
-          )
-
-      | Choice((Choice(_,_) as ch1), (Choice(_,_) as ch2)) ->
-        Ok 
-          ( Choice
-            ( simplify (Substitution(ch1, x, subs)) maxlen,
-              simplify (Substitution(ch2, x, subs)) maxlen)
-          )
-      | Choice(Refinement(s1,ht1,f1), Refinement(s2,ht2,f2)) -> 
-        let%bind f1_split = split_concat_eqn f1 maxlen in
-        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
-        let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
-        let%bind f2_split = split_concat_eqn f2 maxlen in
-        Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f2_split);
-        let f2_smpl = some_or_default (simplify_formula f2_split subs_map maxlen) f2 in
-        Ok 
-          ( Choice
-            ( Refinement(s1, ht1, f1_smpl),
-              Refinement(s2, ht2, f2_smpl)))
-
-      | Choice(hty1, hty2) ->
-        Ok 
         ( Choice
-          ( simplify hty1 maxlen,
-            simplify hty2 maxlen))
+          ( simplify_subs (Substitution (h, x, ch_l)) maxlen,
+            simplify_subs (Substitution (h, x, ch_r)) maxlen
+          )
+        )
+      | _ -> 
+        Log.debug (fun m -> m "====== Building substitution map ======");
+        let%bind subs_map = 
+          match subs with
+          (* TODO: Handle Choice *)
+          | Refinement(_,_,f_subs) -> 
+            let%bind split_subs = split_eqn f_subs maxlen in
+            Log.debug (fun m -> m "@[Extracting formula %a@]" Pretty.pp_form_raw split_subs);
+            Ok (extract_to_map split_subs)
+          | _ ->  
+            Log.debug(fun m -> m "@[subs: %a@]" Pretty.pp_header_type_raw subs);
+            Error (`InvalidArgumentError "subs is not a Refinement")
+        in
 
-      | _ ->  Error (`InvalidArgumentError  "h is not a Refinement"))   
+        match h with
+        | Refinement(s,ht,f) -> 
+          Log.debug (fun m -> m "====== Simplifying formula ======");
+          let%bind f_split = split_eqn f maxlen in
+          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f_split);
+          Ok
+          ( Refinement(s, ht, some_or_default (simplify_formula f_split subs_map maxlen) f))
 
+        | Choice(Refinement(s1,ht1,f1), (Choice(_,_) as ch)) ->
+          let%bind f1_split = split_eqn f1 maxlen in
+          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
+          let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
+          Ok 
+            ( Choice
+              ( Refinement(s1, simplify_subs ht1 maxlen, f1_smpl),
+                simplify_subs (Substitution(ch, x, subs)) maxlen)
+            )
+
+        | Choice((Choice(_,_) as ch), Refinement(s1,ht1,f1)) ->
+          let%bind f1_split = split_eqn f1 maxlen in
+          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
+          let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
+          Ok 
+            ( Choice
+              (simplify_subs (Substitution(ch, x, subs)) maxlen,
+              Refinement(s1, simplify_subs ht1 maxlen, f1_smpl))
+            )
+
+        | Choice((Choice(_,_) as ch1), (Choice(_,_) as ch2)) ->
+          Ok 
+            ( Choice
+              ( simplify_subs (Substitution(ch1, x, subs)) maxlen,
+                simplify_subs (Substitution(ch2, x, subs)) maxlen)
+            )
+
+        | Choice(Refinement(s1,ht1,f1), Refinement(s2,ht2,f2)) -> 
+          let%bind f1_split = split_eqn f1 maxlen in
+          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
+          let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
+          let%bind f2_split = split_eqn f2 maxlen in
+          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f2_split);
+          let f2_smpl = some_or_default (simplify_formula f2_split subs_map maxlen) f2 in
+          Ok 
+            ( Choice
+              ( Refinement(s1, ht1, f1_smpl),
+                Refinement(s2, ht2, f2_smpl)))
+
+        | Choice(hty1, hty2) ->
+          Ok 
+          ( Choice
+            ( simplify_subs hty1 maxlen,
+              simplify_subs hty2 maxlen))
+
+        | _ ->  Error (`InvalidArgumentError  "h is not a Refinement"))   
     | Sigma(_) -> Error (`InvalidArgumentError  "hty is not a substitution - hty is Σ")
-    | Nothing -> Error (`InvalidArgumentError  "hty is not a substitution - hty in Nothin")
+    | Nothing -> Error (`InvalidArgumentError  "hty is not a substitution - hty is Nothing")
     | Top -> Error (`InvalidArgumentError  "hty is not a substitution - hty is Top")
     )
   in
@@ -863,6 +893,6 @@ let rec simplify hty maxlen : HeapType.t =
     Log.debug(fun m -> m "Error: %s" e);
     hty 
 
-let simplify_substitutions hty maxlen = 
+let simplify hty maxlen = 
   let hty = fold hty in
-  simplify hty maxlen
+  simplify_subs hty maxlen
