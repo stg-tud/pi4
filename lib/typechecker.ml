@@ -345,7 +345,7 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
       in
       if input_is_subtype then (
         let%bind chty_out =
-          compute_type cmd (x, ascb_hty_in) ctx header_table
+          compute_type cmd ~smpl_subs:smpl_subs (x, ascb_hty_in) ctx header_table
         in
         Log.debug (fun m ->
             m
@@ -474,11 +474,12 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
           Simplify.fold_refinements (Refinement (x, hty_arg, e))
         in
         let%bind tyc1 =
-          compute_type c1 (hty_var, hty_in_then) ctx header_table
+          compute_type c1 ~smpl_subs:smpl_subs (hty_var, hty_in_then) ctx header_table
         in
         Log.debug (fun m -> m "@[<v>Typechecking 'else' branch...@]");
         let%bind tyc2 =
           compute_type c2
+            ~smpl_subs:smpl_subs
             (hty_var, Refinement (x, hty_arg, Neg e))
             ctx header_table
         in
@@ -620,7 +621,7 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m ->
           m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
-      let%bind tyc1 = compute_type c1 (hty_var, hty_arg) ctx header_table in
+      let%bind tyc1 = compute_type c1 ~smpl_subs:smpl_subs (hty_var, hty_arg) ctx header_table in
 
       let ctx' =
         if Types.contains_free_vars tyc1 then
@@ -638,7 +639,7 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
           m "@[<v>Context used for output type of c1:@ %a@]" Pretty.pp_context
             ctx');
       let y = Env.pick_fresh_name ctx' "y" in
-      let%bind tyc2 = compute_type c2 (y, tyc1) ctx' header_table in
+      let%bind tyc2 = compute_type c2 ~smpl_subs:smpl_subs (y, tyc1) ctx' header_table in
       let ctx'' =
         match c2 with
         | Ascription (_, var, ascb_hty_in, _) ->
@@ -731,7 +732,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       in
       if input_is_subtype then (
         let%bind chty_out =
-          compute_type cmd (x, ascb_hty_in) ctx header_table
+          compute_type cmd ~smpl_subs:smpl_subs (x, ascb_hty_in) ctx header_table
         in
         Log.debug (fun m ->
             m
@@ -813,7 +814,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           Simplify.fold_refinements (Refinement (x, hty_arg, e))
         in
         let%bind tyc1 =
-          compute_type c1 (hty_var, hty_in_then) ctx header_table
+          compute_type c1 ~smpl_subs:smpl_subs (hty_var, hty_in_then) ctx header_table
         in
         let ctx_then = Env.add_binding ctx hty_var (Env.VarBind hty_in_then) in
         Log.debug (fun m ->
@@ -825,7 +826,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           Simplify.fold_refinements (Refinement (x, hty_arg, Neg e))
         in
         let%bind tyc2 =
-          compute_type c2 (hty_var, hty_in_else) ctx header_table
+          compute_type c2 ~smpl_subs:smpl_subs (hty_var, hty_in_else) ctx header_table
         in
         let ctx_else = Env.add_binding ctx hty_var (Env.VarBind hty_in_else) in
         Log.debug (fun m ->
@@ -963,7 +964,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m ->
           m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
-      let%bind tyc1 = compute_type c1 (hty_var, hty_arg) ctx header_table in
+      let%bind tyc1 = compute_type c1 ~smpl_subs:smpl_subs (hty_var, hty_arg) ctx header_table in
 
       let ctx' =
         if Types.contains_free_vars tyc1 then
@@ -981,7 +982,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           m "@[<v>Context used for output type of c1:@ %a@]" Pretty.pp_context
             ctx');
       let y = Env.pick_fresh_name ctx' "y" in
-      let%bind tyc2 = compute_type c2 (y, tyc1) ctx' header_table in
+      let%bind tyc2 = compute_type c2 ~smpl_subs:smpl_subs (y, tyc1) ctx' header_table in
       let ctx'' =
         match c2 with
         | Ascription (_, var, ascb_hty_in, _) ->
@@ -1004,7 +1005,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m ->
           m "Context for substitution type:@ %a" Pretty.pp_context ctx');
       if smpl_subs then
-        let hty_subst = Substitution.simplify_substitutions hty_subst C.maxlen in
+        let hty_subst = Substitution.simplify hty_subst C.maxlen in
         return hty_subst
       else 
         return hty_subst
