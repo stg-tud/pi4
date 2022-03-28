@@ -7,7 +7,7 @@ open Result
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 1500
+  let maxlen = 20
 end
 
 module Config = struct
@@ -30,33 +30,24 @@ let types_equiv program_str type_str ()=
     match tycout with
     | Ok ht -> 
       let ctx = [ (x, Env.VarBind annot_tyin) ] in
-      let simplified = Substitution.simplify_substitutions ht TestConfig.maxlen in
-      Test.is_equiv ht simplified ctx header_table
+      let simplified = Substitution.simplify ht TestConfig.maxlen in
+      Test.is_equiv_and_diff ht simplified ctx header_table
     | Error(_) -> ()
 
 let default_header = 
   {|
     header_type  ethernet_t {
-      dstAddr: 48;
-      srcAddr: 48;
-      etherType: 16;
+      dstAddr: 4;
+      srcAddr: 4;
+      etherType: 2;
     }
     header_type ipv4_t {
-      version: 4; 
-      ihl: 4; 
-      tos: 8; 
-      len: 16; 
-      id: 16; 
-      flags: 3; 
-      frag: 13; 
-      ttl: 8; 
-      proto: 8; 
-      chksum: 16; 
-      src: 32; 
-      dst: 32;
+      version: 2; 
+      ihl: 2; 
+      tos: 4;
     }
     header_type ipv4opt_t{
-      type: 8;
+      type: 2;
     }
 
     header ether : ethernet_t
@@ -64,21 +55,22 @@ let default_header =
     header ipv4opt : ipv4opt_t
   |}
 
-let eth_header =
+let ether_header =
   {|
   header_type  ethernet_t {
-    dstAddr: 48;
-    srcAddr: 48;
-    etherType: 16;
+    dstAddr: 4;
+    srcAddr: 4;
+    etherType: 2;
   }
     header ether : ethernet_t
   |}
+
 let default_type_str = 
-  {|(x:{y:ε | y.pkt_in.length > 280}) -> 
+  {|(x:{y:ε | y.pkt_in.length > 20}) -> 
     {y:⊤| true}|}
   
 let extract_str =
-  eth_header ^
+  ether_header ^
   {|
     extract(ether);
     skip
@@ -104,7 +96,7 @@ let extract_skip_str =
   |}
 
 let extract_remit_str =
-  default_header ^
+  ether_header ^
   {|
     extract(ether);
     remit(ether)
@@ -114,7 +106,7 @@ let ext_assign_str =
   default_header ^
   {|
     extract(ipv4);
-    ipv4.flags := 0b111
+    ipv4.ihl := 0b11
   |}
 
 let ext_if_str = 
@@ -122,13 +114,13 @@ let ext_if_str =
   {|
     extract(ether);
     if(ether.valid) {
-      skip
+      extract(ipv4)
     } else {
       add(ipv4)
     }
   |}
 
-let add_skip_str =
+  let add_skip_str =
   default_header ^
   {|
     add(ether);
@@ -142,15 +134,77 @@ let add_extract_str =
     extract(ether)
   |}
 
+let cplx1_str = 
+  ether_header ^
+  {|
+    if(ether.valid) {
+      extract(ether)
+    } else {
+      add(ether)
+    };
+    ether.srcAddr := 0b1010
+  |}
+
+let cplx2_str = 
+  default_header ^
+  {|
+    extract(ether);
+    if(ether.srcAddr == 0b1010) {
+      extract(ipv4)
+    } else {
+      add(ipv4)
+    };
+    ipv4.ihl := 0b11
+  |}
+
+let cplx3_str = 
+  default_header ^
+  {|
+    extract(ether);
+    if(ether.srcAddr == 0b1010) {
+      extract(ipv4);
+      if(ipv4.ihl == 0b00) {
+        add(ipv4opt)
+      }
+    } else {
+      add(ipv4)
+    };
+    ipv4.ihl := 0b11
+  |}
+  
+let cplx4_str = 
+  default_header ^
+  {|
+    extract(ether);
+    if(ether.srcAddr == 0b1010) {
+      extract(ipv4);
+      if(ipv4.ihl == 0b00) {
+        add(ipv4opt)
+      }
+    } else {
+      add(ipv4)
+    };
+    ipv4.ihl := 0b11;
+    remit(ether);
+    remit(ipv4);
+    if(ipv4opt.valid) {
+      remit(ipv4)
+    }
+  |}
+
 let test_set = 
   [
     test_case "Extract" `Quick (types_equiv extract_str default_type_str);
     test_case "Extract-Extract" `Quick (types_equiv extract_extract_str default_type_str);
     test_case "Extract-Add" `Quick (types_equiv extract_add_str default_type_str);
     test_case "Extract-Skip" `Quick (types_equiv extract_skip_str default_type_str);
-    (* test_case "Extract-Remit" `Quick (types_equiv extract_remit_str default_type_str); *)
+    test_case "Extract-Remit" `Quick (types_equiv extract_remit_str default_type_str);
     test_case "Extract-Assign" `Quick (types_equiv ext_assign_str default_type_str);
     test_case "Extract-If" `Quick (types_equiv ext_if_str default_type_str);
     test_case "Add-Skip" `Quick (types_equiv add_skip_str default_type_str);
     test_case "Add-Extract" `Quick (types_equiv add_extract_str default_type_str);
+    test_case "Complex 1" `Quick (types_equiv cplx1_str default_type_str);
+    test_case "Complex 2" `Quick (types_equiv cplx2_str default_type_str);
+    test_case "Complex 3" `Quick (types_equiv cplx3_str default_type_str);
+    test_case "Complex 4" `Quick (types_equiv cplx4_str default_type_str);
   ]

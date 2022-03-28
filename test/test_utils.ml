@@ -28,6 +28,9 @@ module TestRunner (Config : TestConfig) : sig
   val is_equiv :
     HeapType.t -> HeapType.t -> Env.context -> HeaderTable.t -> unit
 
+  val is_equiv_and_diff:
+    HeapType.t -> HeapType.t -> Env.context -> HeaderTable.t -> unit
+
   val not_equiv :
     HeapType.t -> HeapType.t -> Env.context -> HeaderTable.t -> unit
 end = struct
@@ -118,6 +121,19 @@ end = struct
       "types are equivalent" true
       (check_subtype hty1 hty2 ctx ht && check_subtype hty2 hty1 ctx ht)
 
+  let is_equiv_and_diff hty1 hty2 ctx ht =
+    if Config.verbose then
+      Fmt.pr "@[<v>Checking eqivalence relation:@ %a\n⇔ %a@]@."
+        (Pretty.pp_header_type ctx)
+        hty1
+        (Pretty.pp_header_type ctx)
+        hty2
+    else
+      ();
+    Alcotest.(check bool)
+      "types are equivalent" true
+      ( not([%compare.equal: HeapType.t] hty1 hty2) && check_subtype hty1 hty2 ctx ht && check_subtype hty2 hty1 ctx ht)
+    
   (* (Pi4.Equiv.htyeqv ht [] Config.maxlen hty1 hty2) *)
 
   let not_equiv hty1 hty2 ctx ht =
