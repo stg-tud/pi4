@@ -880,17 +880,13 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           else if (* ι[n:r] where n > 0 *)
                   inst_size - right > 0 then
             (* ι[n:m] where n > 0 ∧ m < r *)
-            Formula.ands
-              [ Eq
-                  ( BvExpr (Slice (Instance (0, inst), 0, left)),
-                    BvExpr (Slice (Instance (1, inst), 0, left)));
-                Eq
-                  ( BvExpr (Slice (Instance (0, inst), left, right)),
-                    shift_expr tm 0 1 );
-                Eq
-                  ( BvExpr (Slice (Instance (0, inst), right, inst_size)),
-                    BvExpr (Slice (Instance (1, inst), right, inst_size))) 
-              ]
+          And
+          ( Eq
+              ( BvExpr (Slice (Instance (0, inst), 0, left)),
+                BvExpr (Slice (Instance (1, inst), 0, left)) ),
+            Eq
+              ( BvExpr (Slice (Instance (0, inst), right, inst_size)),
+                BvExpr (Slice (Instance (1, inst), right, inst_size)) ) )
           else
             (* ι[n:m] where n > 0 ∧ m = r *)
             Eq
@@ -905,6 +901,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               Syntax.packet_equality 0 1 PktOut;
               insts_equal;
               fields_equal;
+              Eq
+                ( BvExpr (Slice (Instance (0, inst), left, right)),
+                  shift_expr tm 0 1 );
               Or
                 ( And (Neg (IsValid (0, inst)), Neg (IsValid (1, inst))),
                   And (IsValid (0, inst), IsValid (1, inst)) )
