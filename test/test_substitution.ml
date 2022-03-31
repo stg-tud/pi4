@@ -31,7 +31,7 @@ let types_equiv program_str type_str ()=
     | Ok ht -> 
       let ctx = [ (x, Env.VarBind annot_tyin) ] in
       let simplified = Substitution.simplify ht TestConfig.maxlen in
-      Test.is_equiv_and_diff ht simplified ctx header_table
+      Test.is_equiv ht simplified ctx header_table
     | Error(_) -> ()
 
 let default_header = 
@@ -66,7 +66,7 @@ let ether_header =
   |}
 
 let default_type_str = 
-  {|(x:{y:ε | y.pkt_in.length > 20}) -> 
+  {|(x:{y:⊤ | y.pkt_in.length > 20}) -> 
     {y:⊤| true}|}
   
 let extract_str =
@@ -192,6 +192,62 @@ let cplx4_str =
     }
   |}
 
+
+let cplx5_type_str = 
+{|
+  (x:{y:⊤ | y.ether.valid ∧
+            y.ether.srcAddr != 0b0001 ∧
+            y.ipv4.valid ∧
+            y.pkt_out.length == 0 ∧
+            y.pkt_in.length > 20 
+            }) -> 
+    {y:⊤| true}
+|}
+
+
+let cplx5_str = 
+  default_header ^
+  {|
+    if(ether.valid) {
+      remit(ether)
+    };
+    if(ipv4.valid) {
+      remit(ipv4)
+    };
+    if(ipv4opt.valid) {
+      remit(ipv4opt)
+    };
+    reset;
+    extract(ether);
+    if(ether.srcAddr == 0b0000) {
+      extract(ipv4);
+      if(ipv4.ihl == 0b01) {
+        extract(ipv4opt)
+      }
+    } else {
+      if(!ether.valid) {
+        extract(ipv4)
+      }
+    }
+    |}
+
+let cplx6_str = 
+  default_header ^
+  {|
+    add(ether);
+    extract(ipv4);
+    reset;
+    add(ether);
+    extract(ipv4);
+    ipv4.ihl := 0b11;
+    remit(ipv4);
+    reset;
+    if(ether.valid) {
+      extract(ipv4);
+      add(ipv4opt)
+    }
+  |}
+  
 let test_set = 
   [
     test_case "Extract" `Quick (types_equiv extract_str default_type_str);
@@ -207,4 +263,6 @@ let test_set =
     test_case "Complex 2" `Quick (types_equiv cplx2_str default_type_str);
     test_case "Complex 3" `Quick (types_equiv cplx3_str default_type_str);
     test_case "Complex 4" `Quick (types_equiv cplx4_str default_type_str);
+    test_case "Complex 5" `Quick (types_equiv cplx5_str cplx5_type_str);
+    test_case "Complex 6" `Quick (types_equiv cplx6_str default_type_str );
   ]
