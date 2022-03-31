@@ -284,7 +284,7 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
   include HeapTypeOps (P)
 
   let rec compute_type (cmd : Command.t) 
-      ?(smpl_subs = true)
+      ?(smpl_subs = false)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
       (header_table : HeaderTable.t) =
     let _ = smpl_subs in
@@ -680,7 +680,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
     |> List.filter ~f:(fun i -> not ([%compare.equal: Instance.t] i inst))
 
   let rec compute_type (cmd : Command.t)
-      ?(smpl_subs = true)
+      ?(smpl_subs = false)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
       (header_table : HeaderTable.t)=
     let open HeapType in
@@ -1020,7 +1020,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
 end
 
 module Make (C : Checker) : S = struct
-  let check_type (cmd : Command.t) ?(smpl_subs = true) (ty : pi_type) (header_table : HeaderTable.t) =
+  let check_type (cmd : Command.t) ?(smpl_subs = false) (ty : pi_type) (header_table : HeaderTable.t) =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
       let result =
