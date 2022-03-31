@@ -121,6 +121,10 @@ let rec refresh_binders (hty : HeapType.t) (ctx : Env.context) =
     let ctx' = Env.add_binding ctx x' (Env.VarBind hty2) in
     Substitution (refresh_binders hty1 ctx', x', refresh_binders hty2 ctx)
 
+let other_instances (header_table : HeaderTable.t) (inst : Instance.t) =
+  HeaderTable.to_list header_table
+  |> List.filter ~f:(fun i -> not ([%compare.equal: Instance.t] i inst))
+
 module type S = sig
   val check_type : Command.t -> pi_type -> HeaderTable.t -> TypecheckingResult.t
 end
@@ -583,8 +587,7 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
       if not incl then
         Error
           (`TypeError
-            (Printf.sprintf "Instance '%s' not included in header type"
-               inst.name))
+            (Printf.sprintf "Instance '%s' not included in heap type" inst.name))
       else
         let x = Env.pick_fresh_name ctx "x" in
         let y = Env.pick_fresh_name ctx "y" in
@@ -610,6 +613,23 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
         in
         let sigma = Sigma (x, hty_in_eq, Refinement (y, empty, ref)) in
         return sigma
+    | Remove inst ->
+      let%bind incl = includes header_table ctx hty_arg inst in
+      if not incl then
+        Error
+          (`TypeError
+            (Printf.sprintf "Instance '%s' not included in heap type" inst.name))
+      else
+        let y = Env.pick_fresh_name ctx "y" in
+        let pred =
+          Formula.ands
+            [ other_instances header_table inst |> Syntax.inst_equality 0 1;
+              Syntax.packet_equality 0 1 PktIn;
+              Syntax.packet_equality 0 1 PktOut;
+              Neg (IsValid (0, inst))
+            ]
+        in
+        return (Refinement (y, Top, pred))
     | Seq (c1, c2) ->
       Log.debug (fun m ->
           m "@[<v>Typechecking sequence:@ c1:@[<v>@ %a @]@ c2:@[<v>@ %a@]@]"
@@ -670,10 +690,6 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
   module P = Prover.Make (Encoding.FixedWidthBitvectorEncoding (C))
   module FC = FormChecker (P)
   include HeapTypeOps (P)
-
-  let other_instances (header_table : HeaderTable.t) (inst : Instance.t) =
-    HeaderTable.to_list header_table
-    |> List.filter ~f:(fun i -> not ([%compare.equal: Instance.t] i inst))
 
   let rec compute_type (cmd : Command.t)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
@@ -951,6 +967,23 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             ]
         in
         return (Refinement (y, Top, pred))
+    | Remove inst ->
+      let%bind incl = includes header_table ctx hty_arg inst in
+      if not incl then
+        Error
+          (`TypeError
+            (Printf.sprintf "Instance '%s' not included in heap type" inst.name))
+      else
+        let y = Env.pick_fresh_name ctx "y" in
+        let pred =
+          Formula.ands
+            [ other_instances header_table inst |> Syntax.inst_equality 0 1;
+              Syntax.packet_equality 0 1 PktIn;
+              Syntax.packet_equality 0 1 PktOut;
+              Neg (IsValid (0, inst))
+            ]
+        in
+        return (Refinement (y, Top, pred))
     | Seq (c1, c2) ->
       Log.debug (fun m ->
           m "@[<v>Typechecking sequence:@ c1:@[<v>@ %a @]@ c2:@[<v>@ %a@]@]"
@@ -1004,14 +1037,14 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m ->
           m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
       let y = Env.pick_fresh_name ctx "y" in
-      return
-        (Refinement ( y, Top, Syntax.heap_equality 0 1 header_table))
+      return (Refinement (y, Top, Syntax.heap_equality 0 1 header_table))
 
   let check_subtype = P.check_subtype
 end
 
 module Make (C : Checker) : S = struct
-  let check_type (cmd : Command.t) (ty : pi_type) (header_table : HeaderTable.t) =
+  let check_type (cmd : Command.t) (ty : pi_type) (header_table : HeaderTable.t)
+      =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
       let result =

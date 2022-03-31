@@ -50,6 +50,7 @@
 %token EXTRACT
 %token RESET
 %token REMIT
+%token REMOVE
 %token SKIP
 %token IF
 %token ELSE
@@ -202,6 +203,10 @@ cmd:
   fun ht -> 
     let inst = HeaderTable.lookup_instance_exn inst_name ht in
     Remit inst}
+| REMOVE LPAREN inst_name=ID RPAREN {
+  fun ht -> 
+    let inst = HeaderTable.lookup_instance_exn inst_name ht in 
+    Remove inst }
 | RESET { 
   fun _ -> Reset }
 | SKIP { 

@@ -21,6 +21,8 @@ module TestRunner (Config : TestConfig) : sig
 
   val typecheck : HeaderTable.t -> Command.t -> pi_type -> unit
 
+  val typecheck_program : string -> string -> unit
+
   val not_typecheck : HeaderTable.t -> Command.t -> pi_type -> unit
 
   val error : HeaderTable.t -> Command.t -> pi_type -> string -> unit
@@ -91,6 +93,12 @@ end = struct
     Alcotest.(check Testable.typechecker_result)
       (Fmt.str "%a" (pp_pi_type []) ty)
       Typechecker.TypecheckingResult.Success (T.check_type cmd ty ht)
+
+  let typecheck_program program typ = 
+    let prog = Parsing.parse_program program in 
+    let header_table = HeaderTable.of_decls prog.declarations in 
+    let ty = Parsing.parse_type typ header_table in
+    typecheck header_table prog.command ty
 
   let not_typecheck ht cmd ty =
     init_prover;

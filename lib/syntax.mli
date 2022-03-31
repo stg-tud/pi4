@@ -190,6 +190,7 @@ module Command : sig
     | If of Formula.t * t * t
     | Assign of Instance.t * int * int * Expression.t
     | Remit of Instance.t
+    | Remove of Instance.t
     | Reset
     | Seq of t * t
     | Skip
