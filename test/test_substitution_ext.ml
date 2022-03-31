@@ -26,14 +26,13 @@ let types_equiv program_str type_str ()=
   let ty = Parsing.parse_type type_str header_table in
   match ty with
   | Pi (x, annot_tyin, _) ->  
-    let tycout = C.compute_type program.command (x, annot_tyin) [] header_table
-    in
+    let tycout = C.compute_type program.command (x, annot_tyin) [] header_table ~smpl_subs:false in
     match tycout with
     | Ok ht -> 
       let ctx = [ (x, Env.VarBind annot_tyin) ] in
-      let ht = Substitution.fold_refinement ht in
-      let simplified = Substitution.simplify_substitutions ht TestConfig.maxlen in
-      Log.debug(fun m -> m "SMPL RAW: %a" Pretty.pp_header_type_raw simplified);
+      let ht = Substitution.fold ht in
+      let simplified = Substitution.simplify ht TestConfig.maxlen in
+      Log.info(fun m -> m "SMPL RAW: %a" Pretty.pp_header_type_raw simplified);
       Test.is_equiv ht simplified ctx header_table
     | Error(_) -> ()
 
@@ -139,9 +138,82 @@ let mod_router_table_hty_str =
   |}
 
 
+let safe_roundtrip_string =
+  {|
+  header_type ether_t {
+    dstAddr: 48;
+    srcAddr: 48;
+    etherType: 16;
+  }
+  header_type ipv4_t {
+    version: 4; 
+    ihl: 4; 
+    tos: 8; 
+    len: 16; 
+    id: 16; 
+    flags: 3; 
+    frag: 13; 
+    ttl: 8; 
+    proto: 8; 
+    chksum: 16; 
+    src: 32; 
+    dst: 32;
+  }
+  header_type vlan_t {
+    prio: 3; 
+    id: 1; 
+    vlan: 12; 
+    etherType: 16;
+  }
+  header ether : ether_t
+  header ipv4 : ipv4_t
+  header vlan : vlan_t
+
+  if(ether.valid) {
+    remit(ether)
+  };
+  if(vlan.valid) {
+    remit(vlan)
+  };
+  if(ipv4.valid) {
+    remit(ipv4)
+  };
+  reset;
+  extract(ether);
+  if(ether.etherType == 0x8100) {
+    extract(vlan);
+    if(vlan.etherType == 0x0800) {
+      extract(ipv4)
+    }
+  } else {
+    if(ether.etherType == 0x0800) {
+      extract(ipv4)
+    }
+  }
+|}
+
+let safe_roundtrip_type_string =
+  {|
+  (x:{y:⊤|y.ether.valid && 
+  y.ether.etherType == 0x8100 && 
+  y.vlan.valid && 
+  (y.ipv4.valid => y.vlan.etherType == 0x0800) && 
+  ((!y.ipv4.valid) => (y.vlan.etherType != 0x0800)) && 
+  y.pkt_out.length == 0 && 
+  y.pkt_in.length > 0}) -> 
+{y:⊤|y.ether.valid && 
+    y.ether == x.ether && 
+    y.vlan.valid && 
+    y.vlan == x.vlan && 
+    (x.ipv4.valid => (y.ipv4.valid && y.vlan.etherType == 0x0800 && y.ipv4 == x.ipv4)) &&
+    ((!x.ipv4.valid) => (!y.ipv4.valid && y.vlan.etherType != 0x0800))}
+              |}
+
+
 let test_set = 
   [
     test_case "ipv4_ttl" `Quick (types_equiv ipv4_ttl_str ipv4_ttl_hty_str);
-    test_case "ipv4_opt" `Quick (types_equiv ipv4_opt_str ipv4_opt_hty_str);
     test_case "mod_router_table" `Quick (types_equiv mod_router_table_str mod_router_table_hty_str);
+    test_case "roundtrip" `Quick (types_equiv safe_roundtrip_string safe_roundtrip_type_string);
+    test_case "ipv4_opt" `Quick (types_equiv ipv4_opt_str ipv4_opt_hty_str);
   ]
