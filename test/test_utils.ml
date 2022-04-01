@@ -5,7 +5,6 @@ open Pretty
 
 module type TestConfig = sig
   val maxlen : int
-
   val verbose : bool
 end
 
@@ -21,11 +20,14 @@ module TestRunner (Config : TestConfig) : sig
 
   val typecheck : HeaderTable.t -> Command.t -> pi_type -> unit
 
-  val typecheck_program : string -> string -> unit
+  val check_program :
+    (HeaderTable.t -> Command.t -> Syntax.pi_type -> unit) ->
+    string ->
+    string ->
+    unit
 
   val not_typecheck : HeaderTable.t -> Command.t -> pi_type -> unit
-
-  val error : HeaderTable.t -> Command.t -> pi_type -> string -> unit
+  val error : string -> HeaderTable.t -> Command.t -> pi_type -> unit
 
   val is_equiv :
     HeapType.t -> HeapType.t -> Env.context -> HeaderTable.t -> unit
@@ -61,8 +63,7 @@ end = struct
         hty_s
         (Pretty.pp_header_type ctx)
         hty_t
-    else
-      ();
+    else ();
     test_subtype hty_s hty_t ctx ht
       (Fmt.str "%a <: %a"
          (Pretty.pp_header_type ctx)
@@ -78,8 +79,7 @@ end = struct
         hty_s
         (Pretty.pp_header_type ctx)
         hty_t
-    else
-      ();
+    else ();
     test_subtype hty_s hty_t ctx ht
       (Fmt.str "%a not <: %a"
          (Pretty.pp_header_type ctx)
@@ -94,11 +94,11 @@ end = struct
       (Fmt.str "%a" (pp_pi_type []) ty)
       Typechecker.TypecheckingResult.Success (T.check_type cmd ty ht)
 
-  let typecheck_program program typ = 
-    let prog = Parsing.parse_program program in 
-    let header_table = HeaderTable.of_decls prog.declarations in 
+  let check_program f program typ =
+    let prog = Parsing.parse_program program in
+    let header_table = HeaderTable.of_decls prog.declarations in
     let ty = Parsing.parse_type typ header_table in
-    typecheck header_table prog.command ty
+    f header_table prog.command ty
 
   let not_typecheck ht cmd ty =
     init_prover;
@@ -107,7 +107,7 @@ end = struct
       true
       (Typechecker.TypecheckingResult.is_error (T.check_type cmd ty ht))
 
-  let error ht cmd ty error =
+  let error error ht cmd ty =
     init_prover;
     Alcotest.(check Testable.typechecker_result)
       "" (Typechecker.TypecheckingResult.TypeError error)
