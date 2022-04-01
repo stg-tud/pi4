@@ -21,7 +21,8 @@ let test_suite =
     ("simplification", Test_simplify.test_set);
     ("cisco_example", Test_cisco.test_set);
     ("composition", Test_composition.test_set);
-    ("split_concat", Test_split_concat.test_set)
+    ("split_concat", Test_split_concat.test_set);
+    ("vlan_decap", Test_vlan_decap.test_set)
   ]
 
 let () =
@@ -30,8 +31,7 @@ let () =
   Logs.set_reporter @@ Logs.format_reporter ();
   Logs.set_level ~all:true @@ Some Logs.Info;
   Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
-  Logs.Src.set_level Pi4.Logging.encoding_src @@ Some Logs.Debug;
-  Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug;
+  (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug; *)
 
 
   (* start_profiling (); *)
