@@ -271,7 +271,12 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
         ( And
           ( IsValid(_),
             IsValid(_)),
-          And(_)
+          (And
+            ( Eq 
+              ( BvExpr(Slice(Instance(_) as i, _, _)),
+                BvExpr(_)
+              )
+            ,_ ) as inst_eq)
         )
       )
 
@@ -285,12 +290,13 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
           ( IsValid(_),
             IsValid(_)
           ),
-          Eq 
-          ( BvExpr(_),
+          (Eq 
+          ( BvExpr(Slice(Instance(_) as i, _, _)),
             BvExpr(_)
-          )
+          ) as inst_eq)
         )
       ) -> 
+      let m_in = update_instance m_in i inst_eq in
       let k = InstEqual (v1, i1) in
       Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
       Map.set m_in ~key:k ~data:f
@@ -388,7 +394,7 @@ let clean_eqn form =
       else
         f
     | And(True, f)
-    | And(f, True) -> f 
+    | And(f, True) -> cce f 
     | And(f1, f2) -> 
       And(cce f1, cce f2)
     | Or(f1, f2) -> 
@@ -644,26 +650,16 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
       
     | Or
       ( And
-        ( Neg(IsValid(v1, i1)),
-          Neg(IsValid(v2, i2))),
+        ( Neg(IsValid(_)),
+          Neg(IsValid(_))) as f_l_neg,
         And
         ( And
-          ( IsValid(v3, i3),
-            IsValid(v4, i4)
-          ),
+          ( IsValid(_),
+            IsValid(_)
+          ) as f_l_pos,
           f_r
         )
       ) -> (
-      let f_l_neg = 
-        And            
-        ( Neg(IsValid(v1, i1)),
-          Neg(IsValid(v2, i2))) 
-        in
-      let f_l_pos = 
-        And
-        ( IsValid(v3, i3),
-          IsValid(v4, i4))
-        in
       let f_l = Or(f_l_neg, f_l_pos)in
       let smpl_l =  ok_or_default (sf f_l m_in maxlen) f_l in
       let smpl_r = sf f_r m_in maxlen in
