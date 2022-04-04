@@ -13,6 +13,7 @@ module FormulaId = struct
       | Valid of int * Instance.t * bool        (* x.τ.valid *)
       | InstEqual of int * Instance.t           (* x.τ == y.τ *)
       | ValidEqual of int * Instance.t          (* x.τ.valid == y.τ.valid *)
+      | InstConcat of int * Instance.t
       | EqExp of Expression.t                   (* x.exp == y.exp *)
       | GtExp of Expression.t                   (* x.exp > y.exp *)
       | EqInst of int * Instance.t              (* x.τ == y.exp_bv *)
@@ -39,6 +40,7 @@ let pp_fromula_id (pp : Format.formatter) (fid :FormulaId.t) =
     | Valid (v, i, b) -> pf pp "valid_%b_%i.%s" b v i.name
     | InstEqual (v, i) -> pf pp "inst_equal_%i.%s" v i.name
     | ValidEqual (v, i) ->  pf pp "valid_equal_%i.%s" v i.name
+    | InstConcat (v, i) ->  pf pp "inst_concat_%i.%s" v i.name
     | GtExp e -> pf pp "gt_exp_%a" Pretty.pp_expr_raw e
     | EqExp e -> pf pp "eq_exp_%a" Pretty.pp_expr_raw e
     | EqInst (v, i) -> pf pp "eq_inst_%i.%s" v i.name
@@ -225,6 +227,19 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
     let open FormulaId in
     match i_exp with
     | Sliceable.Instance(var, inst) -> (
+      let m_in = match exp with 
+      | Eq(BvExpr(Slice(_)), BvExpr(field)) -> 
+        let k_i = InstConcat (var, inst) in
+        let inst_opt = Map.find m_in k_i in
+        let data = 
+          match inst_opt with
+          | Some(Eq(_ , BvExpr(i))) -> Eq(BvExpr(Packet(0,PktOut)), BvExpr(Concat(i, field)))
+          | _ -> Eq(BvExpr(Packet(0,PktOut)),  BvExpr(field))
+        in
+        Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k_i Pretty.pp_form_raw  data);
+        Map.set m_in ~key:k_i ~data:data
+      | _ -> m_in
+      in
       let k_i = EqInst (var, inst) in
       let inst_opt = Map.find m_in k_i in
       let data =
@@ -674,6 +689,8 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
     | Eq(exp1, exp2) -> (
       let subs_id =
         match exp1, exp2 with
+        | BvExpr(Packet(_, PktOut)), BvExpr(Concat(_, Slice(Instance(_,i),_,_))) -> Some(InstConcat (0, i)) 
+
         | _, ArithExpr Length (_, pkt) -> Some (EqExp(ArithExpr(Length(0, pkt))))
 
         | _, BvExpr Slice(s, hi, lo) -> (
@@ -698,8 +715,17 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
         | _ -> None 
       in
       match subs_id with
-      | Some (EqInst (v,i)) -> 
-        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id (EqInst(v,i))); 
+      | Some(InstConcat (_) as k) -> (
+        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id k);
+        let%bind subs = find_or_err m_in k in
+        match subs, exp2 with 
+        | Eq(BvExpr(_), BvExpr(rplc)), BvExpr(Concat(c_l , _ ))  ->
+          Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw subs);
+          Ok(Eq(exp1, BvExpr(Concat(c_l , rplc ))))
+        | _ -> Error (`InvalidArgumentError "Nothing to replace"))
+        
+      | Some (EqInst (v,i) as k) -> 
+        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id k); 
         let subs = ok_or_default (find_or_err m_in (EqInst(v,i))) True in
         Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw subs);
         Ok(subs)
