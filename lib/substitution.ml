@@ -329,6 +329,9 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
     | Eq (exp1, _) -> (
       let subs_exp = get_subs_expr exp1 in
       match subs_exp with
+      | BvExpr(Slice(Packet(1,PktIn),_,_)) ->
+        Log.debug (fun m -> m "@[Preserve: %a@]" Pretty.pp_form_raw  f);
+        combine_or_create m_in Preserve f
       | BvExpr(Slice(Instance(v,_) as inst, hi, lo)) -> 
         let k = EqBvSl (inst, hi, lo) in
         let m_in = update_instance m_in inst f in
