@@ -617,6 +617,16 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
   
   let rec sf form m_in maxlen = 
     let open FormulaId in
+    let rec smp_concat m_in f_concat =
+      match f_concat with
+      | Concat(c_l, c_r) -> Concat((smp_concat m_in c_l),( smp_concat m_in c_r))
+      | Slice(Instance(_, i), hi, lo) -> (
+        let rslt = Core.Map.find m_in (EqBvSl(Instance(0, i),hi ,lo ))in
+        match rslt with
+        | Some(Eq(_,BvExpr(_ as ref))) -> ref
+        | _ -> f_concat)
+      | _ -> f_concat
+    in  
     match form with
     | Neg(IsValid((1,i))) -> (
       let rslt_pos = Map.find m_in (Valid(0, i, true)) in
@@ -720,11 +730,16 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
       match subs_id with
       | Some(InstConcat (_) as k) -> (
         Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id k);
-        let%bind subs = find_or_err m_in k in
+        let subs = Core.Map.find m_in k in
         match subs, exp2 with 
-        | Eq(BvExpr(_), BvExpr(rplc)), BvExpr(Concat(c_l , _ ))  ->
-          Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw subs);
+        | Some(Eq(BvExpr(_), BvExpr(rplc)) as s), BvExpr(Concat(c_l , _ ))  ->
+          Log.debug (fun m -> m "@[--> replaced (concat) @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw s);
+          let c_l = smp_concat m_in c_l in
           Ok(Eq(exp1, BvExpr(Concat(c_l , rplc ))))
+        | _, BvExpr(Concat(_) as c) -> 
+          let cnct = smp_concat m_in c in
+          Log.debug (fun m -> m "@[--> replaced (concat) @ %a @ by@ %a@]" Pretty.pp_bv_expr_raw c Pretty.pp_bv_expr_raw cnct);
+          Ok(Eq(exp1, BvExpr(cnct)))
         | _ -> Error (`InvalidArgumentError "Nothing to replace"))
         
       | Some (EqInst (v,i) as k) -> 
@@ -781,8 +796,14 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
           Pretty.pp_expr_raw substitution_l);
           Ok (Eq(exp_new, substitution_r)))
       | _ ->
-        Log.debug (fun m -> m "@[--> replaced nothing (no ID) @]");
-        Ok form)
+        match exp1, exp2 with
+        | BvExpr(Packet(_, PktOut)), BvExpr(Concat(_) as c) -> 
+          let cnct = smp_concat m_in c in
+          Log.debug (fun m -> m "@[--> replaced (concat) @ %a @ by@ %a@]" Pretty.pp_bv_expr_raw c Pretty.pp_bv_expr_raw cnct);
+          Ok(Eq(exp1, BvExpr(cnct)))
+        | _ -> 
+          Log.debug (fun m -> m "@[--> replaced nothing (no ID) @]");
+          Ok form)
     | _ -> 
       Log.debug (fun m -> m "@[--> replaced nothing (no ID) @]");
       Ok form
