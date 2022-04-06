@@ -186,6 +186,7 @@ let rec pp_command (pp : Format.formatter) (cmd : Command.t) =
       (pp_expr [ ("", NameBind) ])
       value
   | Remit inst -> pf pp "remit(%s)" inst.name
+  | Remove inst -> pf pp "remove(%s)" inst.name
   | Reset -> pf pp "reset"
   | Seq (c1, c2) -> pf pp "@[<v>%a;@ %a@]" pp_command c1 pp_command c2
   | Skip -> pf pp "skip"

@@ -81,6 +81,7 @@ rule read_token = parse
 | "extract" { EXTRACT }
 | "reset" { RESET }
 | "remit" { REMIT }
+| "remove" { REMOVE }
 | "skip" { SKIP }
 | "if" { IF }
 | "else" { ELSE }

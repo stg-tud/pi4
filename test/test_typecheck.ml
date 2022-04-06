@@ -1,182 +1,16 @@
 open Alcotest
-open Pi4
-open Syntax
 
 module TestConfig = struct
   let verbose = true
-
   let maxlen = 16
 end
 
 module Test = Test_utils.TestRunner (TestConfig)
 
 let test_typecheck_skip_empty () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     skip"
-  in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty = Parsing.parse_type "(x: ε) -> ε" header_table in
-  Test.typecheck header_table prog.command ty
-
-let test_typecheck_extract () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     extract(a)"
-  in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type "(x: {y:\\empty|y.pkt_in.length==4}) -> a" header_table
-  in
-  Test.typecheck header_table prog.command ty
-
-let test_typeof_extract_fails () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     extract(a)"
-  in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type "(x: {y:\\empty|y.pkt_in.length==2}) -> a" header_table
-  in
-  Test.not_typecheck header_table prog.command ty
-
-let test_typecheck_reset () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     reset"
-  in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      "(x: {u:\\empty|u.pkt_out[0:4]==0b0101 && u.pkt_out.length==4 && u.pkt_in[0:4]==0b1111 && u.pkt_in.length==4}) -> 
-        \\sigma y:{v:\\empty|v.pkt_out.length==0 && v.pkt_in==x.pkt_out}.{w:\\empty|w.pkt_out.length==0 && w.pkt_in ==x.pkt_in}"
-      header_table
-  in
-  Test.typecheck header_table prog.command ty
-
-let test_typecheck_if () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     if(a.valid) { extract(b) } else { skip }"
-  in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      "(x: {y:a|y.pkt_in.length == 4}) -> 
-        {y: \\sigma y:a.b|x.a.valid} + {y:a|!x.a.valid}"
-      header_table
-  in
-  Test.typecheck header_table prog.command ty
-
-let test_typecheck_if_fail () =
-  let input =
-    "header_type a_t {
-         a: 4;
-       }
-       header_type b_t {
-         b: 2;
-       }
-       header a : a_t
-       header b : b_t
-       
-       if(a.valid) { extract(b) } else { skip }"
-  in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty = Parsing.parse_type "(x: ε) -> Σy:a.b" header_table in
-  Test.not_typecheck header_table prog.command ty
-
-let test_typeof_remit_invalid_instance () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     remit(a)"
-  in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty = Parsing.parse_type "(x: \\empty) -> \\empty" header_table in
-  Test.error header_table prog.command ty
-    "Instance 'a' not included in header type"
-
-let test_typecheck_remit () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     remit(a)"
-  in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      "(x: {y:a|y.pkt_in.length==8 && y.pkt_out.length == 0}) -> 
-          Σy:{y:a|y.pkt_in.length==8 && y.pkt_out.length == 0}.{z:ε|z.pkt_in.length == 0 && z.pkt_out.length==4 && z.pkt_out[0:4]==y.a[0:4]}"
-      header_table
-  in
-  Test.typecheck header_table prog.command ty
-
-let test_typecheck_remit_value () =
-  let input =
-    "header_type a_t {
+  let program =
+    {|
+      header_type a_t {
         a: 4;
       }
       header_type b_t {
@@ -185,49 +19,205 @@ let test_typecheck_remit_value () =
       header a : a_t
       header b : b_t
       
-      remit(a)"
+      skip 
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      "(x: {y:a|y.pkt_out.length == 2 && y.a[0:2] == 0b10}) -> 
-          {y:a|y.pkt_out.length == 6 && 
-                y.pkt_out[2:4] == 0b10 && 
-                y.pkt_out[0:2] == x.pkt_out[0:2]}"
-      header_table
+  Test.check_program Test.typecheck program "(x: ε) -> ε"
+
+let test_typecheck_extract () =
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      extract(a)
+    |}
   in
-  Test.typecheck header_table prog.command ty
+  let typ = "(x: {y:ε|y.pkt_in.length==4}) -> a" in
+  Test.check_program Test.typecheck program typ
+
+let test_typeof_extract_fails () =
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      extract(a)
+    |}
+  in
+  let typ = "(x: {y:ε|y.pkt_in.length==2}) -> a" in
+  Test.check_program Test.not_typecheck program typ
+
+let test_typecheck_reset () =
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      reset
+    |}
+  in
+  let typ =
+    {|
+    (x: {u:ε|u.pkt_out[0:4]==0b0101 && u.pkt_out.length==4 && u.pkt_in[0:4]==0b1111 && u.pkt_in.length==4}) -> 
+        Σy:{v:ε|v.pkt_out.length==0 && v.pkt_in==x.pkt_out}.{w:ε|w.pkt_out.length==0 && w.pkt_in==x.pkt_in}
+  |}
+  in
+  Test.check_program Test.typecheck program typ
+
+let test_typecheck_if () =
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      if(a.valid) { extract(b) } else { skip }
+    |}
+  in
+  let typ =
+    {| (x: {y:a|y.pkt_in.length == 4}) -> {y: Σy:a.b|x.a.valid} + {y:a|!x.a.valid} |}
+  in
+  Test.check_program Test.typecheck program typ
+
+let test_typecheck_if_fail () =
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      if(a.valid) { extract(b) } else { skip }
+    |}
+  in
+  let typ = "(x: ε) -> Σy:a.b" in
+  Test.check_program Test.not_typecheck program typ
+
+let test_typeof_remit_invalid_instance () =
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      remit(a)
+    |}
+  in
+  let typ = "(x: ε) -> ε" in
+  Test.check_program
+    (Test.error "Instance 'a' not included in header type")
+    program typ
+
+let test_typecheck_remit () =
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      remit(a)
+    |}
+  in
+  let typ =
+    {|
+    (x: {y:a|y.pkt_in.length==8 && y.pkt_out.length == 0}) -> 
+      Σy:{y:a|y.pkt_in.length==8 && y.pkt_out.length == 0}.{z:ε|z.pkt_in.length == 0 && z.pkt_out.length==4 && z.pkt_out[0:4]==y.a[0:4]}
+  |}
+  in
+  Test.check_program Test.typecheck program typ
+
+let test_typecheck_remit_value () =
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      remit(a)
+    |}
+  in
+  let typ =
+    {|
+    (x: {y:a|y.pkt_out.length == 2 && y.a[0:2] == 0b10}) -> 
+      {y:a|y.pkt_out.length == 6 && 
+            y.pkt_out[2:4] == 0b10 && 
+            y.pkt_out[0:2] == x.pkt_out[0:2]}
+  |}
+  in
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_emit_value () =
-  let input =
-    "header_type a_t {
-          a: 4;
-        }
-        header_type b_t {
-          b: 2;
-        }
-        header a : a_t
-        header b : b_t
-        
-        if(a.valid) {
-          remit(a)
-        }"
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      if(a.valid) {
+        remit(a)
+      }
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      "(x: {y:a|y.pkt_out.length == 2 && y.a[0:2] == 0b10}) -> 
-            {y:a|y.pkt_out.length == 6 && 
-                  y.pkt_out[2:4] == 0b10 && 
-                  y.pkt_out[0:2] == x.pkt_out[0:2]}"
-      header_table
+  let typ =
+    {|
+    (x: {y:a|y.pkt_out.length == 2 && y.a[0:2] == 0b10}) -> 
+        {y:a|y.pkt_out.length == 6 && 
+              y.pkt_out[2:4] == 0b10 && 
+              y.pkt_out[0:2] == x.pkt_out[0:2]}
+  |}
   in
-  Test.typecheck header_table prog.command ty
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_seq_skip () =
-  let input =
+  let program =
     {|
       header_type a_t {
         a: 4;
@@ -241,35 +231,31 @@ let test_typecheck_seq_skip () =
       skip; skip
     |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty = Parsing.parse_type "(x: a) -> a" header_table in
-  Test.typecheck header_table prog.command ty
+  let typ = "(x: a) -> a" in
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_seq_extract_extract () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     extract(a);extract(b)"
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      extract(a);extract(b)
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type "(x: {y:\\empty|y.pkt_in.length>5}) -> \\sigma y:a.b"
-      header_table
-  in
-  Test.typecheck header_table prog.command ty
+  let typ = "(x: {y:ε|y.pkt_in.length>5}) -> Σy:a.b" in
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_seq_extract3 () =
-  let input =
-    "header_type a_t {
+  let program =
+    {|
+      header_type a_t {
         a: 4;
       }
       header_type b_t {
@@ -281,23 +267,20 @@ let test_typecheck_seq_extract3 () =
       header a : a_t
       header b : b_t
       header c : c_t
-
       extract(a);
       extract(b);
-      extract(c)"
+      extract(c)
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      "(x: {y:ε|y.pkt_in.length>8}) -> {y:⊤|y.a.valid ∧ y.b.valid ∧ y.c.valid}"
-      header_table
+  let typ =
+    "(x: {y:ε|y.pkt_in.length>8}) -> {y:⊤|y.a.valid ∧ y.b.valid ∧ y.c.valid}"
   in
-  Test.typecheck header_table prog.command ty
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_seq_extract3_2 () =
-  let input =
-    "header_type a_t {
+  let program =
+    {|
+      header_type a_t {
         a: 4;
       }
       header_type b_t {
@@ -309,82 +292,69 @@ let test_typecheck_seq_extract3_2 () =
       header a : a_t
       header b : b_t
       header c : c_t
-
-      extract(a);(extract(b);extract(c))"
+      extract(a);(extract(b);extract(c))
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      "(x: {y:\\empty|y.pkt_in.length>8}) -> \\sigma y:a.(\\sigma z:b.c)"
-      header_table
-  in
-  Test.typecheck header_table prog.command ty
+  let typ = "(x: {y:ε|y.pkt_in.length>8}) -> Σy:a.(Σz:b.c)" in
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_seq_extract_skip () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     extract(a);skip"
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      extract(a);skip
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type "(x: {y:\\empty|y.pkt_in.length>3}) -> a" header_table
-  in
-  Test.typecheck header_table prog.command ty
+  let typ = "(x: {y:ε|y.pkt_in.length>3}) -> a" in
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_add () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     add(a)"
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      add(a)
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty = Parsing.parse_type "(x: ε) -> a" header_table in
-  Test.typecheck header_table prog.command ty
+  let typ = "(x: ε) -> a" in
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_assign () =
-  let input =
+  let program =
     {|
-        header_type a_t {
-          a: 4;
-          aa : 2;
-        }
-        header_type b_t {
-          b: 2;
-        }
-        header a : a_t
-        header b : b_t
-        
-        a.a := 0x4
-      |}
+      header_type a_t {
+        a: 4;
+        aa : 2;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      a.a := 0x4
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type "(x: {y:a| y.a.a == 0x3}) -> { y:a | y.a.a == 0x4 }"
-      header_table
-  in
-  Test.typecheck header_table prog.command ty
+  let typ = "(x: {y:a| y.a.a == 0x3}) -> { y:a | y.a.a == 0x4 }" in
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_assign2 () =
-  let input =
+  let program =
     {|
       header_type a_t {
         a: 4;
@@ -401,63 +371,48 @@ let test_typecheck_assign2 () =
       }
     |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      "(x: { y:ε | y.pkt_in.length==8 }) -> { y:a | y.pkt_in.length == 4 }"
-      header_table
+  let typ =
+    "(x: { y:ε | y.pkt_in.length==8 }) -> { y:a | y.pkt_in.length == 4 }"
   in
-  Test.typecheck header_table prog.command ty
+  Test.check_program Test.typecheck program typ
 
 let test_typecheck_add_assign () =
-  let input =
+  let program =
     {|
-        header_type vlan_t {
-          prio: 3; 
-          id: 1; 
-          vlan: 12; 
-          etherType: 16;
-        }
-        header vlan : vlan_t
-        
+      header_type vlan_t {
+        prio: 3; 
+        id: 1; 
+        vlan: 12; 
+        etherType: 16;
+      }
+      header vlan : vlan_t
+      
+      add(vlan);
+      vlan.etherType := 0x0000
+    |}
+  in
+  let typ = "(x: ε) -> { y:vlan | y.vlan.etherType == 0x0000 }" in
+  Test.check_program Test.typecheck program typ
+
+let test_typecheck_cond_add_assign () =
+  let program =
+    {|
+      header_type vlan_t {
+        prio: 3; 
+        id: 1; 
+        vlan: 12; 
+        etherType: 16;
+      }
+      header vlan : vlan_t
+      
+      if(!vlan.valid) {
         add(vlan);
         vlan.etherType := 0x0000
-      |}
+      }
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type "(x: ε) -> { y:vlan | y.vlan.etherType == 0x0000 }"
-      header_table
-  in
-  Test.typecheck header_table prog.command ty
-
-  let test_typecheck_cond_add_assign () =
-    let input =
-      {|
-          header_type vlan_t {
-            prio: 3; 
-            id: 1; 
-            vlan: 12; 
-            etherType: 16;
-          }
-          header vlan : vlan_t
-          
-          if(!vlan.valid) {
-            add(vlan);
-            vlan.etherType := 0x0000
-          }
-        |}
-    in
-    let prog = Parsing.parse_program input in
-    let header_table = HeaderTable.of_decls prog.declarations in
-    let ty =
-      Parsing.parse_type "(x: ε) -> { y:vlan | y.vlan.etherType == 0x0000 }"
-        header_table
-    in
-    Test.typecheck header_table prog.command ty
-  
+  let typ = "(x: ε) -> { y:vlan | y.vlan.etherType == 0x0000 }" in
+  Test.check_program Test.typecheck program typ
 
 (* TODO: Fix test cases *)
 (* let test_typeof_concat () = let open Term in let tm = Concat (Concat (bv_s
@@ -477,27 +432,26 @@ let test_typecheck_add_assign () =
    Bool) tye *)
 
 let test_reset_reset () =
-  let input =
-    "header_type a_t {
-       f: 8;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     reset;reset"
+  let program =
+    {|
+      header_type a_t {
+        f: 8;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      reset;reset
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      "(x: \\sigma y:a.{z:\\empty | z.pkt_in.length==0 && z.pkt_out.length==8 && z.pkt_out[0:8]==y.a[0:8]}) -> 
-        \\empty"
-      header_table
+  let typ =
+    {|
+    (x: Σy:a.{z:ε| z.pkt_in.length==0 && z.pkt_out.length==8 && z.pkt_out[0:8]==y.a[0:8]}) -> ε
+  |}
   in
-  Test.typecheck header_table prog.command ty
+  Test.check_program Test.typecheck program typ
 
 (* let prog = Seq (Reset, Reset) in let inst_h = Instance.{ name = "H"; fields =
    [ { name = "f"; typ = 8 } ] } in let ht = HeaderTable.populate [ inst_h ] in
@@ -507,27 +461,25 @@ let test_reset_reset () =
    Test.typecheck ht prog hty1 hty2 *)
 
 let test_ascription () =
-  let input =
-    "header_type a_t {
-       a: 4;
-     }
-     header_type b_t {
-       b: 2;
-     }
-     header a : a_t
-     header b : b_t
-     
-     extract(a) as (x: {y:\\empty|y.pkt_in.length>7}) -> {y:a|y.pkt_in.length>3}"
+  let program =
+    {|
+      header_type a_t {
+        a: 4;
+      }
+      header_type b_t {
+        b: 2;
+      }
+      header a : a_t
+      header b : b_t
+      
+      extract(a) as (x: {y:ε|y.pkt_in.length>7}) -> {y:a|y.pkt_in.length>3}
+    |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type "(x: {x:\\empty|x.pkt_in.length==12}) -> a" header_table
-  in
-  Test.typecheck header_table prog.command ty
+  let typ = "(x: {x:ε|x.pkt_in.length==12}) -> a" in
+  Test.check_program Test.typecheck program typ
 
 let test_ascription_seq_extract () =
-  let input =
+  let program =
     {|
       header_type g_t {
         f: 4;
@@ -542,20 +494,16 @@ let test_ascription_seq_extract () =
       (extract(h) as (w:{z3:g|z3.pkt_in.length == 4}) → {z4:⊤|z4.g.valid ∧ z4.h.valid ∧ z4.pkt_in.length + 2 == w.pkt_in.length})
     |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      {| 
-        (u:{z5:ε|z5.pkt_in.length == 8}) -> 
-          {z6:⊤|z6.g.valid ∧ z6.h.valid ∧ z6.pkt_in.length + 2 == y.pkt_in.length}[y↦{w:g|w.pkt_in.length==4}]
-      |}
-      header_table
+  let typ =
+    {| 
+      (u:{z5:ε|z5.pkt_in.length == 8}) -> 
+        {z6:⊤|z6.g.valid ∧ z6.h.valid ∧ z6.pkt_in.length + 2 == y.pkt_in.length}[y↦{w:g|w.pkt_in.length==4}]
+    |}
   in
-  Test.typecheck header_table prog.command ty
+  Test.check_program Test.typecheck program typ
 
 let test_ascription_seq_extract_step () =
-  let input =
+  let program =
     {|
       header_type g_t {
         f: 4;
@@ -570,17 +518,28 @@ let test_ascription_seq_extract_step () =
       (extract(h) as (w:{z3:g|z3.pkt_in.length == 4}) → {z4:⊤|z4.g.valid ∧ z4.h.valid ∧ z4.pkt_in.length + 2 == w.pkt_in.length})
     |}
   in
-  let prog = Parsing.parse_program input in
-  let header_table = HeaderTable.of_decls prog.declarations in
-  let ty =
-    Parsing.parse_type
-      {| 
-        (u:{z1:g|z1.pkt_in.length == 4}) -> 
-          {z2:⊤|z2.g.valid ∧ z2.h.valid ∧ z2.pkt_in.length + 2 == y.pkt_in.length}[y↦{v:g|v.pkt_in.length==4}]
-      |}
-      header_table
+  let typ =
+    {| 
+      (u:{z1:g|z1.pkt_in.length == 4}) -> 
+        {z2:⊤|z2.g.valid ∧ z2.h.valid ∧ z2.pkt_in.length + 2 == y.pkt_in.length}[y↦{v:g|v.pkt_in.length==4}]
+    |}
   in
-  Test.typecheck header_table prog.command ty
+
+  Test.check_program Test.typecheck program typ
+
+let test_remove () =
+  let program =
+    {|
+    header_type h_t {
+      f: 4;
+    }
+    header h : h_t
+
+    remove(h)
+  |}
+  in
+  let typ = {| (x:h) → ε |} in
+  Test.check_program Test.typecheck program typ
 
 let test_set =
   [ test_case "'Skip' typechecks" `Quick test_typecheck_skip_empty;
@@ -608,8 +567,10 @@ let test_set =
     test_case "'add' typechecks" `Quick test_typecheck_add;
     test_case "Assignment typechecks" `Quick test_typecheck_assign;
     test_case "Assignment typechecks 2" `Quick test_typecheck_assign2;
-    test_case "Assignment after adding instance typechecks" `Quick test_typecheck_add_assign;
-    test_case "Conditional assignment after adding instance typechecks" `Quick test_typecheck_cond_add_assign;
+    test_case "Assignment after adding instance typechecks" `Quick
+      test_typecheck_add_assign;
+    test_case "Conditional assignment after adding instance typechecks" `Quick
+      test_typecheck_cond_add_assign;
     (* test_case "Computed type of concatenation is correct" `Quick
        test_typeof_concat; *)
     (* test_case "Term equality does not typecheck with bit vector types of
@@ -620,5 +581,6 @@ let test_set =
     test_case "Ascription succeeds" `Quick test_ascription;
     test_case "Ascription typechecks" `Quick test_ascription_seq_extract;
     test_case "Ascription typechecks after stepping" `Quick
-      test_ascription_seq_extract_step
+      test_ascription_seq_extract_step;
+    test_case "Remove single instance" `Quick test_remove
   ]
