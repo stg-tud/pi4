@@ -846,7 +846,12 @@ let rec simplify_subs hty maxlen : HeapType.t =
       Ok (Refinement (s, simplify_subs h maxlen, f))
     | Substitution (h, x, Choice(ch_l, ch_r)) -> (
       match h with
-      | Substitution(_, _, Refinement(_, _, h_f)) -> 
+      | Substitution(c_h ,c_x , (Choice(_) as ch_nst)) ->
+        Ok (Substitution(c_h, c_x,
+         Choice(
+            simplify_subs (Substitution (ch_nst, c_x, ch_l)) maxlen,
+            simplify_subs (Substitution (ch_nst, c_x, ch_r)) maxlen )))
+      | Substitution(_, _, Refinement(_, _, h_f)) ->
         if contains_pkt_in_concat h_f then
           Ok(hty)
         else
@@ -856,7 +861,7 @@ let rec simplify_subs hty maxlen : HeapType.t =
             simplify_subs (Substitution (h, x, ch_r)) maxlen
           )
         )
-      | Refinement(_, _, h_f) -> 
+      | Refinement(_, _, h_f) ->
         if contains_pkt_in_concat h_f then
           Ok(hty)
         else
@@ -957,13 +962,11 @@ let rec simplify_subs hty maxlen : HeapType.t =
           
           match ht, sbs with 
           | Refinement(_,_,h_f), Refinement(_,_,sbs_f) -> 
-            Log.debug (fun m -> m "OPT1");
             if contains_pkt_in_concat h_f || contains_pkt_in_concat sbs_f then
               Ok(hty)
             else 
               smpl ht sbs
           | Substitution(h_l, h_x, (Refinement(_,_,h_f) as h_r)), Refinement(_,_,sbs_f) ->
-            Log.debug (fun m -> m "OPT2");
             if contains_pkt_in_concat h_f then
                 Ok(hty)
             else 
@@ -972,8 +975,13 @@ let rec simplify_subs hty maxlen : HeapType.t =
               else
                 let%bind h_r = smpl h_r sbs in
                 Ok(Substitution (h_l, h_x, h_r))
+          | Substitution(h_l, h_x, h_c), Refinement(_,_,sbs_f) ->
+            if contains_pkt_in_concat sbs_f then
+              Ok(hty)
+            else
+              let%bind h_r = smpl h_c sbs in
+              Ok(Substitution (h_l, h_x, h_r))
           | _, Refinement(_,_,sbs_f) ->
-            Log.debug (fun m -> m "OPT3");
             if contains_pkt_in_concat sbs_f then
               let h = simplify_subs ht maxlen in
               Ok(Substitution (h, x, sbs))
