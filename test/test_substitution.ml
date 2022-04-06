@@ -133,6 +133,14 @@ let add_extract_str =
     extract(ether)
   |}
 
+let remove_str = 
+  default_header ^
+  {|
+    extract(ether);
+    remove(ether);
+    skip
+  |}
+
 let cplx1_str = 
   ether_header ^
   {|
@@ -159,6 +167,11 @@ let cplx2_str =
 let cplx3_str = 
   default_header ^
   {|
+    extract(ether);
+    if(ether.valid){
+      remit(ether)
+    };
+    reset;
     extract(ether);
     if(ether.srcAddr == 0b1010) {
       extract(ipv4);
@@ -195,12 +208,11 @@ let cplx5_type_str =
 let cplx5_str = 
   default_header ^
   {|
-    ether.dstAddr := 0b0000;
     if(ether.valid) {
       remit(ether)
     };
     if(ipv4.valid) {
-      remit(ipv4)
+      remit(ether)
     };
     reset;
     extract(ether);
@@ -208,21 +220,29 @@ let cplx5_str =
     ipv4.ihl := 0b00
     |}
 
-let cplx6_str = 
-  default_header ^
-  {|
-    add(ether);
+
+    (*  add(ether);
     extract(ipv4);
     reset;
     add(ether);
     extract(ipv4);
     ether.dstAddr := 0b1111;
     ipv4.ihl := 0b11;
-    skip;
+    remit(ether);
     remit(ipv4);
     if(ether.valid) {
-      add(ipv4opt)
-    }
+      add(ipv4opt);
+      remit(ipv4opt)
+    };
+    reset;
+    skip *)
+let cplx6_str = 
+  default_header ^
+  {|
+    extract(ether);
+    extract(ipv4);
+    remit(ether);
+    remit(ipv4)
   |}
   
 let test_set = 
@@ -236,6 +256,7 @@ let test_set =
     test_case "Extract-If" `Quick (types_equiv ext_if_str default_type_str);
     test_case "Add-Skip" `Quick (types_equiv add_skip_str default_type_str);
     test_case "Add-Extract" `Quick (types_equiv add_extract_str default_type_str);
+    test_case "Remove" `Quick (types_equiv remove_str default_type_str);
     test_case "Complex 1" `Quick (types_equiv cplx1_str default_type_str);
     test_case "Complex 2" `Quick (types_equiv cplx2_str default_type_str);
     test_case "Complex 3" `Quick (types_equiv cplx3_str default_type_str);

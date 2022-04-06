@@ -794,46 +794,61 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
         | _ -> Error (`InvalidArgumentError "Nothing to replace"))
 
       | Some id -> (
-        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id id); 
-        let%bind subs = find_or_err m_in id in
-        let%bind substitution_l = 
-          match subs with
-          | Eq (subs_l, _)
-          | Gt (subs_l, _) -> Ok subs_l
-          | _ -> Error (`InvalidArgumentError "Nothing to replace")
+        let handle_subs = (
+          Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id id); 
+          let%bind subs = find_or_err m_in id in
+          let%bind substitution_l = 
+            match subs with
+            | Eq (subs_l, _)
+            | Gt (subs_l, _) -> Ok subs_l
+            | _ -> Error (`InvalidArgumentError "Nothing to replace")
+          in 
+          Log.debug (fun m -> m "@[subs_l: %a@]" Pretty.pp_expr_raw substitution_l); 
+          let%bind substitution_r = 
+            match subs with
+            | Eq (_ , subs_r)
+            | Gt (_, subs_r) -> Ok subs_r
+            | _ -> Error (`InvalidArgumentError "Nothing to replace")
+          in
+          Log.debug (fun m -> m "@[subs_r: %a@]" Pretty.pp_expr_raw substitution_r); 
+          let%bind exp_old = 
+            match id with
+            | EqBv exp
+            | EqExp exp
+            | GtExp exp -> Ok exp
+            | EqBvSl (s, hi, lo) -> Ok (BvExpr(Slice(s,hi, lo)))
+            | _ -> Error (`InvalidArgumentError "Unexpected FormulaId")
+          in
+          Log.debug (fun m -> m "@[exp_old: %a@]" Pretty.pp_expr_raw exp_old);
+          let%bind exp_new = replace_expression substitution_l exp_old exp1
+          in
+          match exp1 with
+          | BvExpr(Slice(Instance(1, _),_, _)) ->
+            Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@ in %a@]" 
+            Pretty.pp_expr_raw exp1
+            Pretty.pp_expr_raw substitution_r 
+            Pretty.pp_form_raw form);
+            Ok (Eq(substitution_r, exp2))
+          | _ -> 
+            Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@ in %a@]" 
+            Pretty.pp_expr_raw exp_old 
+            Pretty.pp_expr_raw exp1 
+            Pretty.pp_expr_raw substitution_l);
+            Ok (Eq(exp_new, substitution_r)))
         in 
-        Log.debug (fun m -> m "@[subs_l: %a@]" Pretty.pp_expr_raw substitution_l); 
-        let%bind substitution_r = 
-          match subs with
-          | Eq (_ , subs_r)
-          | Gt (_, subs_r) -> Ok subs_r
-          | _ -> Error (`InvalidArgumentError "Nothing to replace")
-        in
-        Log.debug (fun m -> m "@[subs_r: %a@]" Pretty.pp_expr_raw substitution_r); 
-        let%bind exp_old = 
-          match id with
-          | EqBv exp
-          | EqExp exp
-          | GtExp exp -> Ok exp
-          | EqBvSl (s, hi, lo) -> Ok (BvExpr(Slice(s,hi, lo)))
-          | _ -> Error (`InvalidArgumentError "Unexpected FormulaId")
-        in
-        Log.debug (fun m -> m "@[exp_old: %a@]" Pretty.pp_expr_raw exp_old);
-        let%bind exp_new = replace_expression substitution_l exp_old exp1
-        in
+
         match exp1 with
-        | BvExpr(Slice(Instance(1, _),_, _)) ->
-          Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@ in %a@]" 
-          Pretty.pp_expr_raw exp1
-          Pretty.pp_expr_raw substitution_r 
-          Pretty.pp_form_raw form);
-          Ok (Eq(substitution_r, exp2))
-        | _ -> 
-          Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@ in %a@]" 
-          Pretty.pp_expr_raw exp_old 
-          Pretty.pp_expr_raw exp1 
-          Pretty.pp_expr_raw substitution_l);
-          Ok (Eq(exp_new, substitution_r)))
+        | BvExpr(Slice(Instance(0, i), _, _)) -> (
+          let invalid = Map.find m_in (Valid(0, i, false)) in
+          Log.debug (fun m -> m "@[Checking instance vlaidity @ %a @]" Pretty.pp_instance i);
+          match invalid with
+          | Some(_) -> (
+            Log.debug (fun m -> m "@[--> replaced (instance Invalid) @ %a @ by@ %a@ @]" 
+            Pretty.pp_form_raw form 
+            Pretty.pp_form_raw True);
+            Ok(True))
+          | _ -> handle_subs )
+        | _ -> handle_subs )
       | _ ->
         match exp1, exp2 with
         | BvExpr(Packet(_, PktOut)), BvExpr(Concat(_) as c) -> 
