@@ -569,7 +569,7 @@ let split_eqn eqn maxlen =
 
     | Eq
       ( BvExpr(exp),
-        BvExpr(Packet(var, pkt))
+        BvExpr(Packet(var, (PktIn as pkt)))
       ) -> 
       sce ( Eq
             ( BvExpr(exp),
@@ -600,6 +600,13 @@ let split_eqn eqn maxlen =
 
 let shift_slices form n =
   Log.debug(fun m -> m "Shifting slices by: %i" n);
+  Log.debug(fun m -> m "f: %a" Pretty.pp_form_raw form);
+  let rec shift_concat cnct = 
+    match cnct with
+    | Concat (c_l, c_r) -> Concat (shift_concat c_l, shift_concat c_r)
+    | Slice(Packet(_, PktIn) as p, hi, lo) -> Slice( p, hi + n, lo + n)
+    | _ -> cnct
+  in
   let rec ss f = 
     match f with 
     | Eq(BvExpr(Concat(Slice(Packet(x, PktIn), hi_l, lo_l), Packet(y,PktIn))), BvExpr(Slice(Packet(z, PktIn),_ , lo_r))) ->
@@ -610,13 +617,15 @@ let shift_slices form n =
       Eq(BvExpr(Packet(0,PktIn)), BvExpr(Slice(Packet(1, PktIn), hi + n, lo)))
     | Eq(BvExpr(Slice(Instance(_),_,_)) as bv_l, BvExpr(Slice(Packet(1, PktIn), hi, lo))) ->
       Eq( bv_l, BvExpr(Slice(Packet(1, PktIn), hi + n, lo + n)))
+    | Eq(BvExpr(Packet(_, PktOut)) as bv_l, BvExpr(Concat(_) as cnct)) ->
+      Eq(bv_l, BvExpr (shift_concat cnct))
     | And(f1, f2) -> And(ss f1, ss f2)
     | Or(f1, f2) -> Or(ss f1, ss f2)
     | Neg(f) -> Neg(ss f)
     | _ -> f
   in
   let fm = ss form in
-  Log.debug(fun m -> m "Result: %a" Pretty.pp_form_raw fm);
+  Log.debug(fun m -> m "Shifting Result: %a" Pretty.pp_form_raw fm);
   fm
 
 let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_witness) Map_intf.Map.t) maxlen: Formula.t option=
@@ -626,8 +635,22 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
     let rec smp_concat m_in f_concat =
       match f_concat with
       | Concat(c_l, c_r) -> Concat((smp_concat m_in c_l),( smp_concat m_in c_r))
+      | Packet(_,PktOut) -> (
+        let rslt = Core.Map.find m_in (EqPkt(0, PktOut)) in
+        match rslt with
+        | Some(Eq(_,(BvExpr(_) as exp))) -> (
+          let rt = replace_expression (BvExpr(f_concat)) (BvExpr(Packet(1, PktOut))) exp in
+          match rt with
+          | Ok(BvExpr(_ as bvexp)) -> bvexp
+          | _ -> f_concat )
+        | _ -> f_concat)
       | Slice(Instance(_, i), hi, lo) -> (
-        let rslt = Core.Map.find m_in (EqBvSl(Instance(0, i),hi ,lo ))in
+        let rslt = 
+          if [%compare.equal: var] (Instance.sizeof i) (lo - hi) then
+            Core.Map.find m_in (InstConcat(0, i))
+          else 
+            Core.Map.find m_in (EqBvSl(Instance(0, i),hi ,lo )) 
+          in     
         match rslt with
         | Some(Eq(_,BvExpr(_ as ref))) -> ref
         | _ -> f_concat)
@@ -710,6 +733,7 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
         match exp1, exp2 with
         | BvExpr(Packet(_, PktOut)), BvExpr(Concat(_, Slice(Instance(_,i),_,_))) -> Some(InstConcat (0, i))
        
+        | ArithExpr Length (_, pkt), _
         | _, ArithExpr Length (_, pkt) -> Some (EqExp(ArithExpr(Length(0, pkt))))
 
         | _, BvExpr Slice(s, hi, lo) -> (
@@ -759,6 +783,15 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
         let%bind subs = find_or_err m_in (EqPkt(v,p)) in
         Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw subs);
         Ok(subs)
+
+      | Some (EqExp(ArithExpr(Length(0, PktOut)))) -> (
+        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id (EqExp(ArithExpr(Length(0, PktOut))))); 
+        let%bind subs = find_or_err m_in (EqExp(ArithExpr(Length(0, PktOut)))) in
+        match subs with
+        | Eq(_, (ArithExpr(_) as arith)) ->
+          let%bind subs_exp = replace_expression exp2 (ArithExpr(Length(1,PktOut))) arith in
+          Ok(Eq(exp1, subs_exp))
+        | _ -> Error (`InvalidArgumentError "Nothing to replace"))
 
       | Some id -> (
         Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id id); 
