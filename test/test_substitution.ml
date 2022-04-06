@@ -7,7 +7,7 @@ open Result
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 300
+  let maxlen = 22
 end
 
 module Config = struct
@@ -25,14 +25,13 @@ let types_equiv program_str type_str ()=
   let ty = Parsing.parse_type type_str header_table in
   match ty with
   | Pi (x, annot_tyin, _) ->  
-    let tycout = C.compute_type program.command (x, annot_tyin) [] header_table ~smpl_subs:false
-    in
-    match tycout with
-    | Ok ht -> 
+    let tycout = C.compute_type program.command (x, annot_tyin) [] header_table ~smpl_subs:false in
+    let simplified = C.compute_type program.command (x, annot_tyin) [] header_table ~smpl_subs:true in
+    match tycout, simplified with
+    | Ok (ht), Ok(smpl) -> 
       let ctx = [ (x, Env.VarBind annot_tyin) ] in
-      let simplified = Substitution.simplify ht TestConfig.maxlen in
-      Test.is_equiv ht simplified ctx header_table
-    | Error(_) -> ()
+      Test.is_equiv ht smpl ctx header_table
+    | _ -> ()
 
 let default_header = 
   {|
@@ -66,7 +65,7 @@ let ether_header =
   |}
 
 let default_type_str = 
-  {|(x:{y:⊤ | y.pkt_in.length > 20}) -> 
+  {|(x:{y:ε | y.pkt_in.length > 20}) -> 
     {y:⊤| true}|}
   
 let extract_str =
@@ -176,20 +175,8 @@ let cplx4_str =
   default_header ^
   {|
     extract(ether);
-    if(ether.srcAddr == 0b1010) {
-      extract(ipv4);
-      if(ipv4.ihl == 0b00) {
-        add(ipv4opt)
-      }
-    } else {
-      add(ipv4)
-    };
-    ipv4.ihl := 0b11;
-    remit(ether);
-    remit(ipv4);
-    if(ipv4opt.valid) {
-      remit(ipv4)
-    }
+    ether.dstAddr := 0b1011;
+    remit(ether)
   |}
 
 
@@ -208,27 +195,17 @@ let cplx5_type_str =
 let cplx5_str = 
   default_header ^
   {|
+    ether.dstAddr := 0b0000;
     if(ether.valid) {
       remit(ether)
     };
     if(ipv4.valid) {
       remit(ipv4)
     };
-    if(ipv4opt.valid) {
-      remit(ipv4opt)
-    };
     reset;
     extract(ether);
-    if(ether.srcAddr == 0b0000) {
-      extract(ipv4);
-      if(ipv4.ihl == 0b01) {
-        extract(ipv4opt)
-      }
-    } else {
-      if(!ether.valid) {
-        extract(ipv4)
-      }
-    }
+    extract(ipv4);
+    ipv4.ihl := 0b00
     |}
 
 let cplx6_str = 
@@ -239,11 +216,11 @@ let cplx6_str =
     reset;
     add(ether);
     extract(ipv4);
+    ether.dstAddr := 0b1111;
     ipv4.ihl := 0b11;
+    skip;
     remit(ipv4);
-    reset;
     if(ether.valid) {
-      extract(ipv4);
       add(ipv4opt)
     }
   |}

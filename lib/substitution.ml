@@ -64,6 +64,12 @@ let var_from_sl (s:Sliceable.t) : var =
   | Packet(v, _)
   | Instance(v, _) -> v
 
+let rec contains_pkt_in_concat f =
+  match f with
+  | And (f_l, f_r) | Or (f_l, f_r) ->
+    contains_pkt_in_concat f_l || contains_pkt_in_concat f_r
+  | Eq(BvExpr(Packet(_,PktIn)), BvExpr(Concat(_, Packet(_, PktIn)))) -> true
+  | _ -> false 
 
 (* Extract var from an Expression. Returns lower value when multiple vars are found *)
 let rec var_from_exp (expr:Expression.t) = 
@@ -702,8 +708,8 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
     | Eq(exp1, exp2) -> (
       let subs_id =
         match exp1, exp2 with
-        | BvExpr(Packet(_, PktOut)), BvExpr(Concat(_, Slice(Instance(_,i),_,_))) -> Some(InstConcat (0, i)) 
-
+        | BvExpr(Packet(_, PktOut)), BvExpr(Concat(_, Slice(Instance(_,i),_,_))) -> Some(InstConcat (0, i))
+       
         | _, ArithExpr Length (_, pkt) -> Some (EqExp(ArithExpr(Length(0, pkt))))
 
         | _, BvExpr Slice(s, hi, lo) -> (
@@ -838,92 +844,146 @@ let rec simplify_subs hty maxlen : HeapType.t =
       Ok rf
     | Refinement( s, h ,f) ->
       Ok (Refinement (s, simplify_subs h maxlen, f))
-    | Substitution (h, x, Choice(ch_l, ch_r)) -> 
-      Ok
-      ( Choice
-        ( simplify_subs (Substitution (h, x, ch_l)) maxlen,
-          simplify_subs (Substitution (h, x, ch_r)) maxlen
+    | Substitution (h, x, Choice(ch_l, ch_r)) -> (
+      match h with
+      | Substitution(_, _, Refinement(_, _, h_f)) -> 
+        if contains_pkt_in_concat h_f then
+          Ok(hty)
+        else
+          Ok
+        ( Choice
+          ( simplify_subs (Substitution (h, x, ch_l)) maxlen,
+            simplify_subs (Substitution (h, x, ch_r)) maxlen
+          )
         )
-      )
-    | Substitution (h, x, subs) -> (
-      let h = simplify_subs h maxlen in
-      let subs = simplify_subs subs maxlen in
-      match subs with
-      | Choice(ch_l, ch_r) ->
-        Ok
+      | Refinement(_, _, h_f) -> 
+        if contains_pkt_in_concat h_f then
+          Ok(hty)
+        else
+          Ok
         ( Choice
           ( simplify_subs (Substitution (h, x, ch_l)) maxlen,
             simplify_subs (Substitution (h, x, ch_r)) maxlen
           )
         )
       | _ -> 
-        Log.debug (fun m -> m "====== Building substitution map ======");
-        let%bind subs_map = 
-          match subs with
-          (* TODO: Handle Choice *)
-          | Refinement(_,_,f_subs) -> 
-            let%bind split_subs = split_eqn f_subs maxlen in
-            Log.debug (fun m -> m "@[Extracting formula %a@]" Pretty.pp_form_raw split_subs);
-            Ok (extract_to_map split_subs)
-          | _ ->  
-            Log.debug(fun m -> m "@[subs: %a@]" Pretty.pp_header_type_raw subs);
-            Error (`InvalidArgumentError "subs is not a Refinement")
-        in
-
-        match h with
-        | Refinement(s,ht,f) -> 
-          Log.debug (fun m -> m "====== Simplifying formula ======");
-          let%bind f_split = split_eqn f maxlen in
-          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f_split);
+        Ok
+        ( Choice
+          ( simplify_subs (Substitution (h, x, ch_l)) maxlen,
+            simplify_subs (Substitution (h, x, ch_r)) maxlen
+          )
+        ))
+    | Substitution (ht, x, sbs) -> (
+      let smpl h subs = (
+        match subs with
+        | Choice(ch_l, ch_r) ->
           Ok
-          ( Refinement(s, ht, some_or_default (simplify_formula f_split subs_map maxlen) f))
-
-        | Choice(Refinement(s1,ht1,f1), (Choice(_,_) as ch)) ->
-          let%bind f1_split = split_eqn f1 maxlen in
-          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
-          let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
-          Ok 
-            ( Choice
-              ( Refinement(s1, simplify_subs ht1 maxlen, f1_smpl),
-                simplify_subs (Substitution(ch, x, subs)) maxlen)
-            )
-
-        | Choice((Choice(_,_) as ch), Refinement(s1,ht1,f1)) ->
-          let%bind f1_split = split_eqn f1 maxlen in
-          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
-          let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
-          Ok 
-            ( Choice
-              (simplify_subs (Substitution(ch, x, subs)) maxlen,
-              Refinement(s1, simplify_subs ht1 maxlen, f1_smpl))
-            )
-
-        | Choice((Choice(_,_) as ch1), (Choice(_,_) as ch2)) ->
-          Ok 
-            ( Choice
-              ( simplify_subs (Substitution(ch1, x, subs)) maxlen,
-                simplify_subs (Substitution(ch2, x, subs)) maxlen)
-            )
-
-        | Choice(Refinement(s1,ht1,f1), Refinement(s2,ht2,f2)) -> 
-          let%bind f1_split = split_eqn f1 maxlen in
-          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
-          let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
-          let%bind f2_split = split_eqn f2 maxlen in
-          Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f2_split);
-          let f2_smpl = some_or_default (simplify_formula f2_split subs_map maxlen) f2 in
-          Ok 
-            ( Choice
-              ( Refinement(s1, ht1, f1_smpl),
-                Refinement(s2, ht2, f2_smpl)))
-
-        | Choice(hty1, hty2) ->
-          Ok 
           ( Choice
-            ( simplify_subs hty1 maxlen,
-              simplify_subs hty2 maxlen))
+            ( simplify_subs (Substitution (h, x, ch_l)) maxlen,
+              simplify_subs (Substitution (h, x, ch_r)) maxlen
+            )
+          )
+        | _ -> 
+          Log.debug (fun m -> m "====== Building substitution map ======");
+          let%bind subs_map = 
+            match subs with
+            (* TODO: Handle Choice *)
+            | Refinement(_,_,f_subs) -> 
+              let%bind split_subs = split_eqn f_subs maxlen in
+              Log.debug (fun m -> m "@[Extracting formula %a@]" Pretty.pp_form_raw split_subs);
+              Ok (extract_to_map split_subs)
+            | _ ->  
+              Log.debug(fun m -> m "@[subs: %a@]" Pretty.pp_header_type_raw subs);
+              Error (`InvalidArgumentError "subs is not a Refinement")
+          in
 
-        | _ ->  Error (`InvalidArgumentError  "h is not a Refinement"))   
+          match h with
+          | Refinement(s,ht,f) -> 
+            Log.debug (fun m -> m "====== Simplifying formula ======");
+            let%bind f_split = split_eqn f maxlen in
+            Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f_split);
+            Ok
+            ( Refinement(s, ht, some_or_default (simplify_formula f_split subs_map maxlen) f))
+
+          | Choice(Refinement(s1,ht1,f1), (Choice(_,_) as ch)) ->
+            let%bind f1_split = split_eqn f1 maxlen in
+            Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
+            let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
+            Ok 
+              ( Choice
+                ( Refinement(s1, simplify_subs ht1 maxlen, f1_smpl),
+                  simplify_subs (Substitution(ch, x, subs)) maxlen)
+              )
+
+          | Choice((Choice(_,_) as ch), Refinement(s1,ht1,f1)) ->
+            let%bind f1_split = split_eqn f1 maxlen in
+            Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
+            let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
+            Ok 
+              ( Choice
+                (simplify_subs (Substitution(ch, x, subs)) maxlen,
+                Refinement(s1, simplify_subs ht1 maxlen, f1_smpl))
+              )
+
+          | Choice((Choice(_,_) as ch1), (Choice(_,_) as ch2)) ->
+            Ok 
+              ( Choice
+                ( simplify_subs (Substitution(ch1, x, subs)) maxlen,
+                  simplify_subs (Substitution(ch2, x, subs)) maxlen)
+              )
+
+          | Choice(Refinement(s1,ht1,f1), Refinement(s2,ht2,f2)) -> 
+            let%bind f1_split = split_eqn f1 maxlen in
+            Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f1_split);
+            let f1_smpl = some_or_default (simplify_formula f1_split subs_map maxlen) f1 in
+            let%bind f2_split = split_eqn f2 maxlen in
+            Log.debug (fun m -> m "@[Simplfying formula %a@]" Pretty.pp_form_raw f2_split);
+            let f2_smpl = some_or_default (simplify_formula f2_split subs_map maxlen) f2 in
+            Ok 
+              ( Choice
+                ( Refinement(s1, ht1, f1_smpl),
+                  Refinement(s2, ht2, f2_smpl)))
+
+          | Choice(hty1, hty2) ->
+            Ok 
+            ( Choice
+              ( simplify_subs hty1 maxlen,
+                simplify_subs hty2 maxlen))
+
+          | _ ->  
+            Log.debug (fun m -> m "@[h: %a@]" Pretty.pp_header_type_raw h);
+            Error (`InvalidArgumentError  "h is not a Refinement"))
+          in
+          
+          match ht, sbs with 
+          | Refinement(_,_,h_f), Refinement(_,_,sbs_f) -> 
+            Log.debug (fun m -> m "OPT1");
+            if contains_pkt_in_concat h_f || contains_pkt_in_concat sbs_f then
+              Ok(hty)
+            else 
+              smpl ht sbs
+          | Substitution(h_l, h_x, (Refinement(_,_,h_f) as h_r)), Refinement(_,_,sbs_f) ->
+            Log.debug (fun m -> m "OPT2");
+            if contains_pkt_in_concat h_f then
+                Ok(hty)
+            else 
+              if contains_pkt_in_concat sbs_f then
+                Ok(hty)
+              else
+                let%bind h_r = smpl h_r sbs in
+                Ok(Substitution (h_l, h_x, h_r))
+          | _, Refinement(_,_,sbs_f) ->
+            Log.debug (fun m -> m "OPT3");
+            if contains_pkt_in_concat sbs_f then
+              let h = simplify_subs ht maxlen in
+              Ok(Substitution (h, x, sbs))
+            else 
+              smpl ht sbs
+          | _ ->  
+            Log.debug(fun m -> m "@[subs: %a@]" Pretty.pp_header_type_raw sbs);
+            Error (`InvalidArgumentError "subs is not a Refinement")
+          
+          )
     | Sigma(_) -> Error (`InvalidArgumentError  "hty is not a substitution - hty is Σ")
     | Nothing -> Error (`InvalidArgumentError  "hty is not a substitution - hty is Nothing")
     | Top -> Error (`InvalidArgumentError  "hty is not a substitution - hty is Top")
