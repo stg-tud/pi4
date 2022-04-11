@@ -583,7 +583,7 @@ let split_eqn eqn maxlen =
       if [%compare.equal: Instance.t] i_l i_r then
         split_inst i_l hi lo
       else
-        Error (`InvalidArgumentError "Cannot split different instances")
+        Ok(e)
 
     | And(e1, e2) -> 
       let%bind sce1 = sce e1 in
