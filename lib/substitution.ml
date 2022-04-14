@@ -661,7 +661,8 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
       let rslt_pos = Map.find m_in (Valid(0, i, true)) in
       let rslt_neg = Map.find m_in (Valid(0, i, false)) in
       match rslt_pos, rslt_neg with
-      | Some f, _ -> Ok (Neg(f))
+      | Some _, _ -> 
+        Error (`ContradictionError)
       | _, Some f -> Ok (Neg(f))
       | _ -> Ok form)
     | IsValid((1,i)) -> (
@@ -669,14 +670,26 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
       let rslt_neg = Map.find m_in (Valid(0, i, false)) in
       match rslt_pos, rslt_neg with
       | Some f, _ -> Ok f
-      | _, Some f -> Ok f
+      | _, Some _ -> 
+        Error (`ContradictionError)
       | _ -> Ok form)
-    | Neg(f) -> 
-      Ok(Neg(ok_or_default (sf f m_in maxlen) f))
-    | And(f1, f2) -> 
-      let fs1 = ok_or_default (sf f1 m_in maxlen) f1 in
-      let fs2 = ok_or_default (sf f2 m_in maxlen) f2 in
-      Ok (And(fs1, fs2))
+
+    | Neg(f) -> (
+      let rslt = sf f m_in maxlen in
+      match rslt with
+      | Error(`ContradictionError) -> rslt
+      | Ok r -> Ok(Neg(r))
+      | _ -> Ok f)
+    | And(f1, f2) -> (
+      let fs1 = sf f1 m_in maxlen in
+      let fs2 = sf f2 m_in maxlen in
+      match fs1, fs2 with
+      | Error(`ContradictionError), _
+      | _,  Error(`ContradictionError) -> Error(`ContradictionError)
+      | Ok s1, Ok s2 -> Ok (And(s1, s2))
+      | Ok s1, _ -> Ok (And(s1, f2))
+      | _, Ok s2 -> Ok (And(f1, s2))
+      | _ -> Ok (And(f1, f2)))
       
     | Or
       ( And
@@ -859,7 +872,7 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
           Log.debug (fun m -> m "@[--> replaced nothing (no ID) @]");
           Ok form)
     | _ -> 
-      Log.debug (fun m -> m "@[--> replaced nothing (no ID) @]");
+      Log.debug (fun m -> m "@[--> replaced nothing (no ID): %a @]" Pretty.pp_form_raw form);
       Ok form
   in 
 
@@ -876,6 +889,9 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
     match Map.find m_in FormulaId.Preserve with
     | Some prsv -> Some (clean_eqn (And(f, prsv)))
     | None -> Some (clean_eqn f))
+  | Error(`ContradictionError) -> 
+    Log.debug(fun m -> m "Removed branch becuse of a contradiction");
+    Some(False)
   | _ -> None
 
 
