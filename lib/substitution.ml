@@ -617,6 +617,8 @@ let shift_slices form n =
       Eq(BvExpr(Packet(0,PktIn)), BvExpr(Slice(Packet(1, PktIn), hi + n, lo)))
     | Eq(BvExpr(Slice(Instance(_),_,_)) as bv_l, BvExpr(Slice(Packet(1, PktIn), hi, lo))) ->
       Eq( bv_l, BvExpr(Slice(Packet(1, PktIn), hi + n, lo + n)))
+    | Eq(BvExpr(Slice(Instance(_),_,_)) as bv_l, BvExpr(Minus(Slice(Packet(1, PktIn), hi, lo), bv_min))) ->
+      Eq( bv_l, BvExpr(Minus(Slice(Packet(1, PktIn), hi + n, lo + n), bv_min)))
     | Eq(BvExpr(Packet(_, PktOut)) as bv_l, BvExpr(Concat(_) as cnct)) ->
       Eq(bv_l, BvExpr (shift_concat cnct))
     | And(f1, f2) -> And(ss f1, ss f2)
@@ -749,6 +751,7 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
         | ArithExpr Length (_, pkt), _
         | _, ArithExpr Length (_, pkt) -> Some (EqExp(ArithExpr(Length(0, pkt))))
 
+        | _, BvExpr(Minus(Slice(s, hi, lo), _))
         | _, BvExpr Slice(s, hi, lo) -> (
           match s with
           | Packet (_,p) -> 
@@ -835,18 +838,22 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
           Log.debug (fun m -> m "@[exp_old: %a@]" Pretty.pp_expr_raw exp_old);
           let%bind exp_new = replace_expression substitution_l exp_old exp1
           in
-          match exp1 with
-          | BvExpr(Slice(Instance(1, _),_, _)) ->
-            Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@ in %a@]" 
+          match exp1, exp2, substitution_r with
+          | BvExpr(Slice(Instance(1, _),_, _)), _, _ ->
+            Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@ in %a@ --> @ %a@]" 
             Pretty.pp_expr_raw exp1
             Pretty.pp_expr_raw substitution_r 
-            Pretty.pp_form_raw form);
+            Pretty.pp_form_raw form
+            Pretty.pp_form_raw (Eq(substitution_r, exp2)));
             Ok (Eq(substitution_r, exp2))
+          | _, BvExpr(Minus((Slice(_)),bv_r)), BvExpr(bv_subs_r) ->
+            Ok(Eq(exp_new, BvExpr(Minus(bv_subs_r, bv_r))))
           | _ -> 
-            Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@ in %a@]" 
+            Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@ in %a@ --> @ %a@]" 
             Pretty.pp_expr_raw exp_old 
             Pretty.pp_expr_raw exp1 
-            Pretty.pp_expr_raw substitution_l);
+            Pretty.pp_form_raw form
+            Pretty.pp_form_raw (Eq(exp_new, substitution_r)));
             Ok (Eq(exp_new, substitution_r)))
         in 
 
