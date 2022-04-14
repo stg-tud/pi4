@@ -663,13 +663,13 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
       match rslt_pos, rslt_neg with
       | Some _, _ -> 
         Error (`ContradictionError)
-      | _, Some f -> Ok (Neg(f))
+      | _, Some _ -> Ok True
       | _ -> Ok form)
     | IsValid((1,i)) -> (
       let rslt_pos = Map.find m_in (Valid(0, i, true)) in
       let rslt_neg = Map.find m_in (Valid(0, i, false)) in
       match rslt_pos, rslt_neg with
-      | Some f, _ -> Ok f
+      | Some _, _ -> Ok True
       | _, Some _ -> 
         Error (`ContradictionError)
       | _ -> Ok form)
@@ -679,7 +679,7 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
       match rslt with
       | Error(`ContradictionError) -> rslt
       | Ok r -> Ok(Neg(r))
-      | _ -> Ok f)
+      | _ -> Ok( Neg(f)))
     | And(f1, f2) -> (
       let fs1 = sf f1 m_in maxlen in
       let fs2 = sf f2 m_in maxlen in
