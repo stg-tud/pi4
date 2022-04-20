@@ -394,6 +394,68 @@ let find_or_err map key =
   | Some v -> Ok(v)
   | None -> Error(`NotFoundError "No entry found for given key")
  
+let rec fold_eqn eqn =
+  match eqn with
+  | Or(f_l, f_r) -> Or(fold_eqn(f_l), fold_eqn(f_r))
+  | And
+    ( Eq
+      ( BvExpr
+        ( Slice( s_l, hi_l, lo_l) ),
+        BvExpr
+        ( Slice( s_r, hi_r, lo_r) )
+      ) as eq_l,
+      f_r
+    ) -> (
+    let f_r = fold_eqn f_r in
+    match f_r with
+    | Eq
+      ( BvExpr
+        ( Slice( f_s_l, f_hi_l, f_lo_l) ),
+        BvExpr
+        ( Slice( f_s_r, f_hi_r, f_lo_r) )
+      ) -> 
+      if [%compare.equal: Sliceable.t] s_l f_s_l 
+        && [%compare.equal: Sliceable.t] s_r f_s_r 
+        && [%compare.equal: var] lo_l f_hi_l
+        && [%compare.equal: var] lo_r f_hi_r then
+          Eq
+          ( BvExpr
+            ( Slice ( s_l, hi_l, f_lo_l) ),
+            BvExpr
+            ( Slice ( s_r, hi_r, f_lo_r) )
+          )
+        else
+          And (eq_l, f_r)
+    | And
+      ( Eq
+        ( BvExpr
+          ( Slice( f_s_l, f_hi_l, f_lo_l) ),
+          BvExpr
+          ( Slice( f_s_r, f_hi_r, f_lo_r) )
+        ),
+        f_f_r
+      ) -> 
+      if [%compare.equal: Sliceable.t] s_l f_s_l 
+        && [%compare.equal: Sliceable.t] s_r f_s_r 
+        && [%compare.equal: var] lo_l f_hi_l
+        && [%compare.equal: var] lo_r f_hi_r then
+        And
+        ( Eq
+          ( BvExpr
+            ( Slice ( s_l, hi_l, f_lo_l) ),
+            BvExpr
+            ( Slice ( s_r, hi_r, f_lo_r) )
+          ),
+          f_f_r
+        )
+      else
+        And (eq_l, f_r)
+    | _ -> 
+      And (eq_l, f_r)
+    )
+  | And(f_l, f_r) -> And(fold_eqn f_l, fold_eqn f_r) 
+  | _ -> eqn 
+
 let clean_eqn form =
   Log.debug(fun m -> m "Called Cleanup");
   let rec cce f = 
@@ -425,10 +487,8 @@ let clean_eqn form =
       Or(cce f1, cce f2)
     | _ -> f
     in
-  cce form
-  
-
-
+  let clean_from = cce form in
+  fold_eqn clean_from
 
 let split_eqn eqn maxlen =
   let rec get_bv bv ln = 
