@@ -567,29 +567,37 @@ let split_eqn eqn maxlen =
     in
     splt inst.fields 
   in
-  
-  let split_inst_pkt v inst pkt_sl =
+
+  let split_inst_pkt v inst pkt_sl hib lob=
     let open Instance in
     let rec splt (fields : Declaration.field list) = 
       match fields with
       | f :: [] -> 
         let%bind hi, lo = field_bounds inst f.name in
-        let p, hi_p,_ = pkt_sl in
-        let rexp = 
-          Eq
-          ( BvExpr(Slice(Instance(v, inst), hi, lo)), 
-            BvExpr(Slice(p, hi_p + hi, hi_p + lo))) in
-        Ok (rexp)
+        if hi < hib || lo > lob then
+          Ok(True)
+        else
+          let p, hi_p,_ = pkt_sl in
+          let hi_p = hi_p - hib in
+          let rexp = 
+            Eq
+            ( BvExpr(Slice(Instance(v, inst), hi, lo)), 
+              BvExpr(Slice(p, hi_p + hi, hi_p + lo))) in
+          Ok (rexp)
 
       | f :: tail -> 
         let%bind hi, lo = field_bounds inst f.name in
-        let p, hi_p,_ = pkt_sl in
-        let rslt_l = 
-          Eq
-          ( BvExpr(Slice(Instance(v, inst), hi, lo)),
-            BvExpr(Slice(p, hi_p + hi, hi_p + lo))) in
-        let%bind rslt_r = splt tail in
-        Ok (And(rslt_l, rslt_r))
+        if hi < hib || lo > lob then
+          splt tail
+        else
+          let p, hi_p,_ = pkt_sl in
+          let hi_p = hi_p - hib in
+          let rslt_l = 
+            Eq
+            ( BvExpr(Slice(Instance(v, inst), hi, lo)),
+              BvExpr(Slice(p, hi_p + hi, hi_p + lo))) in
+          let%bind rslt_r = splt tail in
+          Ok (And(rslt_l, rslt_r))
         
       | [] -> Error(`InvalidArgumentError "Nothing to split in given instance")
     in
@@ -601,12 +609,16 @@ let split_eqn eqn maxlen =
   let rec split_exp exp pkt=
     match exp with
     | Concat
-      ( Slice(Instance(v_l,i_l), _, _),
+      ( Slice(Instance(v_l,i_l), hi, lo),
        bv_exp_r
       ) -> 
-      let%bind rslt_l, pkt_l = split_inst_pkt v_l i_l pkt in
+      let%bind rslt_l, pkt_l = split_inst_pkt v_l i_l pkt hi lo in
       let%bind rslt_r = split_exp bv_exp_r pkt_l in
       Ok (And(rslt_l, rslt_r))
+
+    | Slice(Instance(v_l,i_l), hi, lo) -> 
+        let%bind rslt_l, _ = split_inst_pkt v_l i_l pkt hi lo in
+        Ok(rslt_l)
 
     | _ -> 
       let pkt_p, pkt_hi, pkt_lo = pkt in
@@ -626,6 +638,12 @@ let split_eqn eqn maxlen =
         BvExpr(Slice(pkt, hi_pkt, lo_pkt))
       ) -> 
       split_exp (Concat(bv1, bv2)) (pkt, hi_pkt, lo_pkt)
+
+    | Eq
+      ( BvExpr(Slice(Instance(x,i_l), hi , lo)),
+        BvExpr(Slice(Packet _ as pkt, hi_pkt, lo_pkt))
+      ) -> 
+      split_exp (Slice(Instance(x,i_l), hi , lo)) (pkt, hi_pkt, lo_pkt)
 
     | Eq
       ( BvExpr(exp),
