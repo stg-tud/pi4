@@ -851,8 +851,8 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
           Some (EqBvSl (Instance (0,i), hi, lo))
         | _ -> None 
       in
-      match subs_id with
-      | Some(InstConcat (_) as k) -> (
+      match subs_id, exp2 with
+      | Some(InstConcat (_) as k), _ -> (
         Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id k);
         let subs = Core.Map.find m_in k in
         match subs, exp2 with 
@@ -866,19 +866,29 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
           Ok(Eq(exp1, BvExpr(cnct)))
         | _ -> Error (`InvalidArgumentError "Nothing to replace"))
         
-      | Some (EqInst (v,i) as k) -> 
-        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id k); 
+      | Some (EqInst (v,i) as k), BvExpr(Minus(Slice(_) as slice, _)) -> (
+        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id k);
+        let subs = find_or_err m_in (EqInst(v,i)) in
+        match subs with
+        | Ok (Eq(_, s)) -> 
+          let%bind subs_exp = replace_expression exp2 (BvExpr(slice)) s in
+          Ok(Eq(exp1, subs_exp))
+        | _ -> 
+          Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw True);
+          Ok(True))
+      | Some (EqInst (v,i) as k), _ -> 
+        Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id k);
         let subs = ok_or_default (find_or_err m_in (EqInst(v,i))) True in
         Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw subs);
         Ok(subs)
 
-      | Some (EqPkt (v,p)) -> 
+      | Some (EqPkt (v,p)), _  -> 
         Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id (EqPkt(v,p))); 
         let%bind subs = find_or_err m_in (EqPkt(v,p)) in
         Log.debug (fun m -> m "@[--> replaced @ %a @ by@ %a@]" Pretty.pp_form_raw form Pretty.pp_form_raw subs);
         Ok(subs)
 
-      | Some (EqExp(ArithExpr(Length(0, PktOut)))) -> (
+      | Some (EqExp(ArithExpr(Length(0, PktOut)))), _  -> (
         Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id (EqExp(ArithExpr(Length(0, PktOut))))); 
         let%bind subs = find_or_err m_in (EqExp(ArithExpr(Length(0, PktOut)))) in
         match subs with
@@ -887,7 +897,7 @@ let simplify_formula form (m_in: (FormulaId.t, Formula.t, FormulaId.comparator_w
           Ok(Eq(exp1, subs_exp))
         | _ -> Error (`InvalidArgumentError "Nothing to replace"))
 
-      | Some id -> (
+      | Some id, _  -> (
         let handle_subs = (
           Log.debug (fun m -> m "@[Looking for: %a@]" pp_fromula_id id); 
           let%bind subs = find_or_err m_in id in
