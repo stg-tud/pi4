@@ -95,7 +95,7 @@ end = struct
     init_prover;
     Alcotest.(check Testable.typechecker_result)
       (Fmt.str "%a" (pp_pi_type []) ty)
-      Typechecker.TypecheckingResult.Success (T.check_type cmd ty ht)
+      Typechecker.TypecheckingResult.Success (T.check_type cmd ty ht ~smpl_subs:true)
 
   let check_program f program typ =
     let prog = Parsing.parse_program program in

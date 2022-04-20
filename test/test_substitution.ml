@@ -245,6 +245,35 @@ let cplx6_str =
     remit(ipv4)
   |}
   
+
+ let ext_rest = 
+  
+  {|
+
+  header_type  ethernet_t {
+    dst: 4;
+    src: 4;
+    type: 2;
+  }
+  header_type ipv4_t {
+    version: 2; 
+    ihl: 2; 
+    tos: 4;
+  }
+
+  header ether : ethernet_t
+  header ipv4 : ipv4_t
+
+  add(ipv4);
+  extract(ether);
+  if(ipv4.version == 0b00) {
+    ipv4.ihl := ether.type
+  };
+  if(ether.valid) {
+    remove(ether)
+  }
+  |}
+
 let test_set = 
   [
     test_case "Extract" `Quick (types_equiv extract_str default_type_str);
@@ -263,4 +292,5 @@ let test_set =
     test_case "Complex 4" `Quick (types_equiv cplx4_str default_type_str);
     test_case "Complex 5" `Quick (types_equiv cplx5_str cplx5_type_str);
     test_case "Complex 6" `Quick (types_equiv cplx6_str default_type_str );
+    test_case "Exr" `Quick (types_equiv ext_rest default_type_str );
   ]

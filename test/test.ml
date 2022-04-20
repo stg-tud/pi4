@@ -27,15 +27,17 @@ let test_suite =
     ("substitution_ext", Test_substitution_ext.test_set);
     ("ipv4opt", Test_ipv4opt.test_set);
     ("performance", Test_performance.test_set);
-	  ("vlan_decap", Test_vlan_decap.test_set)
+	  ("vlan_decap", Test_vlan_decap.test_set);
+    ("mnl", Test_mnl.test_set);
   ]
 
 let () =
   Format.pp_set_geometry Format.err_formatter ~max_indent:239 ~margin:240;
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter @@ Logs.format_reporter ();
-  Logs.set_level ~all:true @@ Some Logs.Info;
+  Logs.set_level ~all:true @@ Some Logs.Warning;
   Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Debug;
+  (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info; *)
 
 
   (* start_profiling (); *)

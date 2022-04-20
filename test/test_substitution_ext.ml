@@ -8,7 +8,7 @@ module Log = (val Logs.src_log Logging.substitution_src : Logs.LOG)
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 1500
+  let maxlen = 306
 end
 
 module Config = struct
@@ -27,14 +27,13 @@ let types_equiv program_str type_str ()=
   match ty with
   | Pi (x, annot_tyin, _) ->  
     let tycout = C.compute_type program.command (x, annot_tyin) [] header_table ~smpl_subs:false in
-    match tycout with
-    | Ok ht -> 
+    let simplified = C.compute_type program.command (x, annot_tyin) [] header_table ~smpl_subs:true in
+    match tycout, simplified with
+    | Ok ht, Ok smpl -> 
       let ctx = [ (x, Env.VarBind annot_tyin) ] in
-      let ht = Substitution.fold ht in
-      let simplified = Substitution.simplify ht TestConfig.maxlen in
-      Log.info(fun m -> m "SMPL RAW: %a" Pretty.pp_header_type_raw simplified);
-      Test.is_equiv ht simplified ctx header_table
-    | Error(_) -> ()
+      Log.info(fun m -> m "SMPL RAW: %a" Pretty.pp_header_type_raw smpl);
+      Test.is_equiv ht smpl ctx header_table
+    | _ -> ()
 
 
 let ipv4_ttl_hty_str = 
@@ -210,10 +209,124 @@ let safe_roundtrip_type_string =
               |}
 
 
+let vlan_decap_str = 
+  (* {|
+    header_type ether_t {
+      dstAddr: 48;
+      srcAddr: 48;
+      etherType: 16;
+    }
+    header_type ipv4_t {
+      version: 4; 
+      ihl: 4; 
+      tos: 8; 
+      len: 16; 
+      id: 16; 
+      flags: 3; 
+      frag: 13; 
+      ttl: 8; 
+      proto: 8; 
+      chksum: 16; 
+      src: 32; 
+      dst: 32;
+    }
+    header_type vlan_t {
+      prio: 3; 
+      id: 1; 
+      vlan: 12; 
+      etherType: 16;
+    }
+    header_type forward_table_t {
+      ipv4_dst_key: 32;
+      act: 1;
+      data_eth_src: 48;
+      data_eth_dst: 48;
+    }
+    header ether : ether_t
+    header ipv4 : ipv4_t
+    header vlan : vlan_t
+    header forward_table : forward_table_t
+
+    extract(ether);
+    extract(ipv4);
+    if(forward_table.act == 0b1) {
+      ether.srcAddr := forward_table.data_eth_src;
+      ipv4.ttl := ipv4.ttl - 0x01
+    };
+    if(vlan.valid) {
+      remove(vlan)
+    }    
+    |} *)
+
+
+    {|
+      header_type ether_t {
+        dstAddr: 48;
+        srcAddr: 48;
+        etherType: 16;
+      }
+      header_type ipv4_t {
+        version: 4; 
+        ihl: 4; 
+        tos: 8; 
+        len: 16; 
+        id: 16; 
+        flags: 3; 
+        frag: 13; 
+        ttl: 8; 
+        proto: 8; 
+        chksum: 16; 
+        src: 32; 
+        dst: 32;
+      }
+      header_type vlan_t {
+        prio: 3; 
+        id: 1; 
+        vlan: 12; 
+        etherType: 16;
+      }
+      header_type forward_table_t {
+        ipv4_dst_key: 32;
+        act: 1;
+        data_eth_src: 48;
+        data_eth_dst: 48;
+      }
+      header ether : ether_t
+      header ipv4 : ipv4_t
+      header vlan : vlan_t
+      header forward_table : forward_table_t
+
+      extract(ether);
+      if(ether.etherType == 0x8100) {
+        extract(vlan);
+        if(vlan.etherType == 0x0800) {
+          extract(ipv4)
+        }
+      } else {
+        if(ether.etherType == 0x0800) {
+          extract(ipv4)
+        }
+      };
+      if(ipv4.valid) {
+        if(forward_table.act == 0b1) {
+          ether.dstAddr := forward_table.data_eth_dst;
+          ether.srcAddr := forward_table.data_eth_src;
+          ipv4.ttl := ipv4.ttl - 0x01
+        }
+      };
+      if(vlan.valid) {
+        ether.etherType := vlan.etherType;
+        remove(vlan)
+      }
+    |}
+let vlan_decap_type = 
+  "(x:{y: forward_table |y.pkt_in.length > 304}) → {z:⊤|¬z.vlan.valid}"
+
 let test_set = 
   [
     test_case "ipv4_ttl" `Quick (types_equiv ipv4_ttl_str ipv4_ttl_hty_str);
     test_case "mod_router_table" `Quick (types_equiv mod_router_table_str mod_router_table_hty_str);
     test_case "roundtrip" `Quick (types_equiv safe_roundtrip_string safe_roundtrip_type_string);
     test_case "ipv4_opt" `Quick (types_equiv ipv4_opt_str ipv4_opt_hty_str);
+    test_case "vlan_decap" `Quick (types_equiv vlan_decap_str vlan_decap_type);
   ]
