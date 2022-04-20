@@ -294,7 +294,7 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
             IsValid(_)),
           (And
             ( Eq 
-              ( BvExpr(Slice(Instance(_) as i, _, _)),
+              ( BvExpr(Slice(Instance(_), _, _)),
                 BvExpr(_)
               )
             ,_ ) as inst_eq)
@@ -312,12 +312,13 @@ let extract_to_map form : (FormulaId.t, Formula.t , FormulaId.comparator_witness
             IsValid(_)
           ),
           (Eq 
-          ( BvExpr(Slice(Instance(_) as i, _, _)),
+          ( BvExpr(Slice(Instance(_), _, _)),
             BvExpr(_)
           ) as inst_eq)
         )
       ) -> 
-      let m_in = update_instance m_in i inst_eq in
+      (* let m_in = update_instance m_in i inst_eq in *)
+      let m_in = ext inst_eq m_in in
       let k = InstEqual (v1, i1) in
       Log.debug (fun m -> m "@[%a: %a@]" pp_fromula_id k Pretty.pp_form_raw  f);
       Map.set m_in ~key:k ~data:f
@@ -488,7 +489,9 @@ let clean_eqn form =
     | _ -> f
     in
   let clean_from = cce form in
-  fold_eqn clean_from
+  let ff = fold_eqn clean_from in
+  Log.debug (fun m -> m "@[Cleande: %a@]" Pretty.pp_form_raw ff);
+  ff
 
 let split_eqn eqn maxlen =
   let rec get_bv bv ln = 
@@ -674,7 +677,19 @@ let split_eqn eqn maxlen =
       Ok (Or(sce1, sce2))
     | _ -> Ok e
     in
-  sce eqn
+
+  let rec clean fm = 
+    match fm with
+    | And(f, True)
+    | And(True, f) -> clean f
+    | And(f_l, f_r) -> And(clean f_l, clean f_r)
+    | Or(f_l, f_r) -> Or(clean f_l, clean f_r)
+    | _ -> fm
+  in
+  let%bind split = sce eqn in
+  let cln = clean split in
+  Ok(cln)
+
 
 let shift_slices form n =
   Log.debug(fun m -> m "Shifting slices by: %i" n);
