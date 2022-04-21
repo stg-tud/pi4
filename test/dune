@@ -2,7 +2,9 @@
  (modes byte exe)
  (name test)
  (preprocess (pps ppx_jane))
- (libraries alcotest fmt.cli landmarks logs.fmt pi4))
+ (libraries alcotest fmt.cli landmarks logs.fmt pi4)
+ (instrumentation
+  (backend landmarks --auto)))
 
 (rule
  (alias runtest)
