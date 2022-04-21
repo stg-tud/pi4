@@ -28,7 +28,6 @@ let test_suite =
     ("ipv4opt", Test_ipv4opt.test_set);
     ("performance", Test_performance.test_set);
 	  ("vlan_decap", Test_vlan_decap.test_set);
-    ("mnl", Test_mnl.test_set);
   ]
 
 let () =
