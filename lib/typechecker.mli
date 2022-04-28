@@ -42,12 +42,6 @@ module type Checker = sig
     result
 end
 
-module CompleteChecker : functor
-  (BV : sig
-     val maxlen : int
-   end)
-  -> Checker
-
 module SemanticChecker : functor
   (BV : sig
      val maxlen : int
