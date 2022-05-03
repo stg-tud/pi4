@@ -72,23 +72,6 @@ let rec shift_form (form : Formula.t) (cutoff : int) (n : int) =
   | Or (e1, e2) -> Or (shift_form e1 cutoff n, shift_form e2 cutoff n)
   | Implies (e1, e2) -> Implies (shift_form e1 cutoff n, shift_form e2 cutoff n)
 
-(* Shift all free variables with binder >= cutoff by n *)
-let rec shift_header_type (hty : HeapType.t) (cutoff : int) (n : int) =
-  let open HeapType in
-  match hty with
-  | Nothing -> Nothing
-  | Top -> Top
-  | Choice (hty1, hty2) ->
-    Choice (shift_header_type hty1 cutoff n, shift_header_type hty2 cutoff n)
-  | Sigma (x, hty1, hty2) ->
-    Sigma
-      (x, shift_header_type hty1 cutoff n, shift_header_type hty2 (cutoff + 1) n)
-  | Refinement (x, hty, e) ->
-    Refinement (x, shift_header_type hty cutoff n, shift_form e (cutoff + 1) n)
-  | Substitution (hty1, x, hty2) ->
-    Substitution
-      (shift_header_type hty1 (cutoff + 1) n, x, shift_header_type hty2 cutoff n)
-
 let tybv_concat (ty1 : ty) (ty2 : ty) =
   match (ty1, ty2) with
   | BitVec (StaticSize n), BitVec (StaticSize m) ->
@@ -157,6 +140,15 @@ module type Checker = sig
 end
 
 module HeapTypeOps (P : Prover.S) = struct
+  let includes_cache = ref (Map.empty(module Instance))
+  let clear_includes_cache = 
+    includes_cache := Map.empty(module Instance);
+    ()
+
+  let update_includes_cache (inst : Instance.t) (valid : bool)= 
+    includes_cache := Map.set !includes_cache ~key:inst ~data:valid;
+    ()
+
   let includes (header_table : HeaderTable.t) (ctx : Env.context)
       (hty : HeapType.t) (inst : Instance.t) =
     Log.debug (fun m ->
@@ -164,9 +156,21 @@ module HeapTypeOps (P : Prover.S) = struct
           Instance.(inst.name)
           (Pretty.pp_header_type ctx)
           hty);
-    let x = Env.pick_fresh_name ctx "x" in
-    let refined = HeapType.Refinement (x, Top, IsValid (0, inst)) in
-    P.check_subtype hty refined ctx header_table
+    let rslt = Map.find !includes_cache inst in
+    match rslt with
+    | Some a -> 
+      Log.debug (fun m -> m "!!!! CACHE HIT !!!!!");
+      Ok(a)
+    | None -> 
+      let x = Env.pick_fresh_name ctx "x" in
+      let refined = HeapType.Refinement (x, Top, IsValid (0, inst)) in
+      let check_rslt = P.check_subtype hty refined ctx header_table in
+      Log.debug (fun m -> m "!!!! CHECKING INSTANCE !!!!!");
+      match check_rslt with
+      | Ok a -> 
+        includes_cache := Map.set !includes_cache ~key:inst ~data:a;
+        check_rslt
+      | _ -> check_rslt
 
   let excludes (header_table : HeaderTable.t) (ctx : Env.context)
       (hty : HeapType.t) (inst : Instance.t) =
@@ -318,6 +322,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
                   BvExpr (Bv (BitVector.zero inst_size)) )
             ]
         in
+        update_includes_cache inst true;
         return (Refinement (y, Top, pred))
     | Ascription (cmd, x, ascb_hty_in, ascb_hty_out) ->
       Log.debug (fun m ->
@@ -395,6 +400,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               packet_equality 0 1 PktOut
             ]
         in
+        update_includes_cache inst true;
         return (Refinement (y, Top, pred))
       else
         Error
@@ -412,6 +418,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
       let%bind tye = FC.check_form header_table ctx hty_arg e in
+      let cache_snapshot = !includes_cache in
       match tye with
       | Bool ->
         let x = Env.pick_fresh_name ctx "x" in
@@ -432,6 +439,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         let hty_in_else =
           Simplify.fold_refinements (Refinement (x, hty_arg, Neg e))
         in
+        (* cache rollback to eliminate side effect from if branch *)
+        includes_cache := cache_snapshot;
         let%bind tyc2 =
           compute_type c2 ~smpl_subs:smpl_subs (hty_var, hty_in_else) ctx header_table
         in
@@ -440,6 +449,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             m "@[<v>Computed type for else-branch:@ %a@]"
               (Pretty.pp_header_type ctx_else)
               tyc2);
+        (* cache rollback to avoid entries only valid for one branch *)
+        includes_cache := cache_snapshot;
         return
           (Choice
              ( Refinement (y, tyc1, shift_form e 0 1),
@@ -512,6 +523,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         return (Refinement (y, Top, pred))
     | Reset ->
       Log.debug (fun m -> m "@[<v>Typechecking reset...@]");
+      clear_includes_cache;
       let y = Env.pick_fresh_name ctx "y" in
       let pred =
         Formula.ands
@@ -571,6 +583,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               Neg (IsValid (0, inst))
             ]
         in
+        update_includes_cache inst false;
         return (Refinement (y, Top, pred))
     | Seq (c1, c2) ->
       Log.debug (fun m ->
