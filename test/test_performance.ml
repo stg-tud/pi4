@@ -105,6 +105,7 @@ let roundtrip_str =
 
 let roundtrip_hty_str =
   {|(x:{y:ε|y.pkt_out.length == 0 && y.pkt_in.length > 304}) -> ⊤|}
+  (* {|(x:{y:ε|y.pkt_out.length == 0 && y.pkt_in.length > 304}) -> {z:⊤ | x.pkt_in.length > 304}|} *)
 
 
 let ipv4_ttl_str = 
@@ -136,54 +137,78 @@ let ipv4_ttl_hty_str =
 
 let vlan_decap_str = 
   {|
-  header_type ether_t {
-    dstAddr: 48;
-    srcAddr: 48;
-    etherType: 16;
-  }
-  header_type ipv4_t {
-    version: 4; 
-    ihl: 4; 
-    tos: 8; 
-    len: 16; 
-    id: 16; 
-    flags: 3; 
-    frag: 13; 
-    ttl: 8; 
-    proto: 8; 
-    chksum: 16; 
-    src: 32; 
-    dst: 32;
-  }
-  header_type vlan_t {
-    prio: 3; 
-    id: 1; 
-    vlan: 12; 
-    etherType: 16;
-  }
-  header_type forward_table_t {
-    ipv4_dst_key: 32;
-    act: 1;
-    data_eth_src: 48;
-    data_eth_dst: 48;
-  }
-  header ether : ether_t
-  header ipv4 : ipv4_t
-  header vlan : vlan_t
-  header forward_table : forward_table_t
+      header_type ether_t {
+        dstAddr: 48;
+        srcAddr: 48;
+        etherType: 16;
+      }
+      header_type ipv4_t {
+        version: 4; 
+        ihl: 4; 
+        tos: 8; 
+        len: 16; 
+        id: 16; 
+        flags: 3; 
+        frag: 13; 
+        ttl: 8; 
+        proto: 8; 
+        chksum: 16;  
+        src: 32; 
+        dst: 32;
+      }
+      header_type vlan_t {
+        prio: 3; 
+        id: 1; 
+        vlan: 12; 
+        etherType: 16;
+      }
+      header_type forward_table_t {
+        ipv4_dst_key: 32;
+        act: 1;
+        data_eth_src: 48;
+        data_eth_dst: 48;
+      }
+      header ether : ether_t
+      header ipv4 : ipv4_t
+      header vlan : vlan_t
+      header forward_table : forward_table_t
 
-  if(ipv4.valid) {
-      ether.srcAddr := forward_table.data_eth_src
-  };
-  if(vlan.valid) {
-    remove(vlan)
-  }
-|}
+      extract(ether);
+      if(ether.etherType == 0x8100) {
+        extract(vlan);
+        if(vlan.etherType == 0x0800) {
+          extract(ipv4)
+        }
+      } else {
+        if(ether.etherType == 0x0800) {
+          extract(ipv4)
+        }
+      };
+      if(ipv4.valid) {
+        if(forward_table.act == 0b1) {
+          ether.dstAddr := forward_table.data_eth_dst;
+          ether.srcAddr := forward_table.data_eth_src;
+          ipv4.ttl := ipv4.ttl - 0x01
+        }
+      };
+      if(vlan.valid) {
+        ether.etherType := vlan.etherType;
+        remove(vlan)
+      }
+    |}
 
 let vlan_decap_hty_str = 
   "(x:{y:forward_table |y.pkt_in.length > 304}) → {z:⊤|¬z.vlan.valid}"
 
-let test str t_str opt () =
+let vlan_decap_hty_str_cplx = 
+  {|
+  (x:{y:forward_table |y.pkt_in.length > 304}) → 
+  {z:⊤|
+    ¬z.vlan.valid ∧
+    x.pkt_in.length > 304
+  }
+  |}
+  let test str t_str opt () =
   let program = Parsing.parse_program str in
   Logs.debug (fun m -> m "%a" Pretty.pp_command program.command);
   let header_table = HeaderTable.of_decls program.declarations in
@@ -199,4 +224,6 @@ let test_set =
     test_case "ipv4 ttl Unopt" `Quick (test ipv4_ttl_str ipv4_ttl_hty_str false);
     test_case "vlan decap Opt" `Quick (test vlan_decap_str vlan_decap_hty_str true);
     test_case "vlan decap Unopt" `Quick (test vlan_decap_str vlan_decap_hty_str false);
+    test_case "vlan decap strong type Opt" `Quick (test vlan_decap_str vlan_decap_hty_str_cplx true);
+    test_case "vlan decap strong type Unopt" `Quick (test vlan_decap_str vlan_decap_hty_str_cplx false);
   ]
