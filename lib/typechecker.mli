@@ -19,6 +19,8 @@ module type Checker = sig
   val compute_type :
     Command.t ->
     ?smpl_subs:bool ->
+    ?init_pkt_in:(var)option ->
+    ?init_pkt_out:(var)option ->
     string * HeapType.t ->
     Env.context ->
     HeaderTable.t ->

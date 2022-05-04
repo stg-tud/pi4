@@ -21,6 +21,18 @@ module TypecheckingResult = struct
     | TypeError e -> Fmt.pf pp "TypeError: %s" e
 end
 
+let get_min_or_none x y = 
+match x, y with
+| Some c1, Some c2 -> 
+  if c1 < c2 then
+    Some c1
+  else
+    Some c2
+| None, Some c
+| Some c, None -> 
+  Some (c)
+| _ -> None
+
 let incr_binder x cutoff n = if x >= cutoff then x + n else x
 
 let shift_sliceable (sliceable : Sliceable.t) cutoff n =
@@ -108,6 +120,53 @@ let other_instances (header_table : HeaderTable.t) (inst : Instance.t) =
   HeaderTable.to_list header_table
   |> List.filter ~f:(fun i -> not ([%compare.equal: Instance.t] i inst))
 
+let rec get_pkt_len (hty : HeapType.t) pkt = 
+  let handle_rslt r1 r2 = 
+    match r1, r2 with
+    | Ok(Some(l)), Ok(None)
+    | Ok(None), Ok(Some(l)) -> Ok(Some(l))
+    | Ok(Some(_)), Ok(Some(_)) -> Error(`AmbigousLengthError)
+    | Error e, Ok _
+    | Ok _ , Error e -> Error e
+    | _ -> Ok(None)
+  in
+  let rec pkt_in_len_exp (form : Formula.t) = 
+    match pkt with
+    | PktIn -> (
+      match form with
+      | And(f1, f2)
+      | Or(f1, f2) -> 
+        handle_rslt (pkt_in_len_exp f1) (pkt_in_len_exp f2)
+      | Eq(ArithExpr(Length(_, PktIn)), ArithExpr(Num (i))) ->
+        Ok(Some(i))
+      | Gt(ArithExpr(Length(_, PktIn)), ArithExpr(Num (i))) ->
+        Ok(Some(i + 1))
+      | _ -> 
+        Ok(None))
+    | PktOut -> 
+      match form with
+      | And(f1, f2)
+      | Or(f1, f2) -> 
+        handle_rslt (pkt_in_len_exp f1) (pkt_in_len_exp f2)
+      | Eq(ArithExpr(Length(_, PktOut)), ArithExpr(Num (i))) ->
+        Ok(Some(i))
+      | Gt(ArithExpr(Length(_, PktOut)), ArithExpr(Num (i))) ->
+        Ok(Some(i + 1))
+      | _ -> 
+        Ok(None) 
+  in
+  match hty with 
+  | Nothing
+  | Sigma _
+  | Top -> Ok(None)
+  | Substitution(hty1, _, hty2)
+  | Choice(hty1, hty2) -> 
+    handle_rslt (get_pkt_len hty1 pkt) (get_pkt_len hty2 pkt)
+  | Refinement(_, hty, e) -> 
+    handle_rslt (get_pkt_len hty pkt) (pkt_in_len_exp e)
+  
+    
+
 module type S = sig
   val check_type : Command.t -> ?smpl_subs:bool -> pi_type -> HeaderTable.t -> TypecheckingResult.t
 end
@@ -116,6 +175,8 @@ module type Checker = sig
   val compute_type :
     Command.t ->
     ?smpl_subs:bool ->
+    ?init_pkt_in:(var)option ->
+    ?init_pkt_out:(var)option ->
     string * HeapType.t ->
     Env.context ->
     HeaderTable.t ->
@@ -141,13 +202,51 @@ end
 
 module HeapTypeOps (P : Prover.S) = struct
   let includes_cache = ref (Map.empty(module Instance))
+
+  (* Represents the min length of PktIn at runtime *)
+  let pkt_in_chache = ref (None)
+
+  (* Represents the min length of PktOut at runtime *)
+  let pkt_out_chache = ref (None)
   let clear_includes_cache = 
-    includes_cache := Map.empty(module Instance);
-    ()
+    includes_cache := Map.empty(module Instance)
 
   let update_includes_cache (inst : Instance.t) (valid : bool)= 
-    includes_cache := Map.set !includes_cache ~key:inst ~data:valid;
-    ()
+    includes_cache := Map.set !includes_cache ~key:inst ~data:valid
+
+  let subs_pkt_in_cache v =
+    match !pkt_in_chache with
+    | Some x -> 
+      Log.debug(fun m -> m "Len Cache in (subs) = %i" (x - v));
+      if x - v < 0 then 
+        pkt_in_chache := None
+      else 
+        pkt_in_chache := Some(x - v)
+    | _ -> ()
+  
+  let add_pkt_in_cache v =
+    match !pkt_in_chache with
+    | Some x -> 
+      Log.debug(fun m -> m "Len Cache in (add) = %i" (x + v));
+      pkt_in_chache := Some(x + v)
+    | _ -> 
+      pkt_in_chache := Some(v)
+
+  let set_pkt_in_cache v = 
+    Log.debug(fun m -> m "Len Cache in (set) = %i" v);
+    pkt_in_chache := Some(v)
+  
+  let add_pkt_out_cache v =
+    match !pkt_out_chache with
+    | Some x -> 
+      Log.debug(fun m -> m "Len Cache out (add) %i + %i  = %i" x v (x + v));
+      pkt_out_chache := Some(x + v)
+    | _ -> 
+      pkt_out_chache := Some(v)
+
+  let set_pkt_out_cache v = 
+    Log.debug(fun m -> m "Len Cache out (set) = %i" v);
+    pkt_out_chache := Some(v)
 
   let includes (header_table : HeaderTable.t) (ctx : Env.context)
       (hty : HeapType.t) (inst : Instance.t) =
@@ -159,13 +258,11 @@ module HeapTypeOps (P : Prover.S) = struct
     let rslt = Map.find !includes_cache inst in
     match rslt with
     | Some a -> 
-      Log.debug (fun m -> m "!!!! CACHE HIT !!!!!");
       Ok(a)
     | None -> 
       let x = Env.pick_fresh_name ctx "x" in
       let refined = HeapType.Refinement (x, Top, IsValid (0, inst)) in
       let check_rslt = P.check_subtype hty refined ctx header_table in
-      Log.debug (fun m -> m "!!!! CHECKING INSTANCE !!!!!");
       match check_rslt with
       | Ok a -> 
         includes_cache := Map.set !includes_cache ~key:inst ~data:a;
@@ -185,12 +282,24 @@ module HeapTypeOps (P : Prover.S) = struct
 
   let packet_length_gte_n (header_table : HeaderTable.t) (ctx : Env.context)
       (n : int) (hty : HeapType.t) =
-    let x = Env.pick_fresh_name ctx "x" in
-    let refined_pkt_length =
+    Log.debug(fun m -> m "### Chck ###");
+    let check_lenght () = 
+      Log.debug(fun m -> m "### Checking Len ###");
+      let x = Env.pick_fresh_name ctx "x" in
+      let refined_pkt_length =
       Refinement
         (x, Top, Gt (ArithExpr (Length (0, PktIn)), ArithExpr (Num (n - 1))))
+      in
+      P.check_subtype hty refined_pkt_length ctx header_table
     in
-    P.check_subtype hty refined_pkt_length ctx header_table
+    match !pkt_in_chache with
+    | Some cache -> 
+      Log.debug(fun m -> m "### Len Cache Hit %i %i ###" cache n);
+      if n <= cache then
+        Ok(true)
+      else 
+         check_lenght ()
+    | _ -> check_lenght () 
 end
 
 module ExprChecker (P : Prover.S) = struct
@@ -292,9 +401,23 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
 
   let rec compute_type (cmd : Command.t)
       ?(smpl_subs = false)
+      ?(init_pkt_in = None)
+      ?(init_pkt_out = None)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
       (header_table : HeaderTable.t)=
     let open HeapType in
+
+    (
+      match init_pkt_in with 
+      | Some v -> set_pkt_in_cache v
+      | _ -> ()
+    );
+    (
+      match init_pkt_out with 
+      | Some v -> set_pkt_out_cache v
+      | _ -> ()
+    );
+    
     match cmd with
     | Add inst ->
       Log.debug (fun m -> m "@[<v>Typechecking add(%s)...@]" inst.name);
@@ -343,8 +466,17 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         P.check_subtype hty_arg ascb_hty_in ctx header_table
       in
       if input_is_subtype then (
+        let pkt_in_len = get_pkt_len ascb_hty_in PktIn in
+        let pkt_out_len = get_pkt_len ascb_hty_in PktOut in
         let%bind chty_out =
-          compute_type cmd ~smpl_subs:smpl_subs (x, ascb_hty_in) ctx header_table
+          match pkt_in_len, pkt_out_len with
+          | Ok(l_in), Ok (l_out) -> 
+            compute_type cmd ~smpl_subs:smpl_subs ~init_pkt_in:l_in ~init_pkt_out:l_out (x, ascb_hty_in) [] header_table
+          | Ok(l_in), _ -> 
+            compute_type cmd ~smpl_subs:smpl_subs ~init_pkt_in:l_in (x, ascb_hty_in) [] header_table
+          | _ ->  
+            Log.debug(fun m -> m "### Length: X");
+            compute_type cmd ~smpl_subs:smpl_subs (x, ascb_hty_in) [] header_table
         in
         Log.debug (fun m ->
             m
@@ -401,6 +533,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             ]
         in
         update_includes_cache inst true;
+        subs_pkt_in_cache inst_size;
         return (Refinement (y, Top, pred))
       else
         Error
@@ -419,6 +552,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
       let%bind tye = FC.check_form header_table ctx hty_arg e in
       let cache_snapshot = !includes_cache in
+      let pkt_in_cache_snapshot = !pkt_in_chache in
+      let pkt_out_cache_snapshot = !pkt_out_chache in
       match tye with
       | Bool ->
         let x = Env.pick_fresh_name ctx "x" in
@@ -441,6 +576,10 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         in
         (* cache rollback to eliminate side effect from if branch *)
         includes_cache := cache_snapshot;
+        let tyc1_pkt_in_cache = !pkt_in_chache in
+        let tyc1_pkt_out_cache = !pkt_out_chache in
+        pkt_in_chache := pkt_in_cache_snapshot;
+        pkt_out_chache := pkt_out_cache_snapshot;
         let%bind tyc2 =
           compute_type c2 ~smpl_subs:smpl_subs (hty_var, hty_in_else) ctx header_table
         in
@@ -451,6 +590,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               tyc2);
         (* cache rollback to avoid entries only valid for one branch *)
         includes_cache := cache_snapshot;
+        pkt_in_chache := get_min_or_none tyc1_pkt_in_cache !pkt_in_chache;
+        pkt_out_chache := get_min_or_none tyc1_pkt_out_cache !pkt_out_chache;
+
         return
           (Choice
              ( Refinement (y, tyc1, shift_form e 0 1),
@@ -524,6 +666,11 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
     | Reset ->
       Log.debug (fun m -> m "@[<v>Typechecking reset...@]");
       clear_includes_cache;
+      ( 
+        match !pkt_out_chache with
+        | Some l -> add_pkt_in_cache l
+        | None -> ()
+      );
       let y = Env.pick_fresh_name ctx "y" in
       let pred =
         Formula.ands
@@ -566,6 +713,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
                   ArithExpr (Plus (Length (1, PktOut), Num inst_size)) )
             ]
         in
+        add_pkt_out_cache inst_size;
         return (Refinement (y, Top, pred))
     | Remove inst ->
       let%bind incl = includes header_table ctx hty_arg inst in
@@ -648,11 +796,22 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
 end
 
 module Make (C : Checker) : S = struct
-  let check_type (cmd : Command.t) ?(smpl_subs = false) (ty : pi_type) (header_table : HeaderTable.t) =
+  let check_type (cmd : Command.t) ?(smpl_subs = true) (ty : pi_type) (header_table : HeaderTable.t) =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
+      let pkt_in_len = get_pkt_len annot_tyin PktIn in
+      let pkt_out_len = get_pkt_len annot_tyin PktOut in
       let result =
-        let%bind tycout = C.compute_type cmd ~smpl_subs:smpl_subs (x, annot_tyin) [] header_table in
+        let%bind tycout = 
+        match pkt_in_len, pkt_out_len with
+        | Ok(l_in), Ok (l_out) -> 
+          C.compute_type cmd ~smpl_subs:smpl_subs ~init_pkt_in:l_in ~init_pkt_out:l_out (x, annot_tyin) [] header_table
+        | Ok(l_in), _ -> 
+          C.compute_type cmd ~smpl_subs:smpl_subs ~init_pkt_in:l_in (x, annot_tyin) [] header_table
+        | _ ->  
+          Log.debug(fun m -> m "### Length: X");
+          C.compute_type cmd ~smpl_subs:smpl_subs (x, annot_tyin) [] header_table
+        in
         let ctx = [ (x, Env.VarBind annot_tyin) ] in
         Log.debug (fun m ->
             m
