@@ -4,7 +4,7 @@ open Syntax
 open Pretty
 
 module type TestConfig = sig
-  val maxlen : int
+  val maxlen : int ref 
   val verbose : bool
 end
 

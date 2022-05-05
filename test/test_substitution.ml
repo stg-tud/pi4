@@ -7,7 +7,7 @@ open Result
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 22
+  let maxlen = ref(22)
 end
 
 module Config = struct

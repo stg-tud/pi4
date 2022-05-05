@@ -104,6 +104,9 @@ module type S = sig
     ( bool,
       [> `EncodingError of string | `VariableLookupError of string ] )
     result
+
+  val set_maxlen :
+    var -> unit
 end
 
 module Make (Enc : Encoding.S) : S = struct
@@ -276,4 +279,7 @@ module Make (Enc : Encoding.S) : S = struct
     declare_constants smt_consts;
     List.iter smt_terms ~f:(fun term -> assert__ term);
     check_sat_and_reset tactic
+
+  let set_maxlen len = 
+    Enc.set_maxlen len
 end

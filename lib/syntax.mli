@@ -69,6 +69,7 @@ module HeaderTable : sig
   val populate : Instance.t list -> t
   val of_decls : Declaration.t list -> t
   val to_list : t -> Instance.t list
+  val max_header_size : t -> var
 end
 
 type packet =

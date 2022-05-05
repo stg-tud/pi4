@@ -44,7 +44,7 @@ let pi4_check program_filename type_filename maxlen : unit =
   let program = Parsing.parse_program_from_file program_filename in
   Prover.make_prover "z3";
   let module Config = struct
-    let maxlen = maxlen
+    let maxlen = ref(maxlen)
   end in
   let module C = Typechecker.SemanticChecker (Config) in
   let module T = Typechecker.Make (C) in
@@ -59,7 +59,7 @@ let p4_check filename includes _maxlen verbose =
   | `Ok p4prog -> (
     Prover.make_prover "z3";
     let module C = Typechecker.SemanticChecker (struct
-      let maxlen = _maxlen
+      let maxlen = ref(_maxlen)
     end) in
     let module T = Typechecker.Make (C) in
     match p4prog with

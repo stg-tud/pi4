@@ -20,7 +20,7 @@ let maxlen = 8
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 8
+  let maxlen = ref(8)
 end
 
 module Test = Test_utils.TestRunner (TestConfig)

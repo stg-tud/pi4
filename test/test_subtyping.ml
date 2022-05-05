@@ -7,7 +7,7 @@ open HeapType
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 32
+  let maxlen = ref(32)
 end
 
 module Test = Test_utils.TestRunner (TestConfig)

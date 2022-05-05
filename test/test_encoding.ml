@@ -22,7 +22,7 @@ let id_sort_testable =
   Alcotest.testable (Fmt.list Pretty.pp_ident_sort) (List.equal Poly.equal)
 
 module Enc = Encoding.FixedWidthBitvectorEncoding (struct
-  let maxlen = 32
+  let maxlen = ref(32)
 end)
 
 let test_consts_nothing () =

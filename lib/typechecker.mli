@@ -16,6 +16,10 @@ module type S = sig
 end
 
 module type Checker = sig
+
+  val set_maxlen :
+    var -> unit
+
   val compute_type :
     Command.t ->
     ?smpl_subs:bool ->
@@ -46,7 +50,7 @@ end
 
 module SemanticChecker : functor
   (BV : sig
-     val maxlen : int
+     val maxlen : int ref
    end)
   -> Checker
 

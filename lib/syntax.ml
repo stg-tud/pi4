@@ -143,6 +143,15 @@ module HeaderTable = struct
     String.Map.to_alist header_table ~key_order:`Increasing
     |> List.map ~f:(fun (inst_name, fields) ->
            Instance.{ name = inst_name; fields })
+
+  let max_header_size header_table =
+    let ht_list = to_list header_table in
+    let rec get_size hl =
+      match hl with
+      | a :: t -> Instance.sizeof a + get_size t
+      | [] -> 0
+    in
+    get_size ht_list
 end
 
 type packet =

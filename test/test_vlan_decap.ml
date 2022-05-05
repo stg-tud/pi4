@@ -2,7 +2,7 @@ open Alcotest
 
 module TestConfig = struct
   let verbose = true
-  let maxlen = 12000
+  let maxlen = ref(12000)
 end
 
 module Test = Test_utils.TestRunner (TestConfig)

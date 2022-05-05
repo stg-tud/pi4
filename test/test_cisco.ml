@@ -5,7 +5,7 @@ open Syntax
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 360
+  let maxlen = ref(360)
 end
 
 module Test = Test_utils.TestRunner (TestConfig)

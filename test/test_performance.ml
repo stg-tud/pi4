@@ -3,7 +3,7 @@ open Pi4
 open Syntax
 
 module Config = struct
-  let maxlen = 12000
+  let maxlen = ref(12000)
 end
 
 module P = Prover.Make (Encoding.FixedWidthBitvectorEncoding (Config))

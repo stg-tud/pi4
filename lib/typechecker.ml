@@ -172,6 +172,10 @@ module type S = sig
 end
 
 module type Checker = sig
+  
+  val set_maxlen :
+    var -> unit
+
   val compute_type :
     Command.t ->
     ?smpl_subs:bool ->
@@ -208,6 +212,11 @@ module HeapTypeOps (P : Prover.S) = struct
 
   (* Represents the min length of PktOut at runtime *)
   let pkt_out_chache = ref (None)
+
+  let clear_len_caches = 
+    pkt_in_chache := None;
+    pkt_out_chache := None
+
   let clear_includes_cache = 
     includes_cache := Map.empty(module Instance)
 
@@ -399,6 +408,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
   module FC = FormChecker (P)
   include HeapTypeOps (P)
 
+  let set_maxlen len =
+    P.set_maxlen len
+
   let rec compute_type (cmd : Command.t)
       ?(smpl_subs = false)
       ?(init_pkt_in = None)
@@ -469,6 +481,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         let pkt_in_len = get_pkt_len ascb_hty_in PktIn in
         let pkt_out_len = get_pkt_len ascb_hty_in PktOut in
         let%bind chty_out =
+          clear_len_caches;
           match pkt_in_len, pkt_out_len with
           | Ok(l_in), Ok (l_out) -> 
             compute_type cmd ~smpl_subs:smpl_subs ~init_pkt_in:l_in ~init_pkt_out:l_out (x, ascb_hty_in) [] header_table
@@ -781,7 +794,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m ->
           m "Context for substitution type:@ %a" Pretty.pp_context ctx');
       if smpl_subs then
-        let hty_subst = Substitution.simplify hty_subst C.maxlen in
+        let hty_subst = Substitution.simplify hty_subst !C.maxlen in
         return hty_subst
       else 
         return hty_subst
@@ -799,6 +812,9 @@ module Make (C : Checker) : S = struct
   let check_type (cmd : Command.t) ?(smpl_subs = true) (ty : pi_type) (header_table : HeaderTable.t) =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
+      let maxlen = HeaderTable.max_header_size header_table + 1 in
+      Log.debug(fun m -> m "Setting max header size to %i" maxlen);
+      C.set_maxlen maxlen;
       let pkt_in_len = get_pkt_len annot_tyin PktIn in
       let pkt_out_len = get_pkt_len annot_tyin PktOut in
       let result =

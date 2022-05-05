@@ -38,7 +38,7 @@ let header_table = HeaderTable.populate [ ether_inst; ipv4_inst; ipv4_opt_inst ]
 
 module TestConfig = struct
  let verbose = true
- let maxlen = 1500
+ let maxlen = ref(1500)
 end
 
 module Test = Test_utils.TestRunner (TestConfig)
