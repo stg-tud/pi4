@@ -168,7 +168,15 @@ let rec get_pkt_len (hty : HeapType.t) pkt =
     
 
 module type S = sig
-  val check_type : Command.t -> ?smpl_subs:bool -> pi_type -> HeaderTable.t -> TypecheckingResult.t
+  val check_type : 
+    Command.t -> 
+    ?smpl_subs:bool -> 
+    ?incl_cache:bool ->
+    ?len_cache:bool ->
+    ?dynamic_maxlen:bool ->
+    pi_type -> 
+    HeaderTable.t -> 
+    TypecheckingResult.t
 end
 
 module type Checker = sig
@@ -181,6 +189,8 @@ module type Checker = sig
     ?smpl_subs:bool ->
     ?init_pkt_in:(var)option ->
     ?init_pkt_out:(var)option ->
+    ?incl_cache:bool ->
+    ?len_cache:bool ->
     string * HeapType.t ->
     Env.context ->
     HeaderTable.t ->
@@ -205,6 +215,8 @@ module type Checker = sig
 end
 
 module HeapTypeOps (P : Prover.S) = struct
+  let enable_includes_cache = ref false
+  let enable_len_cache = ref false
   let includes_cache = ref (Map.empty(module Instance))
 
   (* Represents the min length of PktIn at runtime *)
@@ -219,6 +231,10 @@ module HeapTypeOps (P : Prover.S) = struct
 
   let clear_includes_cache = 
     includes_cache := Map.empty(module Instance)
+    
+  let clear_caches = 
+    clear_len_caches;
+    clear_includes_cache
 
   let update_includes_cache (inst : Instance.t) (valid : bool)= 
     includes_cache := Map.set !includes_cache ~key:inst ~data:valid
@@ -264,11 +280,8 @@ module HeapTypeOps (P : Prover.S) = struct
           Instance.(inst.name)
           (Pretty.pp_header_type ctx)
           hty);
-    let rslt = Map.find !includes_cache inst in
-    match rslt with
-    | Some a -> 
-      Ok(a)
-    | None -> 
+    
+    let check_inluces () =
       let x = Env.pick_fresh_name ctx "x" in
       let refined = HeapType.Refinement (x, Top, IsValid (0, inst)) in
       let check_rslt = P.check_subtype hty refined ctx header_table in
@@ -277,6 +290,17 @@ module HeapTypeOps (P : Prover.S) = struct
         includes_cache := Map.set !includes_cache ~key:inst ~data:a;
         check_rslt
       | _ -> check_rslt
+    in
+
+    if !enable_includes_cache then
+      let rslt = Map.find !includes_cache inst in
+      match rslt with
+      | Some a -> 
+        Log.debug(fun m -> m "Includes Cache Hit");
+        Ok(a)
+      | None -> check_inluces ()
+    else
+      check_inluces ()
 
   let excludes (header_table : HeaderTable.t) (ctx : Env.context)
       (hty : HeapType.t) (inst : Instance.t) =
@@ -291,9 +315,7 @@ module HeapTypeOps (P : Prover.S) = struct
 
   let packet_length_gte_n (header_table : HeaderTable.t) (ctx : Env.context)
       (n : int) (hty : HeapType.t) =
-    Log.debug(fun m -> m "### Chck ###");
     let check_lenght () = 
-      Log.debug(fun m -> m "### Checking Len ###");
       let x = Env.pick_fresh_name ctx "x" in
       let refined_pkt_length =
       Refinement
@@ -301,14 +323,18 @@ module HeapTypeOps (P : Prover.S) = struct
       in
       P.check_subtype hty refined_pkt_length ctx header_table
     in
-    match !pkt_in_chache with
-    | Some cache -> 
-      Log.debug(fun m -> m "### Len Cache Hit %i %i ###" cache n);
-      if n <= cache then
-        Ok(true)
-      else 
-         check_lenght ()
-    | _ -> check_lenght () 
+
+    if !enable_len_cache then
+      match !pkt_in_chache with
+      | Some cache -> 
+        Log.debug(fun m -> m "### Len Cache Hit %i %i ###" cache n);
+        if n <= cache then
+          Ok(true)
+        else 
+          check_lenght ()
+      | _ -> check_lenght () 
+    else
+      check_lenght ()
 end
 
 module ExprChecker (P : Prover.S) = struct
@@ -411,13 +437,421 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
   let set_maxlen len =
     P.set_maxlen len
 
-  let rec compute_type (cmd : Command.t)
+  let rec compute_type (cmd_in : Command.t)
       ?(smpl_subs = false)
       ?(init_pkt_in = None)
       ?(init_pkt_out = None)
-      ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
-      (header_table : HeaderTable.t)=
-    let open HeapType in
+      ?(incl_cache = false) 
+      ?(len_cache = false) 
+      ((hty_var_in, hty_arg_in) : string * HeapType.t) (ctx_in : Env.context)
+      (header_table_in : HeaderTable.t)=
+    let open HeapType in 
+
+    let rec compute cmd (hty_var, hty_arg) ctx header_table = 
+      match cmd with
+      | Command.Add inst ->
+        Log.debug (fun m -> m "@[<v>Typechecking add(%s)...@]" inst.name);
+        Log.debug (fun m ->
+            m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
+        let%bind excl = excludes header_table ctx hty_arg inst in
+        if not excl then
+          Error
+            (`TypeError
+              (Fmt.str "Instance %s must be excluded from input type." inst.name))
+        else
+          let y = Env.pick_fresh_name ctx "y" in
+          let other_insts_unchanged =
+            other_instances header_table inst |> Syntax.inst_equality 0 1
+          in
+          let inst_size = Instance.sizeof inst in
+          let pred =
+            Formula.ands
+              [ IsValid (0, inst);
+                Syntax.packet_equality 0 1 PktIn;
+                Syntax.packet_equality 0 1 PktOut;
+                other_insts_unchanged;
+                Eq
+                  ( BvExpr (Slice (Instance (0, inst), 0, inst_size)),
+                    BvExpr (Bv (BitVector.zero inst_size)) )
+              ]
+          in
+          update_includes_cache inst true;
+          return (Refinement (y, Top, pred))
+      | Ascription (cmd, x, ascb_hty_in, ascb_hty_out) ->
+        Log.debug (fun m ->
+            m "@[<v>Typechecking %a@ as@ (%s:%a) -> %a...@]" Pretty.pp_command cmd
+              x (Pretty.pp_header_type []) ascb_hty_in
+              (Pretty.pp_header_type [ (x, Env.VarBind ascb_hty_in) ])
+              ascb_hty_out);
+        Log.debug (fun m ->
+            m "Checking if input type is a subtype of the ascribed input type...");
+
+        Log.debug (fun m ->
+            m "Ascribed input type: %a" Pretty.pp_header_type_raw ascb_hty_in);
+        Log.debug (fun m -> m "Input type: %a" Pretty.pp_header_type_raw hty_arg);
+        Log.debug (fun m ->
+            m "Context used for input type: %a" Pretty.pp_context ctx);
+
+        let%bind input_is_subtype =
+          P.check_subtype hty_arg ascb_hty_in ctx header_table
+        in
+
+        if input_is_subtype then (
+          let%bind chty_out =
+            clear_len_caches;
+            if !enable_len_cache then
+              let pkt_in_len = get_pkt_len ascb_hty_in PktIn in
+              let pkt_out_len = get_pkt_len ascb_hty_in PktOut in
+              match pkt_in_len, pkt_out_len with
+              | Ok(l_in), Ok (l_out) -> 
+                compute_type cmd 
+                  ~smpl_subs:smpl_subs 
+                  ~init_pkt_in:l_in 
+                  ~init_pkt_out:l_out
+                  ~incl_cache:incl_cache
+                  ~len_cache:len_cache
+                  (x, ascb_hty_in) ctx header_table
+              | Ok(l_in), _ -> 
+                compute_type cmd 
+                ~smpl_subs:smpl_subs
+                ~init_pkt_in:l_in
+                ~incl_cache:incl_cache
+                ~len_cache:len_cache
+                (x, ascb_hty_in) ctx header_table
+              | _ ->  
+                compute_type cmd 
+                ~smpl_subs:smpl_subs
+                ~incl_cache:incl_cache
+                ~len_cache:len_cache
+                (x, ascb_hty_in) ctx header_table
+            else
+              compute_type cmd 
+              ~smpl_subs:smpl_subs
+              ~incl_cache:incl_cache
+              ~len_cache:len_cache
+              (x, ascb_hty_in) ctx header_table
+          in
+          Log.debug (fun m ->
+              m
+                "Checking if computed output type is a subtype of the ascribed \
+                output type...");
+          let%bind output_is_subtype =
+            P.check_subtype chty_out ascb_hty_out
+              [ (x, Env.VarBind ascb_hty_in) ]
+              header_table
+          in
+          if output_is_subtype then return ascb_hty_out
+          else
+            Error
+              (`TypeError
+                "The computed output type must be a subtype of the ascribed \
+                output type"))
+        else
+          Error
+            (`TypeError
+              "The argument input type must be a subtype of the ascribed input \
+              type")
+      | Extract inst ->
+        Log.debug (fun m -> m "@[<v>Typechecking extract(%s)...@]" inst.name);
+        Log.debug (fun m ->
+            m "@[<v>Input type:@ %a@]" Pretty.pp_header_type_raw hty_arg);
+        Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
+        Log.debug (fun m ->
+            m
+              "@[<v>Checking if pkt_in of@ %a@ provides enough bits in context@ \
+              %a...@]"
+              Pretty.pp_header_type_raw
+              (refresh_binders hty_arg ctx)
+              Pretty.pp_context ctx);
+        let inst_size = Instance.sizeof inst in
+        let%bind has_enough_bits =
+          packet_length_gte_n header_table ctx inst_size hty_arg
+        in
+        if has_enough_bits then
+          let y = Env.pick_fresh_name ctx "y" in
+          let pred =
+            Formula.ands
+              [ IsValid (0, inst);
+                Eq
+                  ( BvExpr
+                      (Concat
+                        ( Slice (Instance (0, inst), 0, inst_size),
+                          Packet (0, PktIn) )),
+                    BvExpr (Packet (1, PktIn)) );
+                Eq
+                  ( ArithExpr (Plus (Length (0, PktIn), Num inst_size)),
+                    ArithExpr (Length (1, PktIn)) );
+                other_instances header_table inst |> Syntax.inst_equality 0 1;
+                packet_equality 0 1 PktOut
+              ]
+          in
+          update_includes_cache inst true;
+          subs_pkt_in_cache inst_size;
+          return (Refinement (y, Top, pred))
+        else
+          Error
+            (`TypeError
+              (Printf.sprintf
+                "Tried to chomp off %d bits, but 'pkt_in' does not provide \
+                  enough bits."
+                (Instance.sizeof inst)))
+      | If (e, c1, c2) -> (
+        Log.debug (fun m ->
+            m "@[<v>Typechecking@ @[<v 2>if(%a) {@ %a } else {@ %a @ }...@]@]"
+              (Pretty.pp_form [ ("_", NameBind) ])
+              e Pretty.pp_command c1 Pretty.pp_command c2);
+        Log.debug (fun m ->
+            m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
+        Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
+        let%bind tye = FC.check_form header_table ctx hty_arg e in
+        let cache_snapshot = !includes_cache in
+        let pkt_in_cache_snapshot = !pkt_in_chache in
+        let pkt_out_cache_snapshot = !pkt_out_chache in
+        match tye with
+        | Bool ->
+          let x = Env.pick_fresh_name ctx "x" in
+          let y = Env.pick_fresh_name ctx "y" in
+          Log.debug (fun m -> m "@[<v>Typechecking 'then' branch...@]");
+          let hty_in_then =
+            Simplify.fold_refinements (Refinement (x, hty_arg, e))
+          in
+          let%bind tyc1 =
+            compute c1 (hty_var, hty_in_then) ctx header_table
+          in
+          let ctx_then = Env.add_binding ctx hty_var (Env.VarBind hty_in_then) in
+          Log.debug (fun m ->
+              m "@[<v>Computed type for then-branch:@ %a@]"
+                (Pretty.pp_header_type ctx_then)
+                tyc1);
+          Log.debug (fun m -> m "@[<v>Typechecking 'else' branch...@]");
+          let hty_in_else =
+            Simplify.fold_refinements (Refinement (x, hty_arg, Neg e))
+          in
+          (* cache rollback to eliminate side effect from if branch *)
+          includes_cache := cache_snapshot;
+          let tyc1_pkt_in_cache = !pkt_in_chache in
+          let tyc1_pkt_out_cache = !pkt_out_chache in
+          pkt_in_chache := pkt_in_cache_snapshot;
+          pkt_out_chache := pkt_out_cache_snapshot;
+          let%bind tyc2 =
+            compute c2 (hty_var, hty_in_else) ctx header_table
+          in
+          let ctx_else = Env.add_binding ctx hty_var (Env.VarBind hty_in_else) in
+          Log.debug (fun m ->
+              m "@[<v>Computed type for else-branch:@ %a@]"
+                (Pretty.pp_header_type ctx_else)
+                tyc2);
+          (* cache rollback to avoid entries only valid for one branch *)
+          includes_cache := cache_snapshot;
+          pkt_in_chache := get_min_or_none tyc1_pkt_in_cache !pkt_in_chache;
+          pkt_out_chache := get_min_or_none tyc1_pkt_out_cache !pkt_out_chache;
+
+          return
+            (Choice
+              ( Refinement (y, tyc1, shift_form e 0 1),
+                Refinement (y, tyc2, shift_form (Neg e) 0 1) ))
+        | _ -> Error (`TypeError "Expression must be of type Bool"))
+      | Assign (inst, left, right, tm) ->
+        Log.debug (fun m ->
+            m "@[<v>Typechecking %s.[%d:%d]:=%a...@]" inst.name left right
+              (Pretty.pp_expr ctx) tm);
+        Log.debug (fun m ->
+            m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
+        Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
+        let%bind incl = includes header_table ctx hty_arg inst in
+        if not incl then
+          Error
+            (`TypeError
+              (Printf.sprintf "Instance '%s' not included in header type."
+                inst.name))
+        else
+          let inst_size = Instance.sizeof inst in
+
+          (* Ensure that all instances != inst are equal *)
+          let insts_equal =
+            other_instances header_table inst |> Syntax.inst_equality 0 1
+          in
+
+          (* For instance inst, ensure that all bits except for the assigned ones
+            are equal *)
+          (* let fields_equal = if left > 0 then Eq ( BvExpr (Slice (Instance (0,
+            inst), 0, left)), BvExpr (Slice (Instance (1, inst), 0, left)) ) else
+            True in let fields_equal = if inst_size - right > 0 then let eq_right
+            = Eq ( BvExpr (Slice (Instance (0, inst), right, inst_size)), BvExpr
+            (Slice (Instance (1, inst), right, inst_size)) ) in And
+            (fields_equal, eq_right) else fields_equal in *)
+
+          let fields_eq_left = 
+            if left = 0 then
+              True
+            else
+              Eq
+                ( BvExpr (Slice (Instance (0, inst), 0, left)),
+                  BvExpr (Slice (Instance (1, inst), 0, left)) )
+          in
+          let fields_eq_right =
+            if inst_size - right > 0 then
+              Eq
+                ( BvExpr (Slice (Instance (0, inst), right, inst_size)),
+                  BvExpr (Slice (Instance (1, inst), right, inst_size)) )
+            else
+              True
+          in
+
+          let y = Env.pick_fresh_name ctx "y" in
+          let pred =
+            Formula.ands
+              [ Syntax.packet_equality 0 1 PktIn;
+                Syntax.packet_equality 0 1 PktOut;
+                insts_equal;
+                fields_eq_left;
+                Eq
+                  ( BvExpr (Slice (Instance (0, inst), left, right)),
+                    shift_expr tm 0 1 );
+                fields_eq_right;
+                Or
+                  ( And (Neg (IsValid (0, inst)), Neg (IsValid (1, inst))),
+                    And (IsValid (0, inst), IsValid (1, inst)) )
+              ]
+          in
+
+          return (Refinement (y, Top, pred))
+      | Reset ->
+        Log.debug (fun m -> m "@[<v>Typechecking reset...@]");
+        clear_includes_cache;
+        ( 
+          match !pkt_out_chache with
+          | Some l -> add_pkt_in_cache l
+          | None -> ()
+        );
+        let y = Env.pick_fresh_name ctx "y" in
+        let pred =
+          Formula.ands
+            [ Eq (ArithExpr (Length (0, PktOut)), ArithExpr (Num 0));
+              Eq
+                ( BvExpr (Packet (0, PktIn)),
+                  BvExpr (Concat (Packet (1, PktOut), Packet (1, PktIn))) );
+              Eq
+                ( ArithExpr (Length (0, PktIn)),
+                  ArithExpr (Plus (Length (1, PktOut), Length (1, PktIn))) );
+              HeaderTable.to_list header_table
+              |> List.fold ~init:True ~f:(fun acc i ->
+                    And (Neg (IsValid (0, i)), acc))
+            ]
+        in
+        return (Refinement (y, Top, pred))
+      | Remit inst ->
+        Log.debug (fun m -> m "@[<v>Typechecking remit(%s)...@]" inst.name);
+        let%bind incl = includes header_table ctx hty_arg inst in
+        if not incl then
+          Error
+            (`TypeError
+              (Printf.sprintf "Instance '%s' not included in header type"
+                inst.name))
+        else
+          let y = Env.pick_fresh_name ctx "y" in
+          let inst_size = Instance.sizeof inst in
+          let pred =
+            Formula.ands
+              [ HeaderTable.to_list header_table |> Syntax.inst_equality 0 1;
+                Syntax.packet_equality 0 1 PktIn;
+                Eq
+                  ( BvExpr (Packet (0, PktOut)),
+                    BvExpr
+                      (Concat
+                        ( Packet (1, PktOut),
+                          Slice (Instance (1, inst), 0, inst_size) )) );
+                Eq
+                  ( ArithExpr (Length (0, PktOut)),
+                    ArithExpr (Plus (Length (1, PktOut), Num inst_size)) )
+              ]
+          in
+          add_pkt_out_cache inst_size;
+          return (Refinement (y, Top, pred))
+      | Remove inst ->
+        let%bind incl = includes header_table ctx hty_arg inst in
+        if not incl then
+          Error
+            (`TypeError
+              (Printf.sprintf "Instance '%s' not included in heap type" inst.name))
+        else
+          let y = Env.pick_fresh_name ctx "y" in
+          let pred =
+            Formula.ands
+              [ other_instances header_table inst |> Syntax.inst_equality 0 1;
+                Syntax.packet_equality 0 1 PktIn;
+                Syntax.packet_equality 0 1 PktOut;
+                Neg (IsValid (0, inst))
+              ]
+          in
+          update_includes_cache inst false;
+          return (Refinement (y, Top, pred))
+      | Seq (c1, c2) ->
+        Log.debug (fun m ->
+            m "@[<v>Typechecking sequence:@ c1:@[<v>@ %a @]@ c2:@[<v>@ %a@]@]"
+              Pretty.pp_command c1 Pretty.pp_command c2);
+        Log.debug (fun m ->
+            m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
+        Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
+        let%bind tyc1 = compute c1 (hty_var, hty_arg) ctx header_table in
+
+        let ctx' =
+          if Types.contains_free_vars tyc1 then
+            match c1 with
+            | Ascription (_, x, ascb_hty_in, _) ->
+              Env.add_binding ctx x (Env.VarBind ascb_hty_in)
+            | _ -> Env.add_binding ctx hty_var (Env.VarBind hty_arg)
+          else ctx
+        in
+        Log.debug (fun m ->
+            m "@[<v>Computed output type for c1 = %a:@ %a@]" Pretty.pp_command c1
+              (Pretty.pp_header_type ctx')
+              tyc1);
+        Log.debug (fun m ->
+            m "@[<v>Context used for output type of c1:@ %a@]" Pretty.pp_context
+              ctx');
+        let y = Env.pick_fresh_name ctx' "y" in
+        let%bind tyc2 = compute c2 (y, tyc1) ctx' header_table in
+        let ctx'' =
+          match c2 with
+          | Ascription (_, var, ascb_hty_in, _) ->
+            Env.add_binding ctx' var (Env.VarBind ascb_hty_in)
+          | _ -> Env.add_binding ctx' y (Env.VarBind tyc1)
+        in
+        Log.debug (fun m ->
+            m "@[<v>Computed output type for c2 = %a:@ %a@]" Pretty.pp_command c2
+              (Pretty.pp_header_type ctx'')
+              tyc2);
+        Log.debug (fun m ->
+            m "@[<v>Context used for output type of c2:@ %a" Pretty.pp_context
+              ctx'');
+
+        let hty_subst = Substitution (tyc2, y, tyc1) in
+        Log.debug (fun m ->
+            m "Resulting substitution type:@ %a"
+              (Pretty.pp_header_type ctx')
+              hty_subst);
+        Log.debug (fun m ->
+            m "Context for substitution type:@ %a" Pretty.pp_context ctx');
+        if smpl_subs then
+          let hty_subst = Substitution.simplify hty_subst !C.maxlen in
+          return hty_subst
+        else 
+          return hty_subst
+      | Skip ->
+        Log.debug (fun m -> m "@[<v>Typechecking skip...@]");
+        Log.debug (fun m ->
+            m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
+        let y = Env.pick_fresh_name ctx "y" in
+        return (Refinement (y, Top, Syntax.heap_equality 0 1 header_table))
+    in
+
+    clear_caches;
+    Log.debug(fun m -> m "Set enable_includes_cache to %b" incl_cache);
+    enable_includes_cache := incl_cache;
+    Log.debug(fun m -> m "Set len_cache to %b" len_cache);
+    enable_len_cache := len_cache;
+    Log.debug(fun m -> m "Substitution folding enabled: %b" smpl_subs);
 
     (
       match init_pkt_in with 
@@ -429,404 +863,62 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       | Some v -> set_pkt_out_cache v
       | _ -> ()
     );
+    compute cmd_in (hty_var_in, hty_arg_in) ctx_in header_table_in
     
-    match cmd with
-    | Add inst ->
-      Log.debug (fun m -> m "@[<v>Typechecking add(%s)...@]" inst.name);
-      Log.debug (fun m ->
-          m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
-      let%bind excl = excludes header_table ctx hty_arg inst in
-      if not excl then
-        Error
-          (`TypeError
-            (Fmt.str "Instance %s must be excluded from input type." inst.name))
-      else
-        let y = Env.pick_fresh_name ctx "y" in
-        let other_insts_unchanged =
-          other_instances header_table inst |> Syntax.inst_equality 0 1
-        in
-        let inst_size = Instance.sizeof inst in
-        let pred =
-          Formula.ands
-            [ IsValid (0, inst);
-              Syntax.packet_equality 0 1 PktIn;
-              Syntax.packet_equality 0 1 PktOut;
-              other_insts_unchanged;
-              Eq
-                ( BvExpr (Slice (Instance (0, inst), 0, inst_size)),
-                  BvExpr (Bv (BitVector.zero inst_size)) )
-            ]
-        in
-        update_includes_cache inst true;
-        return (Refinement (y, Top, pred))
-    | Ascription (cmd, x, ascb_hty_in, ascb_hty_out) ->
-      Log.debug (fun m ->
-          m "@[<v>Typechecking %a@ as@ (%s:%a) -> %a...@]" Pretty.pp_command cmd
-            x (Pretty.pp_header_type []) ascb_hty_in
-            (Pretty.pp_header_type [ (x, Env.VarBind ascb_hty_in) ])
-            ascb_hty_out);
-      Log.debug (fun m ->
-          m "Checking if input type is a subtype of the ascribed input type...");
-
-      Log.debug (fun m ->
-          m "Ascribed input type: %a" Pretty.pp_header_type_raw ascb_hty_in);
-      Log.debug (fun m -> m "Input type: %a" Pretty.pp_header_type_raw hty_arg);
-      Log.debug (fun m ->
-          m "Context used for input type: %a" Pretty.pp_context ctx);
-
-      let%bind input_is_subtype =
-        P.check_subtype hty_arg ascb_hty_in ctx header_table
-      in
-      if input_is_subtype then (
-        let pkt_in_len = get_pkt_len ascb_hty_in PktIn in
-        let pkt_out_len = get_pkt_len ascb_hty_in PktOut in
-        let%bind chty_out =
-          clear_len_caches;
-          match pkt_in_len, pkt_out_len with
-          | Ok(l_in), Ok (l_out) -> 
-            compute_type cmd ~smpl_subs:smpl_subs ~init_pkt_in:l_in ~init_pkt_out:l_out (x, ascb_hty_in) [] header_table
-          | Ok(l_in), _ -> 
-            compute_type cmd ~smpl_subs:smpl_subs ~init_pkt_in:l_in (x, ascb_hty_in) [] header_table
-          | _ ->  
-            Log.debug(fun m -> m "### Length: X");
-            compute_type cmd ~smpl_subs:smpl_subs (x, ascb_hty_in) [] header_table
-        in
-        Log.debug (fun m ->
-            m
-              "Checking if computed output type is a subtype of the ascribed \
-               output type...");
-        let%bind output_is_subtype =
-          P.check_subtype chty_out ascb_hty_out
-            [ (x, Env.VarBind ascb_hty_in) ]
-            header_table
-        in
-        if output_is_subtype then return ascb_hty_out
-        else
-          Error
-            (`TypeError
-              "The computed output type must be a subtype of the ascribed \
-               output type"))
-      else
-        Error
-          (`TypeError
-            "The argument input type must be a subtype of the ascribed input \
-             type")
-    | Extract inst ->
-      Log.debug (fun m -> m "@[<v>Typechecking extract(%s)...@]" inst.name);
-      Log.debug (fun m ->
-          m "@[<v>Input type:@ %a@]" Pretty.pp_header_type_raw hty_arg);
-      Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
-      Log.debug (fun m ->
-          m
-            "@[<v>Checking if pkt_in of@ %a@ provides enough bits in context@ \
-             %a...@]"
-            Pretty.pp_header_type_raw
-            (refresh_binders hty_arg ctx)
-            Pretty.pp_context ctx);
-      let inst_size = Instance.sizeof inst in
-      let%bind has_enough_bits =
-        packet_length_gte_n header_table ctx inst_size hty_arg
-      in
-      if has_enough_bits then
-        let y = Env.pick_fresh_name ctx "y" in
-        let pred =
-          Formula.ands
-            [ IsValid (0, inst);
-              Eq
-                ( BvExpr
-                    (Concat
-                       ( Slice (Instance (0, inst), 0, inst_size),
-                         Packet (0, PktIn) )),
-                  BvExpr (Packet (1, PktIn)) );
-              Eq
-                ( ArithExpr (Plus (Length (0, PktIn), Num inst_size)),
-                  ArithExpr (Length (1, PktIn)) );
-              other_instances header_table inst |> Syntax.inst_equality 0 1;
-              packet_equality 0 1 PktOut
-            ]
-        in
-        update_includes_cache inst true;
-        subs_pkt_in_cache inst_size;
-        return (Refinement (y, Top, pred))
-      else
-        Error
-          (`TypeError
-            (Printf.sprintf
-               "Tried to chomp off %d bits, but 'pkt_in' does not provide \
-                enough bits."
-               (Instance.sizeof inst)))
-    | If (e, c1, c2) -> (
-      Log.debug (fun m ->
-          m "@[<v>Typechecking@ @[<v 2>if(%a) {@ %a } else {@ %a @ }...@]@]"
-            (Pretty.pp_form [ ("_", NameBind) ])
-            e Pretty.pp_command c1 Pretty.pp_command c2);
-      Log.debug (fun m ->
-          m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
-      Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
-      let%bind tye = FC.check_form header_table ctx hty_arg e in
-      let cache_snapshot = !includes_cache in
-      let pkt_in_cache_snapshot = !pkt_in_chache in
-      let pkt_out_cache_snapshot = !pkt_out_chache in
-      match tye with
-      | Bool ->
-        let x = Env.pick_fresh_name ctx "x" in
-        let y = Env.pick_fresh_name ctx "y" in
-        Log.debug (fun m -> m "@[<v>Typechecking 'then' branch...@]");
-        let hty_in_then =
-          Simplify.fold_refinements (Refinement (x, hty_arg, e))
-        in
-        let%bind tyc1 =
-          compute_type c1 ~smpl_subs:smpl_subs (hty_var, hty_in_then) ctx header_table
-        in
-        let ctx_then = Env.add_binding ctx hty_var (Env.VarBind hty_in_then) in
-        Log.debug (fun m ->
-            m "@[<v>Computed type for then-branch:@ %a@]"
-              (Pretty.pp_header_type ctx_then)
-              tyc1);
-        Log.debug (fun m -> m "@[<v>Typechecking 'else' branch...@]");
-        let hty_in_else =
-          Simplify.fold_refinements (Refinement (x, hty_arg, Neg e))
-        in
-        (* cache rollback to eliminate side effect from if branch *)
-        includes_cache := cache_snapshot;
-        let tyc1_pkt_in_cache = !pkt_in_chache in
-        let tyc1_pkt_out_cache = !pkt_out_chache in
-        pkt_in_chache := pkt_in_cache_snapshot;
-        pkt_out_chache := pkt_out_cache_snapshot;
-        let%bind tyc2 =
-          compute_type c2 ~smpl_subs:smpl_subs (hty_var, hty_in_else) ctx header_table
-        in
-        let ctx_else = Env.add_binding ctx hty_var (Env.VarBind hty_in_else) in
-        Log.debug (fun m ->
-            m "@[<v>Computed type for else-branch:@ %a@]"
-              (Pretty.pp_header_type ctx_else)
-              tyc2);
-        (* cache rollback to avoid entries only valid for one branch *)
-        includes_cache := cache_snapshot;
-        pkt_in_chache := get_min_or_none tyc1_pkt_in_cache !pkt_in_chache;
-        pkt_out_chache := get_min_or_none tyc1_pkt_out_cache !pkt_out_chache;
-
-        return
-          (Choice
-             ( Refinement (y, tyc1, shift_form e 0 1),
-               Refinement (y, tyc2, shift_form (Neg e) 0 1) ))
-      | _ -> Error (`TypeError "Expression must be of type Bool"))
-    | Assign (inst, left, right, tm) ->
-      Log.debug (fun m ->
-          m "@[<v>Typechecking %s.[%d:%d]:=%a...@]" inst.name left right
-            (Pretty.pp_expr ctx) tm);
-      Log.debug (fun m ->
-          m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
-      Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
-      let%bind incl = includes header_table ctx hty_arg inst in
-      if not incl then
-        Error
-          (`TypeError
-            (Printf.sprintf "Instance '%s' not included in header type."
-               inst.name))
-      else
-        let inst_size = Instance.sizeof inst in
-
-        (* Ensure that all instances != inst are equal *)
-        let insts_equal =
-          other_instances header_table inst |> Syntax.inst_equality 0 1
-        in
-
-        (* For instance inst, ensure that all bits except for the assigned ones
-           are equal *)
-        (* let fields_equal = if left > 0 then Eq ( BvExpr (Slice (Instance (0,
-           inst), 0, left)), BvExpr (Slice (Instance (1, inst), 0, left)) ) else
-           True in let fields_equal = if inst_size - right > 0 then let eq_right
-           = Eq ( BvExpr (Slice (Instance (0, inst), right, inst_size)), BvExpr
-           (Slice (Instance (1, inst), right, inst_size)) ) in And
-           (fields_equal, eq_right) else fields_equal in *)
-
-        let fields_eq_left = 
-          if left = 0 then
-            True
-          else
-            Eq
-              ( BvExpr (Slice (Instance (0, inst), 0, left)),
-                BvExpr (Slice (Instance (1, inst), 0, left)) )
-        in
-        let fields_eq_right =
-          if inst_size - right > 0 then
-            Eq
-              ( BvExpr (Slice (Instance (0, inst), right, inst_size)),
-                BvExpr (Slice (Instance (1, inst), right, inst_size)) )
-          else
-            True
-        in
-
-        let y = Env.pick_fresh_name ctx "y" in
-        let pred =
-          Formula.ands
-            [ Syntax.packet_equality 0 1 PktIn;
-              Syntax.packet_equality 0 1 PktOut;
-              insts_equal;
-              fields_eq_left;
-              Eq
-                ( BvExpr (Slice (Instance (0, inst), left, right)),
-                  shift_expr tm 0 1 );
-              fields_eq_right;
-              Or
-                ( And (Neg (IsValid (0, inst)), Neg (IsValid (1, inst))),
-                  And (IsValid (0, inst), IsValid (1, inst)) )
-            ]
-        in
-
-        return (Refinement (y, Top, pred))
-    | Reset ->
-      Log.debug (fun m -> m "@[<v>Typechecking reset...@]");
-      clear_includes_cache;
-      ( 
-        match !pkt_out_chache with
-        | Some l -> add_pkt_in_cache l
-        | None -> ()
-      );
-      let y = Env.pick_fresh_name ctx "y" in
-      let pred =
-        Formula.ands
-          [ Eq (ArithExpr (Length (0, PktOut)), ArithExpr (Num 0));
-            Eq
-              ( BvExpr (Packet (0, PktIn)),
-                BvExpr (Concat (Packet (1, PktOut), Packet (1, PktIn))) );
-            Eq
-              ( ArithExpr (Length (0, PktIn)),
-                ArithExpr (Plus (Length (1, PktOut), Length (1, PktIn))) );
-            HeaderTable.to_list header_table
-            |> List.fold ~init:True ~f:(fun acc i ->
-                   And (Neg (IsValid (0, i)), acc))
-          ]
-      in
-      return (Refinement (y, Top, pred))
-    | Remit inst ->
-      Log.debug (fun m -> m "@[<v>Typechecking remit(%s)...@]" inst.name);
-      let%bind incl = includes header_table ctx hty_arg inst in
-      if not incl then
-        Error
-          (`TypeError
-            (Printf.sprintf "Instance '%s' not included in header type"
-               inst.name))
-      else
-        let y = Env.pick_fresh_name ctx "y" in
-        let inst_size = Instance.sizeof inst in
-        let pred =
-          Formula.ands
-            [ HeaderTable.to_list header_table |> Syntax.inst_equality 0 1;
-              Syntax.packet_equality 0 1 PktIn;
-              Eq
-                ( BvExpr (Packet (0, PktOut)),
-                  BvExpr
-                    (Concat
-                       ( Packet (1, PktOut),
-                         Slice (Instance (1, inst), 0, inst_size) )) );
-              Eq
-                ( ArithExpr (Length (0, PktOut)),
-                  ArithExpr (Plus (Length (1, PktOut), Num inst_size)) )
-            ]
-        in
-        add_pkt_out_cache inst_size;
-        return (Refinement (y, Top, pred))
-    | Remove inst ->
-      let%bind incl = includes header_table ctx hty_arg inst in
-      if not incl then
-        Error
-          (`TypeError
-            (Printf.sprintf "Instance '%s' not included in heap type" inst.name))
-      else
-        let y = Env.pick_fresh_name ctx "y" in
-        let pred =
-          Formula.ands
-            [ other_instances header_table inst |> Syntax.inst_equality 0 1;
-              Syntax.packet_equality 0 1 PktIn;
-              Syntax.packet_equality 0 1 PktOut;
-              Neg (IsValid (0, inst))
-            ]
-        in
-        update_includes_cache inst false;
-        return (Refinement (y, Top, pred))
-    | Seq (c1, c2) ->
-      Log.debug (fun m ->
-          m "@[<v>Typechecking sequence:@ c1:@[<v>@ %a @]@ c2:@[<v>@ %a@]@]"
-            Pretty.pp_command c1 Pretty.pp_command c2);
-      Log.debug (fun m ->
-          m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
-      Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
-      let%bind tyc1 = compute_type c1 ~smpl_subs:smpl_subs (hty_var, hty_arg) ctx header_table in
-
-      let ctx' =
-        if Types.contains_free_vars tyc1 then
-          match c1 with
-          | Ascription (_, x, ascb_hty_in, _) ->
-            Env.add_binding ctx x (Env.VarBind ascb_hty_in)
-          | _ -> Env.add_binding ctx hty_var (Env.VarBind hty_arg)
-        else ctx
-      in
-      Log.debug (fun m ->
-          m "@[<v>Computed output type for c1 = %a:@ %a@]" Pretty.pp_command c1
-            (Pretty.pp_header_type ctx')
-            tyc1);
-      Log.debug (fun m ->
-          m "@[<v>Context used for output type of c1:@ %a@]" Pretty.pp_context
-            ctx');
-      let y = Env.pick_fresh_name ctx' "y" in
-      let%bind tyc2 = compute_type c2 ~smpl_subs:smpl_subs (y, tyc1) ctx' header_table in
-      let ctx'' =
-        match c2 with
-        | Ascription (_, var, ascb_hty_in, _) ->
-          Env.add_binding ctx' var (Env.VarBind ascb_hty_in)
-        | _ -> Env.add_binding ctx' y (Env.VarBind tyc1)
-      in
-      Log.debug (fun m ->
-          m "@[<v>Computed output type for c2 = %a:@ %a@]" Pretty.pp_command c2
-            (Pretty.pp_header_type ctx'')
-            tyc2);
-      Log.debug (fun m ->
-          m "@[<v>Context used for output type of c2:@ %a" Pretty.pp_context
-            ctx'');
-
-      let hty_subst = Substitution (tyc2, y, tyc1) in
-      Log.debug (fun m ->
-          m "Resulting substitution type:@ %a"
-            (Pretty.pp_header_type ctx')
-            hty_subst);
-      Log.debug (fun m ->
-          m "Context for substitution type:@ %a" Pretty.pp_context ctx');
-      if smpl_subs then
-        let hty_subst = Substitution.simplify hty_subst !C.maxlen in
-        return hty_subst
-      else 
-        return hty_subst
-    | Skip ->
-      Log.debug (fun m -> m "@[<v>Typechecking skip...@]");
-      Log.debug (fun m ->
-          m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
-      let y = Env.pick_fresh_name ctx "y" in
-      return (Refinement (y, Top, Syntax.heap_equality 0 1 header_table))
-
   let check_subtype = P.check_subtype
 end
 
 module Make (C : Checker) : S = struct
-  let check_type (cmd : Command.t) ?(smpl_subs = true) (ty : pi_type) (header_table : HeaderTable.t) =
+  let check_type 
+    (cmd : Command.t) 
+    ?(smpl_subs = true) 
+    ?(incl_cache = true) 
+    ?(len_cache = true) 
+    ?(dynamic_maxlen = true)
+    (ty : pi_type) 
+    (header_table : HeaderTable.t) =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
-      let maxlen = HeaderTable.max_header_size header_table + 1 in
-      Log.debug(fun m -> m "Setting max header size to %i" maxlen);
-      C.set_maxlen maxlen;
-      let pkt_in_len = get_pkt_len annot_tyin PktIn in
-      let pkt_out_len = get_pkt_len annot_tyin PktOut in
+      if dynamic_maxlen then
+        let maxlen = HeaderTable.max_header_size header_table + 1 in
+        Log.debug(fun m -> m "Dynamically setting maxlen to %i" maxlen);
+        C.set_maxlen maxlen
+      else
+        C.set_maxlen 12000;
       let result =
         let%bind tycout = 
-        match pkt_in_len, pkt_out_len with
-        | Ok(l_in), Ok (l_out) -> 
-          C.compute_type cmd ~smpl_subs:smpl_subs ~init_pkt_in:l_in ~init_pkt_out:l_out (x, annot_tyin) [] header_table
-        | Ok(l_in), _ -> 
-          C.compute_type cmd ~smpl_subs:smpl_subs ~init_pkt_in:l_in (x, annot_tyin) [] header_table
-        | _ ->  
-          Log.debug(fun m -> m "### Length: X");
-          C.compute_type cmd ~smpl_subs:smpl_subs (x, annot_tyin) [] header_table
+          if len_cache then
+            let pkt_in_len = get_pkt_len annot_tyin PktIn in
+            let pkt_out_len = get_pkt_len annot_tyin PktOut in
+            match pkt_in_len, pkt_out_len with
+            | Ok(l_in), Ok (l_out) -> 
+              C.compute_type cmd 
+                ~smpl_subs:smpl_subs 
+                ~init_pkt_in:l_in 
+                ~init_pkt_out:l_out 
+                ~incl_cache:incl_cache
+                ~len_cache:true
+                (x, annot_tyin) [] header_table
+            | Ok(l_in), _ -> 
+              C.compute_type cmd 
+                ~smpl_subs:smpl_subs 
+                ~init_pkt_in:l_in
+                ~incl_cache:incl_cache
+                ~len_cache:true 
+                (x, annot_tyin) [] header_table
+            | _ -> 
+              C.compute_type cmd 
+                ~smpl_subs:smpl_subs
+                ~incl_cache:incl_cache
+                ~len_cache:true 
+                (x, annot_tyin) [] header_table
+          else
+            C.compute_type cmd 
+            ~smpl_subs:smpl_subs
+            ~incl_cache:incl_cache
+            ~len_cache:false 
+            (x, annot_tyin) [] header_table
+
         in
         let ctx = [ (x, Env.VarBind annot_tyin) ] in
         Log.debug (fun m ->

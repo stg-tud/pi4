@@ -12,7 +12,15 @@ module TypecheckingResult : sig
 end
 
 module type S = sig
-  val check_type : Command.t -> ?smpl_subs:bool -> pi_type -> HeaderTable.t -> TypecheckingResult.t
+  val check_type : 
+    Command.t -> 
+    ?smpl_subs:bool -> 
+    ?incl_cache:bool ->
+    ?len_cache:bool ->
+    ?dynamic_maxlen:bool ->
+    pi_type -> 
+    HeaderTable.t -> 
+    TypecheckingResult.t
 end
 
 module type Checker = sig
@@ -25,6 +33,8 @@ module type Checker = sig
     ?smpl_subs:bool ->
     ?init_pkt_in:(var)option ->
     ?init_pkt_out:(var)option ->
+    ?incl_cache:bool ->
+    ?len_cache:bool ->
     string * HeapType.t ->
     Env.context ->
     HeaderTable.t ->
