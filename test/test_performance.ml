@@ -16,12 +16,20 @@ let time f =
                 (Unix.gettimeofday () -. t);
   res
 
-let test_typecheck header_table cmd ty opt =
+let test_typecheck header_table cmd ty smpl_subs incl_c len_c dyn_len =
   Prover.make_prover "z3";
   Alcotest.(check Testable.typechecker_result)
     (Fmt.str "%a" (Pretty.pp_pi_type []) ty)
     Typechecker.TypecheckingResult.Success(
-    time(fun() -> (T.check_type cmd ty header_table ~smpl_subs:opt)))
+    time(
+      fun() -> (
+        T.check_type cmd ty header_table 
+          ~smpl_subs:smpl_subs 
+          ~incl_cache:incl_c
+          ~len_cache:len_c
+          ~dynamic_maxlen:dyn_len
+      )
+    ))
 
 let roundtrip_str = 
   {|
@@ -208,22 +216,50 @@ let vlan_decap_hty_str_cplx =
     x.pkt_in.length > 304
   }
   |}
-  let test str t_str opt () =
+  let test str t_str smpl_subs incl_c len_c dyn_len () =
   let program = Parsing.parse_program str in
   Logs.debug (fun m -> m "%a" Pretty.pp_command program.command);
   let header_table = HeaderTable.of_decls program.declarations in
   let ty = Parsing.parse_type t_str header_table in
-  test_typecheck header_table program.command ty opt
+  test_typecheck header_table program.command ty smpl_subs incl_c len_c dyn_len
 
 
 let test_set =
   [ 
-    test_case "Roundtrip Opt" `Quick (test roundtrip_str roundtrip_hty_str true);
-    test_case "Roundtrio Unopt" `Quick (test roundtrip_str roundtrip_hty_str false);
-    test_case "ipv4 ttl Opt" `Quick (test ipv4_ttl_str ipv4_ttl_hty_str true);
-    test_case "ipv4 ttl Unopt" `Quick (test ipv4_ttl_str ipv4_ttl_hty_str false);
-    test_case "vlan decap Opt" `Quick (test vlan_decap_str vlan_decap_hty_str true);
-    test_case "vlan decap Unopt" `Quick (test vlan_decap_str vlan_decap_hty_str false);
-    test_case "vlan decap strong type Opt" `Quick (test vlan_decap_str vlan_decap_hty_str_cplx true);
-    test_case "vlan decap strong type Unopt" `Quick (test vlan_decap_str vlan_decap_hty_str_cplx false);
+    test_case "Roundtrip Unoptimized" 
+      `Quick (test roundtrip_str roundtrip_hty_str false false false false);
+    test_case "Roundtrip +subs_folding" 
+      `Quick (test roundtrip_str roundtrip_hty_str true false false false);
+    test_case "Roundtrip +incl_cache" 
+      `Quick (test roundtrip_str roundtrip_hty_str false true false false);
+    test_case "Roundtrip +len_cache" 
+      `Quick (test roundtrip_str roundtrip_hty_str false false true false);
+    test_case "Roundtrip +dyn_maxlen" 
+      `Quick (test roundtrip_str roundtrip_hty_str false false false true);
+    test_case "Roundtrip Optimized" 
+      `Quick (test roundtrip_str roundtrip_hty_str true true true true);
+    test_case "IPv4 ttl Unoptimized" 
+      `Quick (test ipv4_ttl_str ipv4_ttl_hty_str false false false false);
+    test_case "IPv4 ttl +subs_folding" 
+      `Quick (test ipv4_ttl_str ipv4_ttl_hty_str true false false false);
+    test_case "IPv4 ttl +incl_cache" 
+      `Quick (test ipv4_ttl_str ipv4_ttl_hty_str false true false false);
+    test_case "IPv4 ttl +len_cache" 
+      `Quick (test ipv4_ttl_str ipv4_ttl_hty_str false false true false);
+    test_case "IPv4 ttl +dyn_maxlen" 
+      `Quick (test ipv4_ttl_str ipv4_ttl_hty_str false false false true);
+    test_case "IPv4 ttl Optimized" 
+      `Quick (test ipv4_ttl_str ipv4_ttl_hty_str true true true true);
+      test_case "VLAN decap Unoptimized" 
+      `Quick (test vlan_decap_str vlan_decap_hty_str false false false false);
+    test_case "VLAN decap +subs_folding" 
+      `Quick (test vlan_decap_str vlan_decap_hty_str true false false false);
+    test_case "VLAN decap +incl_cache" 
+      `Quick (test vlan_decap_str vlan_decap_hty_str false true false false);
+    test_case "VLAN decap +len_cache" 
+      `Quick (test vlan_decap_str vlan_decap_hty_str false false true false);
+    test_case "VLAN decap +dyn_maxlen" 
+      `Quick (test vlan_decap_str vlan_decap_hty_str false false false true);
+    test_case "VLAN decap Optimized" 
+      `Quick (test vlan_decap_str vlan_decap_hty_str true true true true);
   ]
