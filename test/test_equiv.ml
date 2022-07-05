@@ -10,23 +10,18 @@ let eth_inst = Test_utils.mk_inst "eth" [ ("smac", 48) ]
 (*; "dmac", 48; "type", 16])*)
 
 let ipv4_inst = Test_utils.mk_inst "ipv4" [ ("src", 32); ("dst", 32) ]
-
 let header_table = HeaderTable.populate [ eth_inst; ipv4_inst ]
-
 let init_ctx = []
-
 let maxlen = 8
 
 module TestConfig = struct
   let verbose = true
-
-  let maxlen = 8
+  let maxlen = 32
 end
 
 module Test = Test_utils.TestRunner (TestConfig)
 
 let hty_empty = HeapType.empty header_table "x"
-
 let hty_inst inst ht = HeapType.instance inst ht "x"
 
 (* let test_htyeqv ?(header_table = header_table) hty1 hty2 = make_prover "z3";
@@ -434,6 +429,55 @@ let test_sigma_semantic_sugar () =
   Test.is_equiv hty_sigma hty_ref [] header_table;
   Test.is_equiv hty_subst hty_ref [] header_table
 
+let test_concat_minus () =
+  let inst = Test_utils.mk_inst "h" [ ("ihl", 2); ("ttl", 4); ("flg", 2) ] in
+  let ht = HeaderTable.populate [ inst ] in
+  let x = Parsing.parse_heap_type ht [] {| {y: ⊤ | y.pkt_in.length > 12 ∧ y.pkt_in[0:12] == 0x35c} |} in
+  let ctx = [ ("x", Env.VarBind x) ] in
+  let t1 =
+    Parsing.parse_heap_type ht ctx
+      {|
+        {y:⊤ | (y.pkt_in.length + 8) == x.pkt_in.length ∧
+                x.pkt_in[0:8]@y.pkt_in == x.pkt_in ∧
+                y.pkt_out.length == x.pkt_out.length ∧
+                y.pkt_out == x.pkt_out ∧
+                y.h[0:2] == x.pkt_in[0:2] ∧
+                y.h[2:6] == (x.pkt_in[2:6] - 0x1) ∧
+                y.h[6:8] == x.pkt_in[6:8] ∧
+                y.h.valid}
+      |}
+  in
+  let t2 =
+    Parsing.parse_heap_type ht ctx
+      {|
+        {y:⊤ | (y.pkt_in.length + 8) == x.pkt_in.length ∧
+            x.pkt_in[0:8]@y.pkt_in == x.pkt_in ∧
+            y.pkt_out.length == x.pkt_out.length ∧
+            y.pkt_out == x.pkt_out ∧
+            y.h[0:8] == x.pkt_in[0:2]@(x.pkt_in[2:6] - 0x1)@x.pkt_in[6:8] ∧
+            y.h.valid}
+      |}
+  in
+  Test.is_equiv t2 t1 ctx ht
+
+let test_concat_minus_1 () =
+  let inst = Test_utils.mk_inst "h" [ ("ihl", 2); ("ttl", 4); ("flg", 2) ] in
+  let ht = HeaderTable.populate [ inst ] in
+  let ctx = [] in
+  let t1 =
+    Parsing.parse_heap_type ht ctx
+      {|
+        {y:⊤ | y.pkt_in.length == 8 ∧ y.pkt_in[0:8] == 0x21}
+      |}
+  in
+  let t2 =
+    Parsing.parse_heap_type ht ctx
+      {|
+        {y:⊤ | y.pkt_in.length == 8 ∧ y.pkt_in[0:8] == (0x22 - 0x01)}
+      |}
+  in
+  Test.is_equiv t2 t1 ctx ht
+
 let test_set =
   [ test_case "Header type equivalence ∅" `Quick test_eqv_nothing;
     test_case "Header type equivalence ε" `Quick test_eqv_empty;
@@ -462,5 +506,7 @@ let test_set =
       test_refine_false_eqv_nothing;
     test_case "{x:ε | len(x.pkt_in) + 1 == 0} should be equal to ∅" `Quick
       test_refine_false_pred_eqv_nothing;
-    test_case "Σ-type is semantic sugar" `Quick test_sigma_semantic_sugar
+    test_case "Σ-type is semantic sugar" `Quick test_sigma_semantic_sugar;
+    test_case "Concat Minus" `Quick test_concat_minus;
+    test_case "Concat Minus 1" `Quick test_concat_minus_1;
   ]

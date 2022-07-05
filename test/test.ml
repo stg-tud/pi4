@@ -22,7 +22,9 @@ let test_suite =
     ("cisco_example", Test_cisco.test_set);
     ("composition", Test_composition.test_set);
     ("split_concat", Test_split_concat.test_set);
-    ("vlan_decap", Test_vlan_decap.test_set)
+    ("vlan_decap", Test_vlan_decap.test_set);
+    ("bitvector", Test_bitvec.test_set);
+    ("inline", Test_inline.test_set)
   ]
 
 let () =
