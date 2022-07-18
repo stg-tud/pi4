@@ -5,7 +5,7 @@ open Syntax
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 64
+  let maxlen = 128
 end
 
 module Test = Test_utils.TestRunner (TestConfig)
@@ -40,8 +40,10 @@ let test_parser () =
   let header_table = HeaderTable.of_decls prog.declarations in
   let ty =
     Parsing.parse_type
-      "(y: {x:\\empty|x.pkt_in.length>64}) -> 
-        \\sigma x:ether.({y:ipv4|x.ether.etherType==0x0800} + {z:\\empty|!x.ether.etherType==0x0800})"
+      {|
+        (y:{x:ε|x.pkt_in.length>64}) →
+          {y:⊤|y.ether.valid ∧ y.ipv4.valid ∧ y.ether.etherType == 0x0800} + {y:ether|y.ether.etherType!=0x0800}
+      |}
       header_table
   in
   Test.typecheck header_table prog.command ty

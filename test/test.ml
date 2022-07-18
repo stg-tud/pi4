@@ -20,7 +20,7 @@ let test_suite =
     ("parser", Test_parser.test_set);
     ("simplification", Test_simplify.test_set);
     ("cisco_example", Test_cisco.test_set);
-    ("composition", Test_composition.test_set);
+    (* ("composition", Test_composition.test_set); *)
     ("split_concat", Test_split_concat.test_set);
     ("vlan_decap", Test_vlan_decap.test_set);
     ("bitvector", Test_bitvec.test_set);
@@ -31,7 +31,7 @@ let () =
   Format.pp_set_geometry Format.err_formatter ~max_indent:239 ~margin:240;
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter @@ Logs.format_reporter ();
-  Logs.set_level ~all:true @@ Some Logs.Info;
+  Logs.set_level ~all:true @@ Some Logs.Debug;
   Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
   (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug; *)
 
