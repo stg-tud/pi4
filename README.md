@@ -47,6 +47,12 @@ This setup was tested on Ubuntu 22.04 and macOS Monterey
    opam pin https://github.com/verified-network-toolchain/petr4.git#0.1.2
    ```
 
+   1. When running into issues installing Petra4 they may be resolved by downgrading the cstruct library to version 6.0.1 using the following command:
+
+      ```
+      opam install cstruct.6.0.1
+      ```
+
 7. Pin the custom z3 library:
 
    ```
@@ -116,7 +122,7 @@ The profiling of the typechecking of individual commands must be done manually a
 dune exec --context profiling -- benchmark/benchmark.exe benchmark/programs/tut_basic_safe.pi4 -t benchmark/programs/tut_basic_safe.pi4_type
 ```
 
-The individual optimizations can be enabled by adding `-f` for substitution inlining, `-i` for instance caching and `-n` for length caching.
+The individual optimizations can be enabled by adding `-f` for substitution inlining, `-i` for instance caching and `-n` for length caching. The results can be found in the `profile.log` file.
 
 
 
