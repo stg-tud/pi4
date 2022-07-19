@@ -40,7 +40,7 @@ let union r =
   | Error s -> Printf.sprintf "[×] %s" s
   | Ok s -> Printf.sprintf "[✓] %s" s
 
-let pi4_check program_filename type_filename maxlen : unit =
+let pi4_check program_filename type_filename maxlen disable_cache disable_inlining : unit =
   let program = Parsing.parse_program_from_file program_filename in
   Prover.make_prover "z3";
   let module Config = struct
@@ -50,11 +50,12 @@ let pi4_check program_filename type_filename maxlen : unit =
   let module T = Typechecker.Make (C) in
   let header_table = Syntax.HeaderTable.of_decls program.declarations in
   let typ = Parsing.parse_type_from_file type_filename header_table in
-  T.check_type program.command typ header_table
+  T.check_type program.command typ header_table ~incl_cache:(not disable_cache)
+    ~len_cache:(not disable_cache) ~smpl_subs:(not disable_inlining)
   |> to_result ~success:"passed typechecker"
   |> union |> print_endline
 
-let p4_check filename includes _maxlen verbose =
+let p4_check filename includes _maxlen verbose disable_cache disable_inlining =
   match P4Parse.parse_file includes filename verbose with
   | `Ok p4prog -> (
     Prover.make_prover "z3";
@@ -77,7 +78,8 @@ let p4_check filename includes _maxlen verbose =
                   Frontend.annotation_to_command header_table decls annot
                 in
                 Log.debug (fun m -> m "Program: %a" Pretty.pp_command prog);
-                T.check_type prog typ header_table
+                T.check_type prog typ header_table ~incl_cache:(not disable_cache)
+                ~len_cache:(not disable_cache) ~smpl_subs:(not disable_inlining)
               in
               match result with
               | Ok tc_result ->
@@ -119,6 +121,14 @@ let command =
         flag "-typ" (optional string)
           ~doc:
             "pass types to check IR programs files [unused if -ir is not set]"
+      and disable_cache =
+        flag "-disable-cache" no_arg
+          ~doc:
+            "pass types to check IR programs files [unused if -ir is not set]"
+      and disable_inlining =
+        flag "-disable-inlining" no_arg
+          ~doc:
+            "pass types to check IR programs files [unused if -ir is not set]"
       in
       fun () ->
         Fmt_tty.setup_std_outputs ();
@@ -131,8 +141,8 @@ let command =
         else Logs.set_level @@ Some Logs.Info;
         if ir then
           match typ with
-          | Some typfile -> pi4_check filename typfile maxlen
+          | Some typfile -> pi4_check filename typfile maxlen disable_cache disable_inlining
           | None -> failwith "Error. expected type file for Π4 IR mode."
-        else p4_check filename includes maxlen verbose)
+        else p4_check filename includes maxlen verbose disable_cache disable_inlining)
 
 let () = Command.run ~version:"0.1" command

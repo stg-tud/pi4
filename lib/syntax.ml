@@ -190,29 +190,28 @@ module BitVector = struct
 
   let of_bit_str bv_str = of_bit_list (Bit.bit_list_of_string bv_str)
 
-  let bv_of_hex_char c =
+  let bitstr_of_hex_char c =
     match c with
-    | '0' -> of_bit_str "0000"
-    | '1' -> of_bit_str "0001"
-    | '2' -> of_bit_str "0010"
-    | '3' -> of_bit_str "0011"
-    | '4' -> of_bit_str "0100"
-    | '5' -> of_bit_str "0101"
-    | '6' -> of_bit_str "0110"
-    | '7' -> of_bit_str "0111"
-    | '8' -> of_bit_str "1000"
-    | '9' -> of_bit_str "1001"
-    | 'a' | 'A' -> of_bit_str "1010"
-    | 'b' | 'B' -> of_bit_str "1011"
-    | 'c' | 'C' -> of_bit_str "1100"
-    | 'd' | 'D' -> of_bit_str "1101"
-    | 'e' | 'E' -> of_bit_str "1110"
-    | 'f' | 'F' -> of_bit_str "1111"
+    | '0' -> "0000"
+    | '1' -> "0001"
+    | '2' -> "0010"
+    | '3' -> "0011"
+    | '4' -> "0100"
+    | '5' -> "0101"
+    | '6' -> "0110"
+    | '7' -> "0111"
+    | '8' -> "1000"
+    | '9' -> "1001"
+    | 'a' | 'A' -> "1010"
+    | 'b' | 'B' -> "1011"
+    | 'c' | 'C' -> "1100"
+    | 'd' | 'D' -> "1101"
+    | 'e' | 'E' -> "1110"
+    | 'f' | 'F' -> "1111"
     | _ -> failwith (Printf.sprintf "Unrecognized character '%c'" c)
 
   let of_hex_str hex_str =
-    String.fold hex_str ~init:Nil ~f:(fun acc c ->
-        concat acc (bv_of_hex_char c))
+    String.concat_map ~f:bitstr_of_hex_char hex_str |> of_bit_str
 
   let zero size = of_bit_list (List.init size ~f:(fun _ -> Bit.Zero))
 end
@@ -365,7 +364,7 @@ end
 (* Smart Constructors *)
 
 let bv_l l = Expression.Bv (BitVector.of_bit_list l)
-let bv_s s = Bit.bit_list_of_string s |> bv_l
+let bv_s s = Expression.Bv (BitVector.of_bit_str s)
 let bv_x x = Expression.Bv (BitVector.of_hex_str x)
 
 let pkt_eq ((i, p) : int * packet) (y : Expression.t) (y_len : int) =

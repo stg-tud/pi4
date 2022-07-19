@@ -1,0 +1,33 @@
+header_type ethernet_t {
+  dstAddr: 48;
+  srcAddr: 48;
+  etherType: 16;
+}
+header_type ipv4_t {
+  version: 4; 
+  ihl: 4; 
+  tos: 8; 
+  len: 16; 
+  id: 16; 
+  flags: 3; 
+  frag: 13; 
+  ttl: 8; 
+  proto: 8; 
+  chksum: 16; 
+  src: 32; 
+  dst: 32;
+}
+header_type ipv4opt_t {
+  type: 8;
+}
+header ether : ethernet_t
+header ipv4 : ipv4_t
+header ipv4opt : ipv4opt_t
+
+extract(ether);
+if(ether.etherType == 0x0800) {
+  extract(ipv4);
+  if(ipv4.ihl != 0x5) {
+    extract(ipv4opt)
+  }
+}

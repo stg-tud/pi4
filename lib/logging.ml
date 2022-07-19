@@ -15,6 +15,9 @@ let ssa_src =
 let typechecker_src =
   Logs.Src.create "pi4.typechecker" ~doc:"Logs Pi4's typechecker events"
 
+let cache_src =
+  Logs.Src.create "pi4.cache" ~doc:"Logs Pi4's cache events"
+
 let chomp_src = Logs.Src.create "pi4.chomp" ~doc:"Logs Pi4's chomp events"
 
 let substitution_src = Logs.Src.create "pi4.substitution" ~doc:"Logs Pi4's substitution events"

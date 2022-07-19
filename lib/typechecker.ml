@@ -6,6 +6,7 @@ open Formula
 open HeapType
 open Expression
 module Log = (val Logs.src_log Logging.typechecker_src : Logs.LOG)
+module CLog = (val Logs.src_log Logging.cache_src : Logs.LOG)
 
 module TypecheckingResult = struct
   type t =
@@ -184,6 +185,8 @@ module type Checker = sig
   val set_maxlen :
     var -> unit
 
+  val reset_cache :
+  unit -> unit
   val compute_type :
     Command.t ->
     ?smpl_subs:bool ->
@@ -233,11 +236,47 @@ module HeapTypeOps (P : Prover.S) = struct
     includes_cache := Map.empty(module Instance)
     
   let clear_caches = 
+    Log.debug(fun m -> m "Cleared caches");
     clear_len_caches;
     clear_includes_cache
 
   let update_includes_cache (inst : Instance.t) (valid : bool)= 
+    Log.debug(fun m -> m "Updated include_cache: %a %b" Pretty.pp_instance inst valid );
     includes_cache := Map.set !includes_cache ~key:inst ~data:valid
+
+  let rec set_includes_cache_if form neg = 
+    match form with
+    | And(f_l, f_r) -> 
+      set_includes_cache_if f_l neg;
+      set_includes_cache_if f_r neg;
+    | IsValid(_, i) -> update_includes_cache i (not neg);
+    | Neg(IsValid(_, i)) -> update_includes_cache i neg;
+    | _ -> ()
+
+  let rec invalidate_includes_cache lst =
+    match lst with
+    | [] -> ()
+    | h :: t -> update_includes_cache h false; invalidate_includes_cache t
+  
+  let merge_cache c1 c2 =
+    Log.debug(fun m -> m "Mergingn includes caches");
+    let rec mc l = 
+      match l with
+      | [] -> ()
+      | (k, v) :: t -> 
+        let rslt = Map.find c2 k in
+        match rslt with
+        | Some (v2) -> 
+          if (v && v2) || (not(v) && not(v2)) then
+            update_includes_cache k v
+          else 
+            ();
+          mc t
+        | _ -> mc t
+    in
+    
+    let lst_1 = Map.to_alist c1 in
+    mc lst_1
 
   let subs_pkt_in_cache v =
     match !pkt_in_chache with
@@ -281,26 +320,30 @@ module HeapTypeOps (P : Prover.S) = struct
           (Pretty.pp_header_type ctx)
           hty);
     
-    let check_inluces () =
+    let check_includes () =
       let x = Env.pick_fresh_name ctx "x" in
       let refined = HeapType.Refinement (x, Top, IsValid (0, inst)) in
       let check_rslt = P.check_subtype hty refined ctx header_table in
       match check_rslt with
       | Ok a -> 
+        Log.debug(fun m -> m "CHECK: %b" a);
         includes_cache := Map.set !includes_cache ~key:inst ~data:a;
         check_rslt
-      | _ -> check_rslt
+      | _ -> 
+        check_rslt
     in
 
     if !enable_includes_cache then
       let rslt = Map.find !includes_cache inst in
       match rslt with
       | Some a -> 
-        Log.debug(fun m -> m "Includes Cache Hit");
+        CLog.debug(fun m -> m "@[INSTANCE CACHE: HIT@]");
         Ok(a)
-      | None -> check_inluces ()
+      | None -> 
+        CLog.debug(fun m -> m "@[INSTANCE CACHE: MISS@]");
+        check_includes ()
     else
-      check_inluces ()
+      check_includes ()
 
   let excludes (header_table : HeaderTable.t) (ctx : Env.context)
       (hty : HeapType.t) (inst : Instance.t) =
@@ -309,9 +352,30 @@ module HeapTypeOps (P : Prover.S) = struct
           Instance.(inst.name)
           (Pretty.pp_header_type ctx)
           hty);
-    let x = Env.pick_fresh_name ctx "x" in
-    let refined = HeapType.Refinement (x, Top, Neg (IsValid (0, inst))) in
-    P.check_subtype hty refined ctx header_table
+
+    let check_excludes () =
+      let x = Env.pick_fresh_name ctx "x" in
+      let refined = HeapType.Refinement (x, Top, Neg (IsValid (0, inst))) in
+      let check_rslt = P.check_subtype hty refined ctx header_table in
+      match check_rslt with
+      | Ok a -> 
+        includes_cache := Map.set !includes_cache ~key:inst ~data:a;
+        check_rslt
+      | _ -> 
+        check_rslt
+    in
+
+    if !enable_includes_cache then
+      let rslt = Map.find !includes_cache inst in
+      match rslt with
+      | Some a -> 
+        CLog.debug(fun m -> m "@[INSTANCE CACHE: HIT@]");
+        Ok(not a)
+      | None -> 
+        CLog.debug(fun m -> m "@[INSTANCE CACHE: MISS@]");
+        check_excludes ()
+    else
+      check_excludes ()
 
   let packet_length_gte_n (header_table : HeaderTable.t) (ctx : Env.context)
       (n : int) (hty : HeapType.t) =
@@ -327,12 +391,14 @@ module HeapTypeOps (P : Prover.S) = struct
     if !enable_len_cache then
       match !pkt_in_chache with
       | Some cache -> 
-        Log.debug(fun m -> m "### Len Cache Hit %i %i ###" cache n);
+        CLog.debug(fun m -> m "@[LENGTH CACHE: HIT@]");
         if n <= cache then
           Ok(true)
         else 
           check_lenght ()
-      | _ -> check_lenght () 
+      | _ -> 
+        CLog.debug(fun m -> m "@[LENGTH CACHE: MISS@]");
+        check_lenght () 
     else
       check_lenght ()
 end
@@ -371,6 +437,7 @@ module ExprChecker (P : Prover.S) = struct
       tybv_concat tybv1 tybv2
     | Slice (Instance (_, inst), l, r) ->
       let%bind incl = HOps.includes header_table ctx hty inst in
+      Log.debug(fun m -> m "BV_SLICE CHECK: %b" incl);
       if incl then return (BitVec (StaticSize (r - l)))
       else
         Error
@@ -410,11 +477,13 @@ module FormChecker (P : Prover.S) = struct
       let%bind tytm1 = EC.check_expr header_table ctx hty tm1
       and tytm2 = EC.check_expr header_table ctx hty tm2 in
       if [%compare.equal: ty] tytm1 tytm2 then return Bool
-      else
+      else begin
+        Log.debug(fun m -> m "The terms must have the same type (%a/%a)" Pretty.pp_type tytm1 Pretty.pp_type tytm2);
         Error
           (`TypeError
             (Fmt.str "@[The terms must have the same type (%a/%a)@]"
                Pretty.pp_type tytm1 Pretty.pp_type tytm2))
+      end
     | Gt (tm1, tm2) -> (
       let%bind tytm1 = EC.check_expr header_table ctx hty tm1
       and tytm2 = EC.check_expr header_table ctx hty tm2 in
@@ -433,6 +502,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
   module P = Prover.Make (Encoding.FixedWidthBitvectorEncoding (C))
   module FC = FormChecker (P)
   include HeapTypeOps (P)
+
+  let reset_cache () =
+   clear_caches
 
   let set_maxlen len =
     P.set_maxlen len
@@ -488,7 +560,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
 
         Log.debug (fun m ->
             m "Ascribed input type: %a" Pretty.pp_header_type_raw ascb_hty_in);
-        Log.debug (fun m -> m "Input type: %a" Pretty.pp_header_type_raw hty_arg);
+        Log.debug (fun m -> m "Input type: %a" (Pretty.pp_header_type ctx) hty_arg);
         Log.debug (fun m ->
             m "Context used for input type: %a" Pretty.pp_context ctx);
 
@@ -607,6 +679,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         let cache_snapshot = !includes_cache in
         let pkt_in_cache_snapshot = !pkt_in_chache in
         let pkt_out_cache_snapshot = !pkt_out_chache in
+        set_includes_cache_if e false;
         match tye with
         | Bool ->
           let x = Env.pick_fresh_name ctx "x" in
@@ -627,12 +700,14 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           let hty_in_else =
             Simplify.fold_refinements (Refinement (x, hty_arg, Neg e))
           in
+          let cache_1 = !includes_cache in
           (* cache rollback to eliminate side effect from if branch *)
           includes_cache := cache_snapshot;
           let tyc1_pkt_in_cache = !pkt_in_chache in
           let tyc1_pkt_out_cache = !pkt_out_chache in
           pkt_in_chache := pkt_in_cache_snapshot;
           pkt_out_chache := pkt_out_cache_snapshot;
+          set_includes_cache_if e true;
           let%bind tyc2 =
             compute c2 (hty_var, hty_in_else) ctx header_table
           in
@@ -641,8 +716,10 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               m "@[<v>Computed type for else-branch:@ %a@]"
                 (Pretty.pp_header_type ctx_else)
                 tyc2);
-          (* cache rollback to avoid entries only valid for one branch *)
-          includes_cache := cache_snapshot;
+          let cache_2 = !includes_cache in
+          (* Merge caches *)
+          clear_includes_cache;
+          merge_cache cache_1 cache_2;
           pkt_in_chache := get_min_or_none tyc1_pkt_in_cache !pkt_in_chache;
           pkt_out_chache := get_min_or_none tyc1_pkt_out_cache !pkt_out_chache;
 
@@ -659,6 +736,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
         Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
         let%bind incl = includes header_table ctx hty_arg inst in
+        Log.debug(fun m -> m "ASSIGN INCL CHECK: %b" incl);
         if not incl then
           Error
             (`TypeError
@@ -718,7 +796,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           return (Refinement (y, Top, pred))
       | Reset ->
         Log.debug (fun m -> m "@[<v>Typechecking reset...@]");
-        clear_includes_cache;
+        
+        invalidate_includes_cache (HeaderTable.to_list header_table);
+
         ( 
           match !pkt_out_chache with
           | Some l -> add_pkt_in_cache l
@@ -743,6 +823,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       | Remit inst ->
         Log.debug (fun m -> m "@[<v>Typechecking remit(%s)...@]" inst.name);
         let%bind incl = includes header_table ctx hty_arg inst in
+        Log.debug(fun m -> m "REMIT CHECK: %b" incl);
         if not incl then
           Error
             (`TypeError
@@ -755,6 +836,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             Formula.ands
               [ HeaderTable.to_list header_table |> Syntax.inst_equality 0 1;
                 Syntax.packet_equality 0 1 PktIn;
+                IsValid(1, inst);
                 Eq
                   ( BvExpr (Packet (0, PktOut)),
                     BvExpr
@@ -767,9 +849,11 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               ]
           in
           add_pkt_out_cache inst_size;
+          Log.debug (fun m -> m "@[<v>%a...@]" Pretty.pp_form_raw  pred);
           return (Refinement (y, Top, pred))
       | Remove inst ->
         let%bind incl = includes header_table ctx hty_arg inst in
+        Log.debug(fun m -> m "REMOVE CHECK: %b" incl);
         if not incl then
           Error
             (`TypeError
@@ -833,11 +917,18 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               hty_subst);
         Log.debug (fun m ->
             m "Context for substitution type:@ %a" Pretty.pp_context ctx');
+
         if smpl_subs then
-          let hty_subst = Substitution.simplify hty_subst !C.maxlen in
-          return hty_subst
+          match c1, c2 with
+          | Ascription _ , _
+          | _, Ascription _ -> return hty_subst
+          | _ ->
+            let hty_subst = Substitution.simplify hty_subst !C.maxlen in
+            return hty_subst
         else 
           return hty_subst
+
+
       | Skip ->
         Log.debug (fun m -> m "@[<v>Typechecking skip...@]");
         Log.debug (fun m ->
@@ -879,6 +970,7 @@ module Make (C : Checker) : S = struct
     (header_table : HeaderTable.t) =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
+      C.reset_cache ();
       if dynamic_maxlen then
         let maxlen = HeaderTable.max_header_size header_table + 1 in
         Log.debug(fun m -> m "Dynamically setting maxlen to %i" maxlen);
@@ -929,6 +1021,7 @@ module Make (C : Checker) : S = struct
               (Pretty.pp_header_type ctx)
               (Simplify.fold_refinements tycout));
         let%bind res = C.check_subtype tycout annot_tyout ctx header_table in
+        Log.debug (fun m -> m "%b" res );
         if res then return res
         else
           Error

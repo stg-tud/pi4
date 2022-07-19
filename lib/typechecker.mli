@@ -28,6 +28,9 @@ module type Checker = sig
   val set_maxlen :
     var -> unit
 
+  val reset_cache :
+    unit -> unit
+
   val compute_type :
     Command.t ->
     ?smpl_subs:bool ->

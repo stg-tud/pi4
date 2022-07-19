@@ -70,7 +70,7 @@ let rec to_string_aux (bv : Syntax.BitVector.t) =
 
 let bv_to_string v =
   let%map bs = to_string_aux v in
-  Printf.sprintf "0b%s" (String.rev bs)
+  Printf.sprintf "0b%s" bs
 
 let bv_to_smt v size =
   let l = Syntax.BitVector.sizeof v in
@@ -85,6 +85,7 @@ module DynamicSize = struct
     | Dynamic of string
     | Static of int
     | Sum of t * t
+    [@@deriving compare, sexp]
 
   (* let rec static_value = function
     | Dynamic _ -> None
@@ -403,11 +404,12 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
   let rec bv_expr_to_smt (term : Expression.bv) (length : int)
       (ctx : Env.context) : (term_encoding, 'a) result =
     match term with
-    | Minus (tm1, tm2) ->
-      let%bind { smt_term = tm1_smt; _ } = bv_expr_to_smt tm1 length ctx in
-      let%map { smt_term = tm2_smt; _ } = bv_expr_to_smt tm2 length ctx in
-      { smt_term = Smtlib.bvsub tm1_smt tm2_smt;
-        dynamic_size = DynamicSize.Static length;
+    | Minus (e1, e2) ->
+      let%bind { smt_term = e1_smt; dynamic_size = e1_dsize; _ } = bv_expr_to_smt e1 length ctx in
+      let%map { smt_term = e2_smt; dynamic_size = e2_dsize; _ } = bv_expr_to_smt e2 length ctx in
+      assert([%compare.equal: DynamicSize.t] e1_dsize e2_dsize);
+      { smt_term = Smtlib.bvsub e1_smt e2_smt;
+        dynamic_size = e1_dsize;
         let_bindings = [];
         constraints = []
       }

@@ -1,0 +1,21 @@
+(x:{y:⊤|
+    y.pkt_out.length == 0 ∧
+    y.pkt_in.length > 432 ∧
+    ¬y.ether.valid ∧
+    ¬y.ipv4.valid ∧
+    ¬y.tcp.valid ∧
+    y.stdmeta.valid ∧
+    y.ecmp_table.valid ∧
+    y.nhop_table.valid ∧
+    y.egress_table.valid ∧
+    y.meta.valid
+    }) -> {y: ⊤ | 
+                (y.stdmeta.drop == 0b1) 
+                    => (y.pkt_out.length == 0) ∧
+                (y.ipv4.valid ∧ (y.ipv4.proto == 0b00001001)) 
+                    => y.tcp.valid ∧
+                (y.ether.type == 0x0800)
+                    => y.ipv4.valid ∧
+                (y.ipv4.valid ∧ y.stdmeta.egress_port == y.egress_table.port_key ∧ y.egress_table.act_egress != 0b1)
+                    => (y.stdmeta.drop == 0b1)            
+        }

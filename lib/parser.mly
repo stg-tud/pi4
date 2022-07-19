@@ -288,6 +288,12 @@ cterm_bv:
   let tm2 = $3 ht in
   Expression.(Minus (tm1, tm2))
 }
+| cterm_bv AT cterm_bv {
+  fun ht -> 
+    let e1 = $1 ht in 
+    let e2 = $3 ht in
+    Expression.Concat (e1, e2)
+}
 
 pi: 
   | LPAREN x=ID COLON hty RPAREN ARROW hty {
@@ -385,6 +391,12 @@ bv_expr:
 | hs=HEXSTRING {
     fun _ _ -> 
       bv_x (Core.String.drop_prefix hs 2) }
+| bv_expr MINUS bv_expr {
+  fun ht ctx -> 
+    let e1 = $1 ht ctx in 
+    let e2 = $3 ht ctx in
+    Minus (e1, e2)
+}
 | bv_expr AT bv_expr { 
     fun ht ctx -> 
       let tm1 = $1 ht ctx in

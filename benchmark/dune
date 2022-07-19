@@ -1,0 +1,6 @@
+(executable
+ (name benchmark)
+ (modules benchmark)
+ (preprocess (pps ppx_jane))
+ ; (flags (-ccopt -static))
+ (libraries core fmt.cli fmt.tty logs.fmt pi4))

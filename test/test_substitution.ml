@@ -31,7 +31,8 @@ let types_equiv program_str type_str ()=
     | Ok (ht), Ok(smpl) -> 
       let ctx = [ (x, Env.VarBind annot_tyin) ] in
       Test.is_equiv ht smpl ctx header_table
-    | _ -> ()
+    | _, Ok _  -> Alcotest.(check bool) "Failed type computation" false true
+    | _ -> Alcotest.(check bool) "Failed type computation for inlined type" false true
 
 let default_header = 
   {|
@@ -65,13 +66,14 @@ let ether_header =
   |}
 
 let default_type_str = 
-  {|(x:{y:ε | y.pkt_in.length > 20}) -> 
+  {|(x:{y:ε | y.pkt_in.length > 22}) -> 
     {y:⊤| true}|}
   
 let extract_str =
   ether_header ^
   {|
     extract(ether);
+    ether.dstAddr := ether[0:4];
     skip
   |}
 let extract_extract_str =
@@ -87,13 +89,6 @@ let extract_add_str =
     add(ipv4)
   |}
 
-let extract_skip_str =
-  default_header ^
-  {|
-    extract(ether);
-    skip
-  |}
-
 let extract_remit_str =
   ether_header ^
   {|
@@ -104,8 +99,8 @@ let extract_remit_str =
 let ext_assign_str =
   default_header ^
   {|
-    extract(ipv4);
-    ipv4.ihl := 0b11
+    extract(ether);
+    ether.etherType := 0b11
   |}
 
 let ext_if_str = 
@@ -119,7 +114,14 @@ let ext_if_str =
     }
   |}
 
-  let add_skip_str =
+let ext_remove_str = 
+  default_header ^
+  {|
+    extract(ether);
+    remove(ether)
+  |}
+
+let add_skip_str =
   default_header ^
   {|
     add(ether);
@@ -133,17 +135,126 @@ let add_extract_str =
     extract(ether)
   |}
 
-let remove_str = 
+let skip_extract_str =
+  default_header ^
+  {|
+    skip;
+    extract(ether)
+  |}
+  
+
+let add_assign_v_str =
+  default_header ^
+  {|
+    add(ether);
+    ether.srcAddr := 0b0101
+  |}
+
+let add_assign_s_str =
+  default_header ^
+  {|
+    add(ether);
+    ether.srcAddr := ether.dstAddr
+  |} 
+
+let add_assign_i_str =
+  default_header ^
+  {|
+    add(ether);
+    add(ipv4);
+    ether.etherType := ipv4.ihl
+  |}  
+  
+let add_remit_skip_str =
+  default_header ^
+  {|
+    add(ether);
+    remit(ether);
+    skip
+  |}
+
+let add_remit_extract_str =
+  default_header ^
+  {|
+    add(ether);
+    remit(ether);
+    extract(ether)
+  |}  
+
+let add_remit_remove_str =
+  default_header ^
+  {|
+    add(ether);
+    remit(ether);
+    remove(ether)
+  |}
+
+let add_remit_reset_str =
+  default_header ^
+  {|
+    add(ether);
+    remit(ether);
+    reset
+  |}  
+
+let add_if_valid_str =
+  default_header ^
+  {|
+    add(ether);
+    if(ether.valid){
+      skip
+    }
+  |}
+
+let add_if_eqi_str =
+  default_header ^
+  {|
+    add(ether);
+    add(ipv4);
+    if(ether.etherType == ipv4.ihl){
+      skip
+    }
+  |}
+
+let add_if_eqv_str =
+  default_header ^
+  {|
+    add(ether);
+    if(ether.etherType == 0b01){
+      skip
+    }
+  |}
+  
+let add_if_gt_str =
+  default_header ^
+  {|
+    add(ether);
+    if(ether.etherType > 0b01){
+      skip
+    }
+  |}
+
+let extract_reset_extract_str =
   default_header ^
   {|
     extract(ether);
-    remove(ether);
-    skip
+    reset;
+    extract(ether)
+  |}
+
+  
+let add_reset_add_str =
+  default_header ^
+  {|
+    add(ether);
+    reset;
+    add(ether)
   |}
 
 let cplx1_str = 
   ether_header ^
   {|
+    extract(ether);
     if(ether.valid) {
       extract(ether)
     } else {
@@ -218,24 +329,7 @@ let cplx5_str =
     extract(ether);
     extract(ipv4);
     ipv4.ihl := 0b00
-    |}
-
-
-    (*  add(ether);
-    extract(ipv4);
-    reset;
-    add(ether);
-    extract(ipv4);
-    ether.dstAddr := 0b1111;
-    ipv4.ihl := 0b11;
-    remit(ether);
-    remit(ipv4);
-    if(ether.valid) {
-      add(ipv4opt);
-      remit(ipv4opt)
-    };
-    reset;
-    skip *)
+  |}
 let cplx6_str = 
   default_header ^
   {|
@@ -246,7 +340,7 @@ let cplx6_str =
   |}
   
 
- let ext_rest = 
+let ext_subs_remit = 
   
   {|
 
@@ -255,42 +349,46 @@ let cplx6_str =
     src: 4;
     type: 2;
   }
-  header_type ipv4_t {
-    version: 2; 
-    ihl: 2; 
-    tos: 4;
-  }
 
   header ether : ethernet_t
-  header ipv4 : ipv4_t
 
-  add(ipv4);
   extract(ether);
-  if(ipv4.version == 0b00) {
-    ipv4.ihl := ether.type
-  };
-  if(ether.valid) {
-    remove(ether)
-  }
+  ether.src := ether.src - 0b0001;
+  remit(ether)
   |}
 
+(* Quick Tests using Toy-Headers *)
 let test_set = 
   [
-    test_case "Extract" `Quick (types_equiv extract_str default_type_str);
+    test_case "Extract-Skip" `Quick (types_equiv extract_str default_type_str);
     test_case "Extract-Extract" `Quick (types_equiv extract_extract_str default_type_str);
     test_case "Extract-Add" `Quick (types_equiv extract_add_str default_type_str);
-    test_case "Extract-Skip" `Quick (types_equiv extract_skip_str default_type_str);
     test_case "Extract-Remit" `Quick (types_equiv extract_remit_str default_type_str);
     test_case "Extract-Assign" `Quick (types_equiv ext_assign_str default_type_str);
     test_case "Extract-If" `Quick (types_equiv ext_if_str default_type_str);
+    test_case "Extract-Remove" `Quick (types_equiv ext_remove_str default_type_str);
+    test_case "Extract-Reset" `Quick (types_equiv skip_extract_str default_type_str);
     test_case "Add-Skip" `Quick (types_equiv add_skip_str default_type_str);
     test_case "Add-Extract" `Quick (types_equiv add_extract_str default_type_str);
-    test_case "Remove" `Quick (types_equiv remove_str default_type_str);
+    test_case "Skip-Extract" `Quick (types_equiv skip_extract_str default_type_str);
+    test_case "Add-Assign-Val" `Quick (types_equiv add_assign_v_str default_type_str);
+    test_case "Add-Assign-Self" `Quick (types_equiv add_assign_s_str default_type_str);
+    test_case "Add-Add-Assign-Inst" `Quick (types_equiv add_assign_i_str default_type_str);
+    test_case "Add-Remit-Skip" `Quick (types_equiv add_remit_skip_str default_type_str);
+    test_case "Add-Remit-Extract" `Quick (types_equiv add_remit_extract_str default_type_str);
+    test_case "Add-Remit-Remove" `Quick (types_equiv add_remit_remove_str default_type_str);
+    test_case "Add-Remit-Reset" `Quick (types_equiv add_remit_reset_str default_type_str);
+    test_case "Add-If-Valid" `Quick (types_equiv add_if_valid_str default_type_str);
+    test_case "Add-If-Eq-Inst" `Quick (types_equiv add_if_eqi_str default_type_str);
+    test_case "Add-If-Eq-Val" `Quick (types_equiv add_if_eqv_str default_type_str);
+    test_case "Add-If-Gt-Val" `Quick (types_equiv add_if_gt_str default_type_str);
+    test_case "Extract-Reset-Extract" `Quick (types_equiv extract_reset_extract_str default_type_str);
+    test_case "Add-Reset-Add" `Quick (types_equiv add_reset_add_str default_type_str);
     test_case "Complex 1" `Quick (types_equiv cplx1_str default_type_str);
     test_case "Complex 2" `Quick (types_equiv cplx2_str default_type_str);
     test_case "Complex 3" `Quick (types_equiv cplx3_str default_type_str);
     test_case "Complex 4" `Quick (types_equiv cplx4_str default_type_str);
     test_case "Complex 5" `Quick (types_equiv cplx5_str cplx5_type_str);
     test_case "Complex 6" `Quick (types_equiv cplx6_str default_type_str );
-    test_case "Exr" `Quick (types_equiv ext_rest default_type_str );
+    test_case "extract-subs-remit" `Quick (types_equiv ext_subs_remit default_type_str );
   ]
