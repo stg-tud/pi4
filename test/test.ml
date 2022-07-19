@@ -18,7 +18,7 @@ let test_suite =
     ("cisco_example", Test_cisco.test_set);
     ("composition", Test_composition.test_set);
     ("examples", Test_examples.test_set);
-    ("substitution", Test_substitution.test_set);
+    ("substitution_base", Test_substitution.test_set);
     ("substitution_ext", Test_substitution_ext.test_set);
     ("ipv4opt", Test_ipv4opt.test_set);
 	  ("vlan_decap", Test_vlan_decap.test_set);
