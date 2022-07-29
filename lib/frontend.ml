@@ -6,6 +6,7 @@ type error =
   [ `ConversionError of string
   | `HeaderTypeNotDeclaredError of string
   | `NotImplementedError of string
+  | `TypeDeclarationNotFoundError of string
   ]
 
 module ParserCfg = struct
@@ -104,45 +105,66 @@ let bigint_to_bv (n : Bigint.t) (size : int) =
            (Bigint.to_string n) size))
   else return (Syntax.bv_s (String.init size_diff ~f:(fun _ -> '0') ^ bv_str))
 
-let field_size_from_type (hdr_type : Petr4.Types.Type.t) =
-  match snd hdr_type with
-  | BitType expr -> (
-    match snd expr with
-    | Petr4.Types.Expression.Int (_, n) -> return n.value
+let field_size_from_type (type_decls : Bigint.t String.Map.t)
+    (hdr_type : Petr4.Types.Type.t) =
+  match hdr_type with
+  | BitType { expr; _ } -> (
+    match expr with
+    | Petr4.Types.Expression.Int { x; _ } -> return x.value
     | _ ->
       Error
         (`NotImplementedError
           "Not implemented (Frontend.field_size_from_type - Not an Int)"))
+  | TypeName { name = BareName { name = { string; _ }; _ }; _ } -> (
+    match String.Map.find type_decls string with
+    | Some n -> return n
+    | None ->
+      Error
+        (`TypeDeclarationNotFoundError
+          (Fmt.str "Type declaration %s does not exist" string)))
   | _ ->
     Error
       (`NotImplementedError
-        "Not implemented (Frontend.field_size_from_type - not a BitType)")
+        "Not implemented (Frontend.field_size_from_type - not a BitType nor a \
+         BareName)")
 
-let add_header_type_decl
+let get_type_declarations (decls : Petr4.Types.Declaration.t list) =
+  List.fold_result decls ~init:String.Map.empty ~f:(fun acc decl ->
+      match decl with
+      | Petr4.Types.Declaration.TypeDef
+          { name = { string = name; _ }; typ_or_decl = Left t; _ } ->
+        let%map field_size = field_size_from_type String.Map.empty t in
+        String.Map.add_exn acc ~key:name ~data:field_size
+      | _ -> return acc)
+
+let add_header_type_decl (type_decls : Bigint.t String.Map.t)
     (header_type_decls : Syntax.Declaration.field list String.Map.t)
-    ((_, name) : Petr4.Types.P4String.t)
+    ({ string = name; _ } : Petr4.Types.P4String.t)
     (fields : Petr4.Types.Declaration.field list) =
   let%map fields =
-    List.map fields ~f:(fun (_, field) ->
-        let%bind field_size = field_size_from_type field.typ in
+    List.map fields
+      ~f:(fun { typ = field_type; name = { string = field_name; _ }; _ } ->
+        let%bind field_size = field_size_from_type type_decls field_type in
         let%map n = bigint_to_int field_size in
-        Syntax.Declaration.{ name = snd field.name; typ = n })
+        Syntax.Declaration.{ name = field_name; typ = n })
     |> Utils.sequence_error
   in
   Map.set header_type_decls ~key:name ~data:fields
 
 let build_header_table (Petr4.Types.Program decls) =
+  let%bind type_decls = get_type_declarations decls in
   let%bind header_type_decls =
     List.fold decls ~init:(Ok String.Map.empty)
       ~f:(fun header_type_decls decl ->
         Result.bind header_type_decls ~f:(fun acc ->
-            match snd decl with
-            | Header { name; fields; _ } -> add_header_type_decl acc name fields
+            match decl with
+            | Header { name; fields; _ } ->
+              add_header_type_decl type_decls acc name fields
             | Struct { name; fields; _ } ->
-              let type_name = snd name in
+              let type_name = name.string in
               if String.(type_name = "headers" || type_name = "metadata") then
                 return acc
-              else add_header_type_decl acc name fields
+              else add_header_type_decl type_decls acc name fields
             | _ -> return acc))
   in
   let lookup_header_type header_type =
@@ -154,25 +176,26 @@ let build_header_table (Petr4.Types.Program decls) =
   in
   let%bind header_table =
     List.fold decls ~init:(Ok String.Map.empty) ~f:(fun acc decl ->
-        match snd decl with
+        match decl with
         | Struct { name; fields; _ } ->
-          if String.(snd name = "headers" || snd name = "metadata") then
-            List.fold fields ~init:acc ~f:(fun acc_result (_, field) ->
+          if String.(name.string = "headers" || name.string = "metadata") then
+            List.fold fields ~init:acc ~f:(fun acc_result { typ; name = field_name; _ } ->
                 let%bind inner_acc = acc_result in
-                match snd field.typ with
-                | TypeName (BareName (_, name)) ->
-                  let%map fields = lookup_header_type name in
-                  String.Map.set inner_acc ~key:(snd field.name) ~data:fields
+                match typ with
+                | TypeName { name = BareName { name = type_name; _ }; _ } ->
+                  let%map fields = lookup_header_type type_name.string in
+                  String.Map.set inner_acc ~key:field_name.string ~data:fields
                 | HeaderStack
-                    { header = _, TypeName (BareName (_, name));
-                      size = _, Petr4.Types.Expression.Int (_, { value; _ })
+                    { header = TypeName { name = BareName { name; _ }; _ };
+                      size = Petr4.Types.Expression.Int { x; _ };
+                      _
                     } ->
-                  let%bind size = bigint_to_int value in
-                  let%map fields = lookup_header_type name in
+                  let%bind size = bigint_to_int x.value in
+                  let%map fields = lookup_header_type name.string in
                   List.fold (List.range 0 size) ~init:inner_acc
                     ~f:(fun macc idx ->
                       String.Map.set macc
-                        ~key:(Printf.sprintf "%s%d" (snd field.name) idx)
+                        ~key:(Printf.sprintf "%s%d" name.string idx)
                         ~data:fields)
                 | _ -> Error (`NotImplementedError ""))
           else acc
@@ -183,51 +206,55 @@ let build_header_table (Petr4.Types.Program decls) =
 
 let petr4_expr_to_instance (_ : string) (header_table : Syntax.HeaderTable.t)
     (expr : Petr4.Types.Expression.t) =
-  match snd expr with
-  | Name (BareName (_, inst_name))
-  | ExpressionMember { expr = _, Name (BareName (_, _)); name = _, inst_name }
-    ->
-    Syntax.HeaderTable.lookup_instance inst_name header_table
+  match expr with
+  | Name { name = BareName { name; _ }; _ }
+  | ExpressionMember { expr = Name { name = BareName _; _ }; name; _ } ->
+    Syntax.HeaderTable.lookup_instance name.string header_table
   | _ as e ->
     Error
       (`FrontendError
         (Printf.sprintf
            "Not a member expression (Frontend.expr_to_instance): %s"
-           (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_pre_t e))))
+           (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_t e))))
 
 let is_header_field_access (name : string) (expr : Petr4.Types.Expression.t) =
-  match snd expr with
+  match expr with
   | ExpressionMember
       { expr =
-          _, ExpressionMember { expr = _, Name (BareName (_, member_name)); _ };
+          ExpressionMember
+            { expr = Name { name = BareName { name = member_name; _ }; _ }; _ };
         _
       } ->
-    String.(member_name = name)
+    String.(member_name.string = name)
   | _ -> false
 
 let rec expr_to_term (header_table : Syntax.HeaderTable.t) (size : int)
     (expr : Petr4.Types.Expression.t) =
-  match snd expr with
-  | Int (_, { value; _ }) -> bigint_to_bv value size
+  match expr with
+  | Int { x = { value; _ }; _ } -> bigint_to_bv value size
   | ExpressionMember
-      { expr = _, ExpressionMember { name = _, instance_name; _ };
-        name = _, member_name
+      { expr = ExpressionMember { name = instance_name; _ };
+        name = member_name;
+        _
       } ->
     Syntax.(
-      let%bind inst = HeaderTable.lookup_instance instance_name header_table in
-      Expression.field_to_slice inst member_name 0)
-  | Cast { typ = _, BitType (_, Int (_, { value; _ })); expr } -> (
-    let%bind cast_size = bigint_to_int value in
-    match snd expr with
+      let%bind inst =
+        HeaderTable.lookup_instance instance_name.string header_table
+      in
+      Expression.field_to_slice inst member_name.string 0)
+  | Cast { typ = BitType { expr = Int { x; _ }; _ }; expr; _ } -> (
+    let%bind cast_size = bigint_to_int x.value in
+    match expr with
     | ExpressionMember
-        { expr = _, ExpressionMember { name = _, instance_name; _ };
-          name = _, field_name
+        { expr = ExpressionMember { name = instance_name; _ };
+          name = field_name;
+          _
         } ->
       Syntax.(
         let%bind inst =
-          HeaderTable.lookup_instance instance_name header_table
+          HeaderTable.lookup_instance instance_name.string header_table
         in
-        let%map field = Instance.get_field inst field_name in
+        let%map field = Instance.get_field inst field_name.string in
         if field.typ < cast_size then
           let diff = cast_size - field.typ in
           Expression.(
@@ -237,34 +264,37 @@ let rec expr_to_term (header_table : Syntax.HeaderTable.t) (size : int)
     | _ ->
       Error
         (`NotImplementedError "Not implemented (Frontend.expr_to_term - Cast)"))
-  | BinaryOp { op = _, Petr4.Types.Op.Minus; args = e1, e2 } ->
+  | BinaryOp { op = Petr4.Types.Op.Minus _; args = e1, e2; _ } ->
     let%bind tm1 = expr_to_term header_table size e1 in
     let%map tm2 = expr_to_term header_table size e2 in
     Syntax.Expression.Minus (tm1, tm2)
   | _ as e ->
     Log.debug (fun m ->
         m "Expr: %s"
-          (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_pre_t e)));
+          (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_t e)));
     Error (`NotImplementedError "Not implemented (Frontend.expr_to_term)")
 
 let sizeof (header_table : Syntax.HeaderTable.t)
     (expr : Petr4.Types.Expression.t) =
-  match snd expr with
+  match expr with
   | ExpressionMember
-      { expr = _, ExpressionMember { name = _, instance_name; _ };
-        name = _, member_name
+      { expr = ExpressionMember { name = instance_name; _ };
+        name = member_name;
+        _
       } ->
     Syntax.(
-      let%bind inst = HeaderTable.lookup_instance instance_name header_table in
-      let%map field = Instance.get_field inst member_name in
+      let%bind inst =
+        HeaderTable.lookup_instance instance_name.string header_table
+      in
+      let%map field = Instance.get_field inst member_name.string in
       field.typ)
   | _ -> Error (`NotImplementedError "sizeof not implemented for expression.")
 
 let rec petr4_expr_to_formula (headers_param : string)
     (header_table : Syntax.HeaderTable.t) (expr : Petr4.Types.Expression.t) =
-  match snd expr with
-  | True -> return Syntax.Formula.True
-  | False -> return Syntax.Formula.False
+  match expr with
+  | True _ -> return Syntax.Formula.True
+  | False _ -> return Syntax.Formula.False
   | Int _ ->
     Error (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Int)")
   | String _ ->
@@ -287,13 +317,13 @@ let rec petr4_expr_to_formula (headers_param : string)
   | Record _ ->
     Error
       (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Record)")
-  | UnaryOp { op = _, Not; arg = e } ->
+  | UnaryOp { op = Not _; arg = e; _ } ->
     let%map e' = petr4_expr_to_formula headers_param header_table e in
     Syntax.Formula.Neg e'
   | UnaryOp _ ->
     Error
       (`NotImplementedError "Not implemented (Frontend.expr_to_expr - UnaryOp)")
-  | BinaryOp { op = _, Eq; args = e1, e2 } ->
+  | BinaryOp { op = Eq _; args = e1, e2; _ } ->
     let%bind size =
       if is_header_field_access "hdr" e1 then sizeof header_table e1
       else return 0
@@ -316,8 +346,8 @@ let rec petr4_expr_to_formula (headers_param : string)
     Error
       (`NotImplementedError
         "Not implemented (Frontend.expr_to_expr - ErrorMember)")
-  | ExpressionMember { expr; name = _, member_name } -> (
-    match member_name with
+  | ExpressionMember { expr; name = member_name; _ } -> (
+    match member_name.string with
     | "isValid" ->
       let%map inst = petr4_expr_to_instance headers_param header_table expr in
       Syntax.Formula.IsValid (0, inst)
@@ -328,7 +358,7 @@ let rec petr4_expr_to_formula (headers_param : string)
   | Ternary _ ->
     Error
       (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Ternary)")
-  | FunctionCall { func = e; type_args = []; args = [] } ->
+  | FunctionCall { func = e; type_args = []; args = []; _ } ->
     petr4_expr_to_formula headers_param header_table e
   | FunctionCall _ ->
     Error
@@ -346,12 +376,15 @@ let rec petr4_expr_to_formula (headers_param : string)
       (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Range)")
 
 let rec petr4_statement_to_command (headers_param_name : string)
-    (header_table : Syntax.HeaderTable.t) (stmt : Petr4.Types.Statement.pre_t) =
+    (header_table : Syntax.HeaderTable.t) (stmt : _ Petr4.Types.Statement.pt) =
   match stmt with
   | MethodCall
-      { func = _, ExpressionMember { name; expr }; type_args = []; args = [] }
-    ->
-    if String.(snd name = "setValid") then
+      { func = ExpressionMember { name; expr; _ };
+        type_args = [];
+        args = [];
+        _
+      } ->
+    if String.(name.string = "setValid") then
       let%map inst =
         petr4_expr_to_instance headers_param_name header_table expr
       in
@@ -362,41 +395,38 @@ let rec petr4_statement_to_command (headers_param_name : string)
           "Not implemented (Frontend.petr4_statement_to_command - MethodCall \
            [0])")
   | MethodCall { func; args; _ } -> (
-    match snd func with
+    match func with
     | ExpressionMember { name; _ } as exprm ->
-      if String.(snd name = "extract") then
+      if String.(name.string = "extract") then
         match args with
-        | [ (_, arg) ] -> (
+        | [ arg ] -> (
           match arg with
           | Expression
-              { value =
-                  ( _,
-                    ExpressionMember
-                      { expr = _, ExpressionMember { name = _, _inst_name; _ };
-                        name
-                      } )
+              { value = ExpressionMember { expr = ExpressionMember _; name; _ };
+                _
               }
-            when String.(snd name = "next") ->
+            when String.(name.string = "next") ->
             Error (`NotImplementedError "Extract into header stack")
-          | Expression
-              { value = _, ExpressionMember { name = _, inst_name; _ } } ->
+          | Expression { value = ExpressionMember { name = inst_name; _ }; _ }
+            ->
             let%map inst =
-              Syntax.HeaderTable.lookup_instance inst_name header_table
+              Syntax.HeaderTable.lookup_instance inst_name.string header_table
             in
             Syntax.Command.Extract inst
           | Expression
               { value =
-                  ( _,
-                    ArrayAccess
-                      { array = _, ExpressionMember { name = _, inst_name; _ };
-                        index = _, Int (_, { value; _ })
-                      } )
+                  ArrayAccess
+                    { array = ExpressionMember { name = inst_name; _ };
+                      index = Int { x; _ };
+                      _
+                    };
+                _
               } ->
             Syntax.(
-              let%bind array_idx = bigint_to_int value in
+              let%bind array_idx = bigint_to_int x.value in
               let%map inst =
                 HeaderTable.lookup_instance
-                  (inst_name ^ string_of_int array_idx)
+                  (inst_name.string ^ string_of_int array_idx)
                   header_table
               in
               Command.Extract inst)
@@ -407,14 +437,14 @@ let rec petr4_statement_to_command (headers_param_name : string)
           | _ ->
             Error (`InvalidArgumentError "TODO: Argument is not an expression"))
         | _ -> Error (`InvalidArgumentError "Invalid argument to extract")
-      else if String.(snd name = "emit") then
+      else if String.(name.string = "emit") then
         match args with
-        | [ (_, arg) ] -> (
+        | [ arg ] -> (
           match arg with
-          | Expression
-              { value = _, ExpressionMember { name = _, inst_name; _ } } ->
+          | Expression { value = ExpressionMember { name = inst_name; _ }; _ }
+            ->
             let%map inst =
-              Syntax.HeaderTable.lookup_instance inst_name header_table
+              Syntax.HeaderTable.lookup_instance inst_name.string header_table
             in
             Syntax.Command.If
               ( Syntax.Formula.IsValid (0, inst),
@@ -430,17 +460,16 @@ let rec petr4_statement_to_command (headers_param_name : string)
         | _ -> Error (`InvalidArgumentError "Invalid argument to emit")
       else (
         Fmt.pr "%s"
-          (Sexplib.Sexp.to_string_hum
-             (Petr4.Types.Expression.sexp_of_pre_t exprm));
+          (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_t exprm));
         Error
           (`FrontendError
-            (Printf.sprintf "Unrecognized method call %s" (snd name))))
+            (Printf.sprintf "Unrecognized method call %s" name.string)))
     | _ -> Error (`FrontendError "Method Called on a Non-member expression"))
-  | Assignment { lhs = _, ExpressionMember { expr; name = _, field }; rhs } -> (
+  | Assignment { lhs = ExpressionMember { expr; name = field; _ }; rhs; _ } -> (
     match petr4_expr_to_instance headers_param_name header_table expr with
     | Ok inst ->
       let open Syntax in
-      let%bind l, r = Instance.field_bounds inst field in
+      let%bind l, r = Instance.field_bounds inst field.string in
       let%map bv = expr_to_term header_table (r - l) rhs in
       Command.Assign (inst, l, r, BvExpr bv)
     | Error e -> Error e)
@@ -453,26 +482,26 @@ let rec petr4_statement_to_command (headers_param_name : string)
       (`FrontendError
         "Not implemented (Frontend.petr4_statement_to_command - \
          DirectApplication)")
-  | Conditional { cond; tru; fls } ->
+  | Conditional { cond; tru; fls; _ } ->
     let%bind expr =
       petr4_expr_to_formula headers_param_name header_table cond
     in
     let%bind tru_cmd =
-      petr4_statement_to_command headers_param_name header_table (snd tru)
+      petr4_statement_to_command headers_param_name header_table tru
     in
     let%map fls_cmd =
-      Option.map fls ~f:(fun (_, fls_stmt) ->
+      Option.map fls ~f:(fun fls_stmt ->
           petr4_statement_to_command headers_param_name header_table fls_stmt)
       |> Option.value ~default:(Ok Syntax.Command.Skip)
     in
     Syntax.Command.If (expr, tru_cmd, fls_cmd)
-  | BlockStatement { block } ->
+  | BlockStatement { block; _ } ->
     block_to_command headers_param_name header_table block
-  | Exit ->
+  | Exit _ ->
     Error
       (`NotImplementedError
         "Not implemented (Frontend.petr4_statement_to_command - Exit)")
-  | EmptyStatement ->
+  | EmptyStatement _ ->
     Error
       (`NotImplementedError
         "Not implemented (Frontend.petr4_statement_to_command - EmptyStatement)")
@@ -492,8 +521,8 @@ let rec petr4_statement_to_command (headers_param_name : string)
 
 and block_to_command (headers_param : string)
     (header_table : Syntax.HeaderTable.t) (block : Petr4.Types.Block.t) =
-  List.fold (snd block).statements ~init:(Ok Syntax.Command.Skip)
-    ~f:(fun acc_result (_, stmt) ->
+  List.fold block.statements ~init:(Ok Syntax.Command.Skip)
+    ~f:(fun acc_result stmt ->
       let%bind acc = acc_result in
       let%map cmd =
         petr4_statement_to_command headers_param header_table stmt
@@ -501,8 +530,7 @@ and block_to_command (headers_param : string)
       Syntax.Command.Seq (acc, cmd))
 
 let param_name (param : string) (params : Petr4.Types.Parameter.t list) =
-  List.find_map params ~f:(fun (_, { variable; _ }) ->
-      Some (return (snd variable)))
+  List.find_map params ~f:(fun { variable; _ } -> Some (return variable.string))
   |> Option.value
        ~default:
          (Error
@@ -516,18 +544,18 @@ let collect_parser_states (headers_param_name : string)
   let init : ParserCfg.CfgNode.t String.Map.t =
     String.Map.of_alist_exn [ ("accept", accept); ("reject", reject) ]
   in
-  List.fold states ~init:(Ok init) ~f:(fun acc_result (_, state) ->
+  List.fold states ~init:(Ok init) ~f:(fun acc_result state ->
       let%bind acc = acc_result in
       let%map statements =
-        List.filter_map state.statements ~f:(fun (_, stmt) ->
+        List.filter_map state.statements ~f:(fun stmt ->
             Some
               (petr4_statement_to_command headers_param_name header_table stmt))
         |> Utils.sequence_error
       in
-      Map.set acc ~key:(snd state.name)
+      Map.set acc ~key:state.name.string
         ~data:
           ParserCfg.CfgNode.
-            { name = snd state.name;
+            { name = state.name.string;
               statements;
               successors = ParserCfg.EdgeSet.empty
             })
@@ -535,22 +563,22 @@ let collect_parser_states (headers_param_name : string)
 let build_cfg_edges (transition : Petr4.Types.Parser.transition)
     (cfg_nodes : ParserCfg.CfgNode.t String.Map.t)
     (header_table : Syntax.HeaderTable.t) =
-  match snd transition with
-  | Select { exprs; cases } ->
+  match transition with
+  | Select { exprs; cases; _ } ->
     let%bind inst, field =
-      List.find_map exprs ~f:(fun (_, expr) ->
+      List.find_map exprs ~f:(fun expr ->
           match expr with
-          | ExpressionMember { expr = hdr; name } ->
-            let field_name = snd name in
+          | ExpressionMember { expr = hdr; name = field_name; _ } ->
             (let%bind inst_name =
-               match snd hdr with
-               | ExpressionMember { name; _ } -> return (snd name)
+               match hdr with
+               | ExpressionMember { name; _ } -> return name.string
                | ArrayAccess
-                   { array = _, ExpressionMember { name = _, inst_name; _ };
-                     index = _, Int (_, { value; _ })
+                   { array = ExpressionMember { name = inst_name; _ };
+                     index = Int { x; _ };
+                     _
                    } ->
-                 let%map array_idx = bigint_to_int value in
-                 inst_name ^ string_of_int array_idx
+                 let%map array_idx = bigint_to_int x.value in
+                 inst_name.string ^ string_of_int array_idx
                | _ ->
                  Error
                    (`NotImplementedError
@@ -559,36 +587,36 @@ let build_cfg_edges (transition : Petr4.Types.Parser.transition)
              let%map inst =
                Syntax.HeaderTable.lookup_instance inst_name header_table
              in
-             (inst, field_name))
+             (inst, field_name.string))
             |> Some
           | _ -> None)
       |> Option.value
            ~default:
              (Error (`FrontendError "Could not process select expression."))
     in
-    List.fold cases ~init:(Ok []) ~f:(fun edges_acc (_, { matches; next }) ->
-        let next' = String.Map.find_exn cfg_nodes (snd next) in
-        List.fold matches ~init:edges_acc ~f:(fun match_acc_result (_, mtch) ->
+    List.fold cases ~init:(Ok []) ~f:(fun edges_acc { matches; next; _ } ->
+        let next' = String.Map.find_exn cfg_nodes next.string in
+        List.fold matches ~init:edges_acc ~f:(fun match_acc_result mtch ->
             let%bind match_acc = match_acc_result in
             let%map edge_type =
               match mtch with
-              | Default -> return ParserCfg.EdgeType.Default
-              | DontCare ->
+              | Default _ -> return ParserCfg.EdgeType.Default
+              | DontCare _ ->
                 Error
                   (`NotImplementedError
                     "Not implemented (Frontend.build_cfg_edges - DontCare)")
-              | Expression { expr = _, Int n } ->
-                return (ParserCfg.EdgeType.Match (inst, field, (snd n).value))
-              | Expression { expr = _ } ->
+              | Expression { expr = Int { x; _ }; _ } ->
+                return (ParserCfg.EdgeType.Match (inst, field, x.value))
+              | Expression { expr = _; _ } ->
                 Error
                   (`NotImplementedError
                     "Not implemented (Frontend.build_cfg_edges - Expression)")
             in
             let edge = ParserCfg.Edge.{ node = next'; typ = edge_type } in
             edge :: match_acc))
-  | Direct { next } ->
+  | Direct { next; _ } ->
     let%map next =
-      String.Map.find cfg_nodes (snd next)
+      String.Map.find cfg_nodes next.string
       |> Result.of_option ~error:(`FrontendError "Next node not found.")
     in
     [ ParserCfg.Edge.{ node = next; typ = ParserCfg.EdgeType.Default } ]
@@ -604,9 +632,9 @@ let build_parser_cfg (header_table : Syntax.HeaderTable.t)
       m "CFG Nodes: %s"
         (Sexplib.Sexp.to_string_hum
            (String.Map.sexp_of_t ParserCfg.CfgNode.sexp_of_t cfg_nodes)));
-  List.fold parser_states ~init:(Ok cfg_nodes) ~f:(fun acc_result (_, state) ->
+  List.fold parser_states ~init:(Ok cfg_nodes) ~f:(fun acc_result state ->
       let%bind acc = acc_result in
-      let node_name = snd state.name in
+      let node_name = state.name.string in
       let node = String.Map.find_exn acc node_name in
       let%map edges = build_cfg_edges state.transition cfg_nodes header_table in
       let edge_set =
@@ -701,12 +729,12 @@ let control_to_command (header_table : Syntax.HeaderTable.t)
   Simplify.simplify_command cmd
 
 let extract_annotation_body (header_table : Syntax.HeaderTable.t)
-    (annotation : Petr4.Types.Annotation.pre_t) =
-  match snd annotation.body with
-  | Petr4.Types.Annotation.Unparsed (body :: _) ->
+    (annotation : _ Petr4.Types.Annotation.pt) =
+  match annotation.body with
+  | Petr4.Types.Annotation.Unparsed { str = body :: _; _ } ->
     let body =
       String.chop_prefix_if_exists
-        (String.chop_suffix_if_exists (snd body) ~suffix:"\"")
+        (String.chop_suffix_if_exists body.string ~suffix:"\"")
         ~prefix:"\""
     in
     Log.debug (fun m -> m "Annotation body: %s" body);
@@ -716,9 +744,8 @@ let extract_annotation_body (header_table : Syntax.HeaderTable.t)
 
 let find_pi4_annotations (header_table : Syntax.HeaderTable.t)
     (annotations : Petr4.Types.Annotation.t list) =
-  List.fold annotations ~init:[] ~f:(fun acc (_, annotation) ->
-      match snd annotation.name with
-      | "pi4" -> (
+  List.fold annotations ~init:[] ~f:(fun acc annotation ->
+      if String.(annotation.name.string = "pi4") then (
         match extract_annotation_body header_table annotation with
         | Ok pi4_annotation ->
           Option.map pi4_annotation ~f:(fun annot -> annot :: acc)
@@ -726,12 +753,12 @@ let find_pi4_annotations (header_table : Syntax.HeaderTable.t)
         | Error (`SyntaxError e) ->
           Log.err (fun m -> m "Failed to parse annotation with error %s" e);
           acc)
-      | _ -> acc)
+      else acc)
 
 let collect_annotations (header_table : Syntax.HeaderTable.t)
     (Petr4.Types.Program decls) =
   List.fold decls ~init:[] ~f:(fun acc decl ->
-      match snd decl with
+      match decl with
       | Control { annotations; _ }
       | Parser { annotations; _ }
       | Struct { annotations; _ }
@@ -742,11 +769,13 @@ let collect_annotations (header_table : Syntax.HeaderTable.t)
 let declaration_to_command (header_table : Syntax.HeaderTable.t)
     (decls : Petr4.Types.Declaration.t list) (name : string) =
   List.find_map decls ~f:(fun decl ->
-      match snd decl with
-      | Parser { name = n; states; params; _ } when String.(snd n = name) ->
+      match decl with
+      | Parser { name = parser; states; params; _ }
+        when String.(parser.string = name) ->
         let parser_cmd = parser_to_command header_table states params in
         Some parser_cmd
-      | Control { name = n; apply; params; _ } when String.(snd n = name) ->
+      | Control { name = control; apply; params; _ }
+        when String.(control.string = name) ->
         Some (control_to_command header_table apply params)
       | _ -> None)
   |> Option.value

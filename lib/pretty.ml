@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 open Fmt
 open Syntax
 open Z3.Smtlib

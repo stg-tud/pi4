@@ -1,9 +1,10 @@
-open Core_kernel
+open Core
 
 type error =
   [ `ConversionError of string
   | `HeaderTypeNotDeclaredError of string
   | `NotImplementedError of string
+  | `TypeDeclarationNotFoundError of string
   ]
 
 val build_header_table :

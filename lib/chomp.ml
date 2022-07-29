@@ -180,7 +180,7 @@ let chomp (hty : HeapType.t) (ctx : Env.context) (inst : Instance.t)
   chomp_rec hty ctx (Instance.sizeof inst) 0 inst 0 header_table
 
 module Optimized (P : Prover.S) = struct
-  open Core_kernel
+  open Core
   open Result.Let_syntax
 
   let rec remove_false_branches (header_type : HeapType.t) (ctx : Env.context)

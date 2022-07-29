@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 
 let memoize_string_count f =
   let memoize () =

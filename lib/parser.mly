@@ -271,9 +271,9 @@ cterm_bv:
     let inst = HeaderTable.lookup_instance_exn inst_name ht in
     Expression.(field_to_slice_exn inst field_name 0) }
 | bs=BITSTRING {
-  fun _ ->  bv_s (Core_kernel.String.drop_prefix bs 2)}
+  fun _ ->  bv_s (Core.String.drop_prefix bs 2)}
 | hs=HEXSTRING { 
-  fun _ ->  bv_x (Core_kernel.String.drop_prefix hs 2)}
+  fun _ ->  bv_x (Core.String.drop_prefix hs 2)}
 | pkt=packet LSQUARE l=INT COLON r=INT RSQUARE {
     fun _ -> 
       Expression.(Slice (Packet (0, pkt), l, r))}
@@ -498,7 +498,7 @@ expr:
     heap_equality idx_x idx_y ht
   }
 | x=ID INST_EQ y=ID {
-  let open Core_kernel in 
+  let open Core in 
   fun ht ctx -> 
     let idx_x = Env.name_to_index_exn ctx x in
     let idx_y = Env.name_to_index_exn ctx y in

@@ -2,6 +2,12 @@
 
 Typechecker for a dependently-typed variant of P4.
 
+## TODOs
+1. Support tables in the frontend
+2. Allow to specify multiple properties using `@pi4` annotations (x)
+3. Integrate substitution inlining
+4. Integrate includes caching
+
 ## Building
 
 ### External Dependencies

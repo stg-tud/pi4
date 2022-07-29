@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 module I = Parser.MenhirInterpreter
 
 type error = [ `SyntaxError of string ]

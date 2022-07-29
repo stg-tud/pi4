@@ -1,8 +1,39 @@
 open Core
 open Result.Let_syntax
 open Petr4
-open Common
 open Pi4
+module P4Info = Info
+module Info = P4Info
+module Env = Prog.Env
+
+let print pp = Format.printf "%a@." Pp.to_fmt pp
+
+module type Parse_config = sig
+  val red : string -> string
+  val green : string -> string
+  val preprocess : string list -> string -> string
+end
+
+module Make_parse (Conf : Parse_config) = struct
+  let parse_file include_dirs p4_file verbose =
+    let () = Petr4.Lexer.reset () in
+    let () = Petr4.Lexer.set_filename p4_file in
+    let p4_string = Conf.preprocess include_dirs p4_file in
+    let lexbuf = Lexing.from_string p4_string in
+    try
+      let prog = Petr4.Parser.p4program Petr4.Lexer.lexer lexbuf in
+      if verbose then (
+        Format.eprintf "[%s] %s@\n%!" (Conf.green "Passed") p4_file;
+        prog |> Petr4.Pretty.format_program |> print;
+        Format.print_string "@\n%!";
+        Format.printf "----------@\n";
+        Format.printf "%s@\n%!"
+          (prog |> Petr4.Types.program_to_yojson |> Yojson.Safe.pretty_to_string));
+      `Ok prog
+    with err ->
+      if verbose then Format.eprintf "[%s] %s@\n%!" (Conf.red "Failed") p4_file;
+      `Error (Petr4.Lexer.info lexbuf, err)
+end
 
 let log_src = Logs.Src.create "main" ~doc:"Logs application-level events"
 
@@ -22,8 +53,8 @@ module Conf : Parse_config = struct
         @ [ "-undef"; "-nostdinc"; "-E"; "-x"; "c"; p4file ])
     in
     Logs.debug (fun m -> m "%s" cmd);
-    let in_chan = Unix.open_process_in cmd in
-    let str = In_channel.input_all in_chan in
+    let in_chan = Core_unix.open_process_in cmd in
+    let str = Core.In_channel.input_all in_chan in
     (* let _ = Unix.close_process_in in_chan in *)
     str
 end
@@ -84,16 +115,35 @@ let p4_check filename includes _maxlen verbose =
                 tc_result
                 |> to_result
                      ~success:
-                       (Fmt.str "@[%a passed the typechecker with type\n @[%a@]@]\n"
+                       (Fmt.str
+                          "@[%a passed the typechecker with type\n @[%a@]@]\n"
                           Pretty.pp_annotation_body body (Pretty.pp_pi_type [])
                           typ)
                 |> union |> print_endline
-              | Error `FrontendError e -> print_endline e
+              (* | Error (`ConversionError e) -> Fmt.pr "@[A conversion error
+                 occurred: %s@]" e *)
+              (* | Error (`FieldAccessError e) -> Fmt.pr "@[A field access error
+                 occurred: %s@]" e *)
+              | Error (`FrontendError e) ->
+                Fmt.pr "@[A frontend error occurred: %s@]" e
+              (* | Error `InvalidArgumentError e -> Fmt.pr "@[A not implemented
+                 error occurred: %s@]" e *)
+              | Error (`NotImplementedError e) ->
+                Fmt.pr
+                  "@[A not implemented\n                 error occurred: %s@]" e
+              (* | Error `LookupError e -> Fmt.pr "@[A lookup error occurred:
+                 %s@]" e *)
               | Error _ -> print_endline "An error occurred."))
       in
       match result with
       | Ok _ -> ()
       | Error (`FrontendError e) -> print_endline e
+      (* | Error (`ConversionError e) -> Fmt.pr "@[A conversion error occurred:
+         %s@]" e *)
+      | Error (`NotImplementedError e) ->
+        Fmt.pr "@[A not implemented error occurred: %s@]" e
+      (* | Error (`HeaderTypeNotDeclaredError e) -> Fmt.pr "@[An error occurred:
+         %s@]" e *)
       | _ -> print_endline "An error occurred"))
   | `Error (_, _) -> print_endline "Petr4 could not parse the input file."
 
@@ -135,4 +185,4 @@ let command =
           | None -> failwith "Error. expected type file for Π4 IR mode."
         else p4_check filename includes maxlen verbose)
 
-let () = Command.run ~version:"0.1" command
+let () = Command_unix.run ~version:"0.1" command

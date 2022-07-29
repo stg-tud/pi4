@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 open Result.Let_syntax
 open Syntax
 open Z3

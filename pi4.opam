@@ -14,9 +14,9 @@ depends: [
   "alcotest"
   "ANSITerminal"
   "core" 
-  "dune" {>= "2.7" & < "3.0"}
+  "dune" {>= "3.4"}
   "menhir" {< "20211230"}
-  "ocaml" {>= "4.09.0"}
+  "ocaml" {>= "4.12.0"}
   "petr4" {>= "0.1.2"}
   "ppx_jane"
   "fmt"

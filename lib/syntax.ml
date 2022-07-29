@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 
 type var = int [@@deriving compare, sexp]
 
@@ -104,7 +104,7 @@ module HeaderTable = struct
                     Printf.sprintf "(%s,%d)" field.name field.typ)
              |> List.fold ~init:"" ~f:(fun acc field -> acc ^ field)
            in
-           Printf.sprintf "%s\n%s -> [%s]" acc inst fields_string)
+           Fmt.str "%s\n%s -> [%s]" acc inst fields_string)
 
   let lookup_instance inst_str header_table =
     find_instance inst_str header_table

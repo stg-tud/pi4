@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 open Syntax
 open Formula
 open Expression

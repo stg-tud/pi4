@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 open Pi4
 open Syntax
 open Pretty
