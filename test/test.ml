@@ -16,12 +16,15 @@ let test_suite =
     ("parser", Test_parser.test_set);
     ("simplification", Test_simplify.test_set);
     ("cisco_example", Test_cisco.test_set);
-    ("composition", Test_composition.test_set);
+    (* ("composition", Test_composition.test_set); *)
     ("examples", Test_examples.test_set);
     ("substitution_base", Test_substitution.test_set);
     ("substitution_ext", Test_substitution_ext.test_set);
     ("ipv4opt", Test_ipv4opt.test_set);
 	  ("vlan_decap", Test_vlan_decap.test_set);
+    ("split_concat", Test_split_concat.test_set);
+    ("bitvector", Test_bitvec.test_set);
+    ("inline", Test_inline.test_set)
   ]
 
 let () =

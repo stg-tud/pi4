@@ -12,6 +12,7 @@ let eth_inst = Test_utils.mk_inst "eth" [ ("smac", 48) ]
 let ipv4_inst = Test_utils.mk_inst "ipv4" [ ("src", 32); ("dst", 32) ]
 let header_table = HeaderTable.populate [ eth_inst; ipv4_inst ]
 let init_ctx = []
+
 let maxlen = 32
 
 module TestConfig = struct
@@ -479,7 +480,6 @@ let test_concat_minus_1 () =
   in
   Test.is_equiv t2 t1 ctx ht
 
- 
 (* Test fails because there is no specific value for y.pkt_in *)
 let test_concat_minus_broken () =
   let inst = Test_utils.mk_inst "h" [ ("ihl", 2); ("ttl", 4); ("flg", 2) ] in

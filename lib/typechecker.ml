@@ -1021,13 +1021,19 @@ module Make (C : Checker) : S = struct
               (Pretty.pp_header_type ctx)
               (Simplify.fold_refinements tycout));
         let%bind res = C.check_subtype tycout annot_tyout ctx header_table in
-        Log.debug (fun m -> m "%b" res );
-        if res then return res
-        else
-          Error
-            (`TypeError
-              "Expected the computed output header type to be a subtype of the \
-               annotated output header type")
+        Log.debug (fun m ->
+            m "@[Checking if %a <: ∅@]" (Pretty.pp_header_type ctx) tycout);
+        let%bind tycout_nothing =
+          C.check_subtype tycout Nothing ctx header_table
+        in
+        if not tycout_nothing then
+          if res then return res
+          else
+            Error
+              (`TypeError
+                "Expected the computed output header type to be a subtype of \
+                 the annotated output header type")
+        else Error (`TypeError "Computed output type is equivalent to Nothing")
       in
       match result with
       | Ok _ -> TypecheckingResult.Success
