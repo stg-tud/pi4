@@ -27,6 +27,9 @@ module type S = sig
     HeaderTable.t ->
     Z3.Smtlib.tactic ->
     (bool, [> `EncodingError of string | `VariableLookupError of string ]) result
+
+  val set_maxlen :
+    var -> unit
 end
 
 module Make : functor (Enc : Encoding.S) -> S

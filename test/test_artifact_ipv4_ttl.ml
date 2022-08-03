@@ -5,13 +5,13 @@ open Syntax
 module TestConfig = struct
   let verbose = true
 
-  let maxlen = 272
+  let maxlen = ref(272)
 end
 
 module Test = Test_utils.TestRunner (TestConfig)
 
 module Config = struct
-  let maxlen = 320
+  let maxlen = ref(320)
 end
 
 module P = Prover.Make (Encoding.FixedWidthBitvectorEncoding (Config))

@@ -28,10 +28,13 @@ module type S = sig
     string ->
     HeaderTable.t ->
     (Smtlib.identifier * Smtlib.sort) list
+
+  val set_maxlen :
+    var -> unit
 end
 
 module type Config = sig
-  val maxlen : int
+  val maxlen : int ref
 end
 
 module FixedWidthBitvectorEncoding : functor (Config : Config) -> S

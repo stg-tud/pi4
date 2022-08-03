@@ -1,0 +1,13 @@
+header_type ipv4_t {
+  ttl: 8; 
+}
+header_type standard_metadata_t {
+  egress_spec: 9;
+}
+header ipv4 : ipv4_t
+header meta : standard_metadata_t
+
+if(ipv4.valid) {
+  meta.egress_spec := 0b000000001;
+  ipv4.ttl := ipv4.ttl - 0x01
+}

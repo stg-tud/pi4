@@ -143,6 +143,15 @@ module HeaderTable = struct
     String.Map.to_alist header_table ~key_order:`Increasing
     |> List.map ~f:(fun (inst_name, fields) ->
            Instance.{ name = inst_name; fields })
+
+  let max_header_size header_table =
+    let ht_list = to_list header_table in
+    let rec get_size hl =
+      match hl with
+      | a :: t -> Instance.sizeof a + get_size t
+      | [] -> 0
+    in
+    get_size ht_list
 end
 
 type packet =
@@ -215,21 +224,19 @@ module Sliceable = struct
 end
 
 module Expression = struct
+  (* All arith expressions evaluate to natural numbers *)
   type arith =
     | Num of int (* n *)
     | Length of var * packet (* |x.p| *)
-    | Plus of arith * arith
-  (* t1 + t2 where t1 and t2 must have natural number types *)
+    | Plus of arith * arith (* t1 + t2 where t1 and t2 must have natural number types *)
   [@@deriving compare, sexp]
 
   type bv =
     | Minus of bv * bv (* t1 - t2 where t1 and t2 must have bitvector types *)
     | Bv of BitVector.t (* bv *)
-    | Concat of bv * bv
-    (* t1 @ t2 where t1 and t2 must have bitvector types *)
+    | Concat of bv * bv (* t1 @ t2 where t1 and t2 must have bitvector types *)
     | Slice of Sliceable.t * int * int (* x.p[hi:lo] or x.h[hi:lo] *)
-    | Packet of var * packet
-  (* x.p *)
+    | Packet of var * packet (* x.p *)
   [@@deriving compare, sexp]
 
   type t =
@@ -251,30 +258,32 @@ module Expression = struct
   let bit_access sliceable idx = BvExpr (Slice (sliceable, idx, idx + 1))
 end
 
+(* φ *)
 module Formula = struct
   type t =
-    | True
-    | False
-    | IsValid of var * Instance.t
-    | Eq of Expression.t * Expression.t
-    | Gt of Expression.t * Expression.t
-    | Neg of t
-    | And of t * t
-    | Or of t * t
-    | Implies of t * t
+    | True (* true *)
+    | False (* false *)
+    | IsValid of var * Instance.t (* x.ι.valid *)
+    | Eq of Expression.t * Expression.t (* e = e *)
+    | Gt of Expression.t * Expression.t (* e > e *)
+    | Neg of t (* ¬φ *)
+    | And of t * t (* φ ∧ φ *)
+    | Or of t * t (* φ | φ *)
+    | Implies of t * t (* φ ⟹ φ / Q: Not in formal definition? *)
   [@@deriving compare, sexp]
 
   let ands forms = List.fold forms ~init:True ~f:(fun e1 e2 -> And (e1, e2))
 end
 
+(* τ *)
 module HeapType = struct
   type t =
-    | Nothing
-    | Top
-    | Sigma of string * t * t
-    | Choice of t * t
-    | Refinement of string * t * Formula.t
-    | Substitution of t * string * t
+    | Nothing (* ⌀ *)
+    | Top (* ⊤ *)
+    | Sigma of string * t * t (* Σx:τ.τ *)
+    | Choice of t * t (* τ + τ *)
+    | Refinement of string * t * Formula.t (* {x : τ | φ } *)
+    | Substitution of t * string * t (* τ[x ↦ τ] *)
   [@@deriving compare, sexp]
 
   let empty (header_table : HeaderTable.t) (x : string) =
@@ -343,6 +352,7 @@ module Command = struct
   [@@deriving compare, sexp]
 end
 
+(* P *)
 module Program = struct
   type t =
     { declarations : Declaration.t list;

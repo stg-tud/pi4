@@ -4,7 +4,7 @@ open Syntax
 open Pretty
 
 module type TestConfig = sig
-  val maxlen : int
+  val maxlen : int ref 
   val verbose : bool
 end
 
@@ -30,6 +30,9 @@ module TestRunner (Config : TestConfig) : sig
   val error : string -> HeaderTable.t -> Command.t -> pi_type -> unit
 
   val is_equiv :
+    HeapType.t -> HeapType.t -> Env.context -> HeaderTable.t -> unit
+
+  val is_equiv_and_diff:
     HeapType.t -> HeapType.t -> Env.context -> HeaderTable.t -> unit
 
   val not_equiv :
@@ -92,7 +95,7 @@ end = struct
     init_prover;
     Alcotest.(check Testable.typechecker_result)
       (Fmt.str "%a" (pp_pi_type []) ty)
-      Typechecker.TypecheckingResult.Success (T.check_type cmd ty ht)
+      Typechecker.TypecheckingResult.Success (T.check_type cmd ty ht ~smpl_subs:true)
 
   let check_program f program typ =
     let prog = Parsing.parse_program program in
@@ -114,10 +117,31 @@ end = struct
       (T.check_type cmd ty ht)
 
   let is_equiv hty1 hty2 ctx ht =
+    if Config.verbose then
+      Fmt.pr "@[<v>Checking eqivalence relation:@ %a\n⇔ %a@]@."
+        (Pretty.pp_header_type ctx)
+        hty1
+        (Pretty.pp_header_type ctx)
+        hty2
+    else
+      ();
     Alcotest.(check bool)
       "types are equivalent" true
       (check_subtype hty1 hty2 ctx ht && check_subtype hty2 hty1 ctx ht)
 
+  let is_equiv_and_diff hty1 hty2 ctx ht =
+    if Config.verbose then
+      Fmt.pr "@[<v>Checking eqivalence relation:@ %a\n⇔ %a@]@."
+        (Pretty.pp_header_type ctx)
+        hty1
+        (Pretty.pp_header_type ctx)
+        hty2
+    else
+      ();
+    Alcotest.(check bool)
+      "types are equivalent" true
+      ( not([%compare.equal: HeapType.t] hty1 hty2) && check_subtype hty1 hty2 ctx ht && check_subtype hty2 hty1 ctx ht)
+    
   (* (Pi4.Equiv.htyeqv ht [] Config.maxlen hty1 hty2) *)
 
   let not_equiv hty1 hty2 ctx ht =

@@ -1,13 +1,9 @@
-(* open Landmark *)
 
 let test_suite =
-  [ ("z3_encoding", Test_encoding.test_set);
+  [ 
+    ("z3_encoding", Test_encoding.test_set);
     ("equivalence", Test_equiv.test_set);
     ("subtyping", Test_subtyping.test_set);
-    ("term_chomping", Test_chomp_term.test_set);
-    ("expr_chomping", Test_chomp_exp.test_set);
-    ("ref_chomping", Test_chomp_ref.test_set);
-    ("type_chomping", Test_chomp_hty.test_set);
     ("type_checking", Test_typecheck.test_set);
     ("syntax", Test_syntax.test_set);
     ("roundtrip", Test_artifact_roundtrip.test_set);
@@ -21,8 +17,12 @@ let test_suite =
     ("simplification", Test_simplify.test_set);
     ("cisco_example", Test_cisco.test_set);
     (* ("composition", Test_composition.test_set); *)
+    ("examples", Test_examples.test_set);
+    ("substitution_base", Test_substitution.test_set);
+    ("substitution_ext", Test_substitution_ext.test_set);
+    ("ipv4opt", Test_ipv4opt.test_set);
+	  ("vlan_decap", Test_vlan_decap.test_set);
     ("split_concat", Test_split_concat.test_set);
-    ("vlan_decap", Test_vlan_decap.test_set);
     ("bitvector", Test_bitvec.test_set);
     ("inline", Test_inline.test_set)
   ]
@@ -31,10 +31,13 @@ let () =
   Format.pp_set_geometry Format.err_formatter ~max_indent:239 ~margin:240;
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter @@ Logs.format_reporter ();
-  Logs.set_level ~all:true @@ Some Logs.Debug;
-  Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
+  Logs.set_level ~all:true @@ Some Logs.Warning;
+  (* Logs.Src.set_level Pi4.Logging.cache_src @@ Some Logs.Debug; *)
+  (* Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Debug; *)
   (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug; *)
+  (* Logs.Src.set_level Pi4.Logging.prover_profile_src @@ Some Logs.Debug; *)
+  (* Logs.Src.set_level Pi4.Logging.encoding_src @@ Some Logs.Debug; *)
+  (* Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug; *)
+  (* Logs.Src.set_level Pi4.Logging.cache_src @@ Some Logs.Debug; *)
 
-
-  (* start_profiling (); *)
   Alcotest.run "Pi4" test_suite

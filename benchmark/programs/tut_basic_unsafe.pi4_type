@@ -1,0 +1,15 @@
+(x:{y:⊤|
+    y.pkt_out.length == 0 ∧
+    !y.ether.valid ∧
+    !y.ipv4.valid ∧
+    y.pkt_in.length > 272 ∧
+    y.stdmeta.valid ∧
+    y.forward_table.valid
+    }) -> {y:⊤ | 
+        (y.stdmeta.drop == 0b1) 
+            => (y.pkt_out.length == 0) ∧
+        (y.ipv4.valid ∧ y.ipv4.dst == y.forward_table.ipv4_dst_key ∧ y.forward_table.act_ipv4_forward == 0b1 )
+            =>  (y.ether.dst == y.forward_table.dst ∧ y.stdmeta.egress_spec == y.forward_table.port) ∧
+        (y.ipv4.valid ∧ y.ipv4.dst == y.forward_table.ipv4_dst_key ∧ y.forward_table.act_ipv4_forward != 0b1 )
+            => (y.stdmeta.drop == 0b1)
+        }

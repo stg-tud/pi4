@@ -35,3 +35,7 @@ pi4
 _site/
 node_modules/
 .vscode/
+
+# jetbrains IDE
+.idea
+.ipynb_checkpoints

@@ -1,0 +1,2 @@
+(x:({y:ether~|!y.ipv4.valid && !y.ipv6.valid} + {y:ether~|y.ipv4.valid && !y.ipv6.valid})) 
+  -> {y:⊤|!(y.ipv4.valid && y.ipv6.valid)}

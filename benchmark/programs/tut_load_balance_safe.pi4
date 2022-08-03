@@ -1,0 +1,131 @@
+header_type ether_t {
+  dst: 48;
+  src: 48;
+  type: 16;
+}
+header_type ipv4_t {
+  version: 4;
+  ihl: 4;
+  tos: 8;
+  len: 16;
+  id: 16;
+  flags: 3;
+  frag: 13;
+  ttl: 8;
+  proto: 8;
+  chksum: 16;
+  src: 32;
+  dst: 32;
+}
+header_type tcp_t {
+  srcPort: 16;
+  dstPort: 16;
+  seqNo: 32;
+  ackNo: 32;
+  dataOffset: 4;
+  res: 3;
+  ecn: 3;
+  ctrl: 6;
+  window: 16;
+  checksum: 16;
+  urgentPtr: 16;
+}
+
+header_type standard_metadata_t {
+  ingress_port: 9;
+  egress_spec: 9;
+  egress_port: 9;
+  instance_type: 32;
+  packet_length: 32;
+  enq_timestamp: 32;
+  enq_qdepth: 19;
+  deq_timedelta: 32;
+  deq_qdepth: 19;
+  ingress_global_timestamp: 48;
+  mcast_grp: 16;
+  egress_rid: 16;
+  checksum_error: 1;
+  priority: 3;
+  drop: 1;
+}
+header_type ecmp_table_t {
+  ipv4_dst_key: 32;
+  act_ipv4_forward: 1;
+  ecmp_hash: 14;
+}
+header_type nhop_table_t {
+  ecmp_hash_key: 14;
+  act_nhop: 1;
+  nhop_dmac: 48;
+  nhop_ipv4: 32;
+  port: 9;
+}
+header_type egress_table_t{
+  port_key: 9;
+  act_egress: 1;
+  smac: 48;
+}
+header_type meta_t {
+  ecmp_select: 14;
+}
+
+header ether : ether_t
+header ipv4 : ipv4_t
+header tcp : tcp_t
+header stdmeta : standard_metadata_t
+header ecmp_table : ecmp_table_t
+header nhop_table : nhop_table_t
+header egress_table : egress_table_t
+header meta : meta_t
+
+extract(ether);
+if(ether.type == 0x0800) {
+  extract(ipv4);
+  if(ipv4.proto == 0b00001001){
+    extract(tcp)
+  }
+};
+
+if(ipv4.valid) {
+  if(ecmp_table.ipv4_dst_key == ipv4.dst){
+    if(ecmp_table.act_ipv4_forward == 0b1){
+      meta.ecmp_select := ecmp_table.ecmp_hash
+    } else {
+      stdmeta.drop := 0b1;
+      stdmeta.mcast_grp := 0x0000
+    }
+  };
+
+  if(meta.ecmp_select == nhop_table.ecmp_hash_key) {
+    if(nhop_table.act_nhop == 0b1){
+      ether.dst := nhop_table.nhop_dmac;
+      ipv4.dst := nhop_table.nhop_ipv4;
+      stdmeta.egress_spec := nhop_table.port;
+      ipv4.ttl := ipv4.ttl - 0x01
+    } else {
+      stdmeta.drop := 0b1;
+      stdmeta.mcast_grp := 0x0000
+    }
+  }
+};
+
+if(stdmeta.egress_port == egress_table.port_key){
+  if(egress_table.act_egress == 0b1) {
+    ether.src := egress_table.smac
+  } else {
+    stdmeta.drop := 0b1;
+    stdmeta.mcast_grp := 0x0000
+  }
+};
+
+if(stdmeta.drop != 0b1) {
+  if(ether.valid){
+    remit(ether)
+  };
+  if(ipv4.valid) {
+    remit(ipv4)
+  };
+  if(tcp.valid) {
+    remit(tcp)
+  }
+}

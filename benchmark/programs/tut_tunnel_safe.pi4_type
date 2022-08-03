@@ -1,0 +1,10 @@
+(x:{y:⊤|
+  y.pkt_out.length == 0 ∧
+  y.pkt_in.length > 304 ∧
+  ¬y.ether.valid ∧
+  ¬y.ipv4.valid ∧
+  y.stdmeta.valid ∧
+  y.forward_table.valid ∧
+  y.tunnel_table.valid ∧
+  ¬y.my_tnl.valid
+  }) -> {y:⊤ | (y.ether.type == 0x1212) => y.my_tnl.valid}

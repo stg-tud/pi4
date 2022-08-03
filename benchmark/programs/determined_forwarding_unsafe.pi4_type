@@ -1,0 +1,1 @@
+(x:{y:⊤|y.ipv4.valid && y.stdmeta.valid}) -> {y:⊤| y.stdmeta.egress_spec != 0b000000000}

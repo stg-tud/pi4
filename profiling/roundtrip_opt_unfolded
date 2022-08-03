@@ -1,0 +1,244 @@
+Test Successful in 110.369s. 1 test run.
+Call graph 'test/test.exe test performance 0':
+----------------------------------------------
+[  243.71G cycles in     1 calls ]     - 99.96% : load(test)
+[  243.69G cycles in     1 calls ]     |   - 99.99% : Test_performance.test
+[  243.69G cycles in     1 calls ]     |   |   - 100.00% : Test_performance.test_typecheck
+[  243.68G cycles in     1 calls ]     |   |   |   - 100.00% : Test_performance.time
+[  243.68G cycles in     1 calls ]     |   |   |   |   - 100.00% : Typechecker.Make.check_type
+[  242.37G cycles in     1 calls ]     |   |   |   |   |   - 99.46% : Typechecker.SemanticChecker.compute_type
+[  165.81G cycles in     8 calls ]     |   |   |   |   |   |   - 68.41% : Typechecker.HeapTypeOps.packet_length_gte_n
+[  165.81G cycles in     8 calls ]     |   |   |   |   |   |   |   - 100.00% : Prover.Make.check_subtype
+[  165.81G cycles in     8 calls ]     |   |   |   |   |   |   |   |   - 100.00% : Prover.Make.check_subtype_with_tactic
+[  164.91G cycles in     8 calls ]     |   |   |   |   |   |   |   |   |   - 99.46% : [1;31mProver.check_unsat_and_reset[0m
+[   43.75G cycles in    11 calls ]     |   |   |   |   |   |   - 18.05% : Typechecker.FormChecker.check_form
+[   43.75G cycles in    12 calls ]     |   |   |   |   |   |   |   - 100.00% : Typechecker.ExprChecker.check_expr
+[   43.75G cycles in    12 calls ]     |   |   |   |   |   |   |   |   - 100.00% : Typechecker.ExprChecker.check_bv_expr
+[   43.75G cycles in     6 calls ]     |   |   |   |   |   |   |   |   |   - 100.00% : Typechecker.HeapTypeOps.includes
+[   43.74G cycles in     6 calls ]     |   |   |   |   |   |   |   |   |   |   - 100.00% : Prover.Make.check_subtype
+[   43.74G cycles in     6 calls ]     |   |   |   |   |   |   |   |   |   |   |   - 100.00% : Prover.Make.check_subtype_with_tactic
+[   43.12G cycles in     6 calls ]     |   |   |   |   |   |   |   |   |   |   |   |   - 98.57% : [1;31mProver.check_unsat_and_reset[0m
+[   27.79G cycles in     2 calls ]     |   |   |   |   |   |   - 11.46% : Prover.Make.check_subtype
+[   27.79G cycles in     2 calls ]     |   |   |   |   |   |   |   - 100.00% : Prover.Make.check_subtype_with_tactic
+[   27.51G cycles in     2 calls ]     |   |   |   |   |   |   |   |   - 99.02% : [0;31mProver.check_unsat_and_reset[0m
+[    4.43G cycles in     5 calls ]     |   |   |   |   |   |   -  1.83% : Typechecker.HeapTypeOps.includes
+[    4.43G cycles in     5 calls ]     |   |   |   |   |   |   |   - 99.98% : Prover.Make.check_subtype
+[    4.43G cycles in     5 calls ]     |   |   |   |   |   |   |   |   - 100.00% : Prover.Make.check_subtype_with_tactic
+[    3.91G cycles in     5 calls ]     |   |   |   |   |   |   |   |   |   - 88.26% : [0;33mProver.check_unsat_and_reset[0m
+[  104.85M cycles in     5 calls ]     |   |   |   |   |   |   |   |   |   -  2.37% : Prover.declare_constants
+[    1.13M cycles in   800 calls ]     |   |   |   |   |   |   |   |   |   |   -  1.08% : Prover.get
+
+Note: Nodes accounting for less than 1.00% of their parent have been ignored.
+
+Aggregated table:
+----------------
+                                                             Name;                                      Filename;    Calls;     Time
+                                                             ROOT;                               src/landmark.ml;        0;  243.81G
+                                                       load(test);                                test/test.ml:3;        1;  243.71G
+                                            Test_performance.test;                  test/test_performance.ml:239;        1;  243.69G
+                                  Test_performance.test_typecheck;                   test/test_performance.ml:19;        1;  243.69G
+                                            Test_performance.time;                   test/test_performance.ml:12;        1;  243.68G
+                                      Typechecker.Make.check_type;                        lib/typechecker.ml:641;        1;  243.68G
+                                        Prover.Make.check_subtype;                             lib/prover.ml:209;       23;  243.21G
+                            Prover.Make.check_subtype_with_tactic;                             lib/prover.ml:110;       23;  243.21G
+                         Typechecker.SemanticChecker.compute_type;                        lib/typechecker.ml:292;        1;  242.37G
+                                     Prover.check_unsat_and_reset;                              lib/prover.ml:34;       23;  240.72G
+                      Typechecker.HeapTypeOps.packet_length_gte_n;                        lib/typechecker.ml:185;        8;  165.81G
+                                 Typechecker.HeapTypeOps.includes;                        lib/typechecker.ml:160;       11;   48.17G
+                               Typechecker.FormChecker.check_form;                        lib/typechecker.ml:251;       11;   43.75G
+                               Typechecker.ExprChecker.check_expr;                        lib/typechecker.ml:240;       12;   43.75G
+                            Typechecker.ExprChecker.check_bv_expr;                        lib/typechecker.ml:210;       12;   43.75G
+                                         Prover.declare_constants;                              lib/prover.ml:53;       23;  552.63M
+                                            Substitution.simplify;                      lib/substitution.ml:1184;       12;  291.76M
+                                       Substitution.simplify_subs;                      lib/substitution.ml:1008;       12;  291.43M
+                                            Pretty.pp_header_type;                             lib/pretty.ml:105;      470;  156.06M
+                                               Pretty.pp_form_raw;                              lib/pretty.ml:92;     4379;  149.24M
+                                                   Pretty.pp_form;                              lib/pretty.ml:77;     1580;  144.91M
+                                 Typechecker.HeapTypeOps.excludes;                        lib/typechecker.ml:171;        1;  133.90M
+                                               Prover.make_prover;                              lib/prover.ml:18;       13;  102.58M
+                                                Pretty.pp_context;                             lib/pretty.ml:143;       78;  102.39M
+                                    Substitution.simplify_formula;                       lib/substitution.ml:726;       51;   98.71M
+                                      Substitution.extract_to_map;                       lib/substitution.ml:229;       37;   97.13M
+                                               Pretty.pp_expr_raw;                              lib/pretty.ml:72;    35566;   91.09M
+                                                   Pretty.pp_expr;                              lib/pretty.ml:53;    17067;   82.81M
+                                            Pretty.pp_bv_expr_raw;                              lib/pretty.ml:64;    33108;   80.26M
+                                        Pretty.pp_header_type_raw;                             lib/pretty.ml:128;      185;   74.25M
+                                                Pretty.pp_bv_expr;                              lib/pretty.ml:42;    13821;   64.65M
+            Encoding.FixedWidthBitvectorEncoding.heap_type_to_smt;                           lib/encoding.ml:569;      137;   34.16M
+                                              Pretty.pp_sliceable;                              lib/pretty.ml:17;    12566;   32.97M
+                                          Pretty.pp_sliceable_raw;                              lib/pretty.ml:27;    34439;   30.31M
+                 Encoding.FixedWidthBitvectorEncoding.form_to_smt;                           lib/encoding.ml:536;      262;   21.40M
+                                        Substitution.shift_slices;                       lib/substitution.ml:694;       51;   19.02M
+                                            Env.index_to_name_exn;                                 lib/env.ml:44;    25778;   18.56M
+                                              Pretty.pp_bitvector;                               lib/pretty.ml:9;     1793;   17.50M
+   Encoding.FixedWidthBitvectorEncoding.encode_bv_expr_comparison;                           lib/encoding.ml:482;     1577;   13.82M
+                       Encoding.FixedWidthBitvectorEncoding.equal;                           lib/encoding.ml:223;      285;   13.19M
+              Encoding.FixedWidthBitvectorEncoding.bv_expr_to_smt;                           lib/encoding.ml:400;     3154;   11.41M
+                                             Pretty.pp_arith_expr;                              lib/pretty.ml:32;     3246;   10.76M
+                                                 Pretty.pp_packet;                              lib/pretty.ml:14;    18275;    9.87M
+                                                Env.index_to_name;                                 lib/env.ml:41;    29617;    9.37M
+                                     load(test_artifact_ipv4_ttl);              test/test_artifact_ipv4_ttl.ml:1;        1;    9.18M
+                                 Substitution.FormulaId.T.compare;                        lib/substitution.ml:12;    23106;    8.90M
+                                                Pretty.pp_command;                             lib/pretty.ml:177;       72;    8.66M
+                                              load(test_simplify);                       test/test_simplify.ml:1;        1;    7.97M
+                                                 load(test_equiv);                          test/test_equiv.ml:1;        1;    7.87M
+                                                 load(test_cisco);                          test/test_cisco.ml:1;        1;    7.83M
+                                             load(test_typecheck);                      test/test_typecheck.ml:1;        1;    7.81M
+                                           load(test_composition);                    test/test_composition.ml:1;        1;    7.75M
+                                       load(test_header_validity);                test/test_header_validity.ml:1;        1;    7.70M
+                                      load(test_substitution_ext);               test/test_substitution_ext.ml:1;        1;    7.68M
+                                               load(test_ipv4opt);                        test/test_ipv4opt.ml:1;        1;    7.66M
+                                            load(test_vlan_decap);                     test/test_vlan_decap.ml:1;        1;    7.53M
+                                          load(test_substitution);                   test/test_substitution.ml:1;        1;    7.49M
+                                             load(test_subtyping);                      test/test_subtyping.ml:1;        1;    7.46M
+                                            Encoding.const_access;                            lib/encoding.ml:15;     3906;    6.41M
+                                                    Pretty.pp_bit;                               lib/pretty.ml:6;    27178;    6.20M
+                                       Substitution.pp_fromula_id;                        lib/substitution.ml:37;     2977;    5.32M
+                                                       Prover.get;                              lib/prover.ml:13;     3642;    5.27M
+                                           Substitution.clean_eqn;                       lib/substitution.ml:460;       46;    5.17M
+                                        Syntax.Instance.T.compare;                              lib/syntax.ml:26;    12743;    5.06M
+                                         Syntax.Sliceable.compare;                             lib/syntax.ml:212;     6310;    4.90M
+                                               Pretty.pp_instance;                             lib/pretty.ml:203;      452;    4.87M
+Encoding.FixedWidthBitvectorEncoding.encode_arith_expr_comparison;                           lib/encoding.ml:520;      397;    4.22M
+                   Encoding.FixedWidthBitvectorEncoding.pktbounds;                           lib/encoding.ml:246;      528;    4.11M
+                                        Simplify.fold_refinements;                            lib/simplify.ml:68;      160;    4.03M
+                                           Pretty.pp_header_field;                             lib/pretty.ml:200;     4042;    3.79M
+                                         Substitution.find_or_err;                       lib/substitution.ml:392;      562;    3.65M
+           Encoding.FixedWidthBitvectorEncoding.arith_expr_to_smt;                           lib/encoding.ml:354;      794;    3.60M
+                                         Pretty.pp_arith_expr_raw;                              lib/pretty.ml:58;     2466;    3.46M
+                  Encoding.FixedWidthBitvectorEncoding.smt_consts;                           lib/encoding.ml:198;      137;    2.98M
+                      Encoding.FixedWidthBitvectorEncoding.consts;                           lib/encoding.ml:183;      401;    2.84M
+                                             Env.index_to_binding;                                 lib/env.ml:32;    29617;    2.78M
+                                           Simplify.simplify_form;                            lib/simplify.ml:51;      316;    2.43M
+                                       Encoding.valid_expr_to_smt;                           lib/encoding.ml:155;     1794;    2.35M
+                                           Substitution.split_eqn;                       lib/substitution.ml:496;       88;    2.18M
+                                             Encoding.const_valid;                            lib/encoding.ml:16;     3504;    1.87M
+                                        Syntax.Expression.compare;                             lib/syntax.ml:234;     1934;    1.72M
+                                             Encoding.zero_extend;                            lib/encoding.ml:25;     2618;    1.59M
+                                            Parsing.parse_program;                             lib/parsing.ml:44;        1;    1.58M
+                                                   Parser.program;                            lib/parser.ml:5465;        1;    1.57M
+                                              Env.pick_fresh_name;                                 lib/env.ml:25;     1548;    1.56M
+                                           Syntax.Formula.compare;                             lib/syntax.ml:255;     3822;    1.41M
+                                  Substitution.replace_expression;                       lib/substitution.ml:195;      474;    1.33M
+                                 Syntax.Declaration.compare_field;                               lib/syntax.ml:6;    19233;    1.23M
+                                     Syntax.Expression.compare_bv;                             lib/syntax.ml:226;      929;    1.20M
+                                                Encoding.id_valid;                             lib/encoding.ml:9;     4707;    1.20M
+                                            Env.pick_fresh_name_f;                                 lib/env.ml:19;     1669;    1.20M
+                                               Encoding.id_access;                             lib/encoding.ml:7;     5911;    1.17M
+                                           Encoding.const_pkt_len;                            lib/encoding.ml:17;     2196;  997.92K
+                           Syntax.HeaderTable.lookup_instance_exn;                             lib/syntax.ml:118;       32;  995.09K
+                               Syntax.HeaderTable.lookup_instance;                             lib/syntax.ml:109;       32;  987.49K
+                                              Simplify.expr_equal;                            lib/simplify.ml:49;     1412;  940.05K
+                                     Syntax.HeaderTable.to_string;                              lib/syntax.ml:98;       32;  889.72K
+                                           Simplify.simplify_expr;                            lib/simplify.ml:38;     2778;  826.64K
+                                           Encoding.id_pkt_length;                            lib/encoding.ml:12;     2998;  715.23K
+                                               Encoding.bv_to_smt;                            lib/encoding.ml:75;      169;  677.66K
+                                     Syntax.Instance.field_bounds;                              lib/syntax.ml:39;     3924;  590.50K
+                                                      Utils.apply;                               lib/utils.ml:16;      401;  567.76K
+                                            Encoding.bv_to_string;                            lib/encoding.ml:71;      169;  518.87K
+                                                Env.is_name_bound;                                 lib/env.ml:14;     2621;  506.32K
+                                           Syntax.Instance.sizeof;                              lib/syntax.ml:58;     2764;  469.02K
+                                                    Encoding.ands;                            lib/encoding.ml:28;     1077;  427.18K
+                                           Encoding.to_string_aux;                            lib/encoding.ml:61;      169;  422.76K
+                                            Encoding.const_pkt_in;                            lib/encoding.ml:18;      528;  412.86K
+      Encoding.FixedWidthBitvectorEncoding.static_size_of_bv_expr;                           lib/encoding.ml:331;     3154;  410.45K
+                                        Encoding.const_pkt_in_len;                            lib/encoding.ml:20;      528;  385.19K
+                                          Encoding.id_fst_compare;                           lib/encoding.ml:152;     3751;  383.61K
+                                         Encoding.freshen_binders;                            lib/encoding.ml:31;      137;  370.63K
+                                       Encoding.const_pkt_out_len;                            lib/encoding.ml:21;      528;  355.91K
+                                           Encoding.const_pkt_out;                            lib/encoding.ml:19;      528;  331.97K
+                                           Encoding.min_bit_width;                            lib/encoding.ml:57;     2888;  312.93K
+                                            Substitution.fold_eqn;                       lib/substitution.ml:398;       46;  312.79K
+                                                Substitution.fold;                       lib/substitution.ml:122;       12;  302.03K
+                                         Types.contains_free_vars;                               lib/types.ml:92;      103;  234.26K
+                                     Encoding.dynamic_size_to_smt;                           lib/encoding.ml:112;      240;  214.73K
+                                                 Lexer.read_token;                             lib/lexer.ml:2370;      507;  201.97K
+                                                  Env.add_binding;                                 lib/env.ml:11;     2038;  197.77K
+                                             Simplify.fold_concat;                            lib/simplify.ml:11;     1856;  178.41K
+                                       Parsing.parse_instance_exn;                             lib/parsing.ml:76;        3;  159.88K
+                                                Parsing.parse_exn;                             lib/parsing.ml:63;        3;  156.93K
+                                       Syntax.HeaderTable.to_list;                             lib/syntax.ml:142;      429;  150.59K
+                                               Parsing.run_parser;                             lib/parsing.ml:21;        3;  145.46K
+                                      Typechecker.other_instances;                        lib/typechecker.ml:124;       11;  124.97K
+           Encoding.FixedWidthBitvectorEncoding.encode_bv_expr_eq;                           lib/encoding.ml:514;     1577;  124.08K
+                                          Syntax.BitVector.sizeof;                             lib/syntax.ml:174;      513;  120.04K
+                                       Substitution.get_subs_expr;                       lib/substitution.ml:163;      867;  110.61K
+                                         Encoding.max_arith_value;                           lib/encoding.ml:143;      794;   98.01K
+                                              Encoding.fresh_name;                            lib/encoding.ml:99;      121;   97.57K
+                                   Substitution.combine_or_create;                       lib/substitution.ml:116;       29;   92.01K
+                                                     Prover.unsat;                              lib/prover.ml:20;       23;   86.36K
+                                               Simplify.fold_plus;                             lib/simplify.ml:6;      922;   81.09K
+                                                Pretty.pp_pi_type;                             lib/pretty.ml:164;        1;   70.77K
+                                               Parsing.parse_type;                             lib/parsing.ml:55;        1;   67.57K
+                                                      Syntax.bv_x;                             lib/syntax.ml:360;       11;   67.33K
+                                             Syntax.inst_equality;                             lib/syntax.ml:380;       23;   66.45K
+                                  Syntax.Expression.compare_arith;                             lib/syntax.ml:220;      460;   66.03K
+                                      Syntax.BitVector.of_hex_str;                             lib/syntax.ml:204;       11;   63.75K
+                                      Typechecker.refresh_binders;                        lib/typechecker.ml:105;        8;   56.00K
+                                                   Parser.pi_type;                            lib/parser.ml:5469;        1;   54.55K
+                                             Syntax.heap_equality;                             lib/syntax.ml:395;        9;   51.74K
+                                       Typechecker.refresh_binder;                        lib/typechecker.ml:101;        9;   45.38K
+                              Substitution.contains_pkt_in_concat;                        lib/substitution.ml:67;       44;   41.95K
+                                              Types.var_not_bound;                               lib/types.ml:90;      398;   41.64K
+                                     Parser.Tables.token2terminal;                             lib/parser.ml:110;      567;   41.48K
+                                           Typechecker.shift_form;                         lib/typechecker.ml:61;       22;   41.42K
+                                        Parser.Tables.token2value;                             lib/parser.ml:237;      567;   39.50K
+                                  Syntax.BitVector.bv_of_hex_char;                             lib/syntax.ml:184;       44;   39.38K
+                                      Syntax.BitVector.of_bit_str;                             lib/syntax.ml:182;       44;   29.56K
+                                              Syntax.Formula.ands;                             lib/syntax.ml:267;       88;   24.53K
+                                           Typechecker.shift_expr;                         lib/typechecker.ml:56;       26;   23.71K
+                                      Syntax.HeaderTable.populate;                             lib/syntax.ml:123;        7;   22.20K
+                                               Prover.heur_checks;                              lib/prover.ml:71;       23;   21.78K
+                                            Syntax.HeapType.empty;                             lib/syntax.ml:281;        3;   19.02K
+                                       Substitution.ok_or_default;                       lib/substitution.ml:111;      119;   18.22K
+                             Syntax.Expression.field_to_slice_exn;                             lib/syntax.ml:244;        9;   15.80K
+                                               Test_utils.mk_inst;                        test/test_utils.ml:153;       22;   15.75K
+                                        Typechecker.shift_bv_expr;                         lib/typechecker.ml:44;       26;   14.58K
+                                           Syntax.packet_equality;                             lib/syntax.ml:375;       35;   13.66K
+                                                     load(parser);                               lib/parser.ml:4;        1;   12.95K
+                        load(test_artifact_determined_forwarding); test/test_artifact_determined_forwarding.ml:1;        1;   12.03K
+                                                load(test_parser);                         test/test_parser.ml:1;        1;   10.02K
+                                       Utils.memoize_string_count;                                lib/utils.ml:3;       23;    9.80K
+                                      Syntax.HeaderTable.of_decls;                             lib/syntax.ml:127;        2;    9.61K
+                                                Syntax.compare_ty;                             lib/syntax.ml:326;        6;    9.00K
+                                                   load(encoding);                             lib/encoding.ml:1;        1;    8.58K
+                                 Syntax.Expression.field_to_slice;                             lib/syntax.ml:239;        9;    8.55K
+                                 Syntax.HeaderTable.find_instance;                              lib/syntax.ml:94;       32;    8.05K
+                                    Syntax.Bit.bit_list_of_string;                             lib/syntax.ml:160;       44;    7.91K
+                                               load(substitution);                         lib/substitution.ml:1;        1;    7.89K
+                                                  Lexer.next_line;                               lib/lexer.mll:7;       97;    7.81K
+                                              load(test_encoding);                       test/test_encoding.ml:1;        1;    7.36K
+                                          Syntax.BitVector.concat;                             lib/syntax.ml:176;       44;    6.87K
+                                      Typechecker.shift_sliceable;                         lib/typechecker.ml:26;       12;    6.64K
+                                     Syntax.BitVector.of_bit_list;                             lib/syntax.ml:179;       45;    6.61K
+                                           load(test_performance);                    test/test_performance.ml:1;        1;    6.14K
+                                     Substitution.some_or_default;                       lib/substitution.ml:106;       51;    6.05K
+                                                     load(syntax);                               lib/syntax.ml:1;        1;    6.02K
+                                            Env.name_to_index_exn;                                 lib/env.ml:62;       13;    5.89K
+                                                      load(types);                                lib/types.ml:1;        1;    5.47K
+                                          Typechecker.incr_binder;                         lib/typechecker.ml:24;       22;    4.84K
+                                              load(test_examples);                       test/test_examples.ml:1;        1;    4.61K
+                             load(test_artifact_mutual_exclusion);      test/test_artifact_mutual_exclusion.ml:1;        1;    4.08K
+                                                        load(env);                                  lib/env.ml:1;        1;    4.00K
+                                                     load(pretty);                               lib/pretty.ml:1;        1;    3.56K
+                                    load(test_artifact_roundtrip);             test/test_artifact_roundtrip.ml:1;        1;    3.36K
+                                                      load(lexer);                               lib/lexer.mll:2;        1;    3.23K
+                                            Syntax.BitVector.zero;                             lib/syntax.ml:208;        1;    2.54K
+                                              Syntax.compare_size;                             lib/syntax.ml:318;        6;    2.09K
+                                 Syntax.Instance.field_bounds_exn;                              lib/syntax.ml:53;        2;    2.01K
+                                                Env.name_to_index;                                 lib/env.ml:49;       13;    1.92K
+                                                   load(simplify);                             lib/simplify.ml:1;        1;    1.74K
+                                      Parser.Incremental.instance;                            lib/parser.ml:5503;        3;    1.65K
+                                                      load(utils);                                lib/utils.ml:1;        1;    1.04K
+                                     load(test_artifact_ipv4_opt);              test/test_artifact_ipv4_opt.ml:1;        1;  954.00 
+                                                    load(logging);                              lib/logging.ml:1;        1;  850.00 
+                                                load(typechecker);                          lib/typechecker.ml:1;        1;  790.00 
+                            load(test_artifact_header_dependency);     test/test_artifact_header_dependency.ml:1;        1;  784.00 
+                                                     load(prover);                               lib/prover.ml:1;        1;  646.00 
+                                                   load(testable);                            test/testable.ml:1;        1;  542.00 
+                                                    load(parsing);                              lib/parsing.ml:1;        1;  514.00 
+                                            load(parser_messages);                      lib/parser_messages.ml:6;        1;  370.00 
+                                    Syntax.HeapType.weak_instance;                             lib/syntax.ml:301;        1;  318.00 
+                                                load(test_syntax);                         test/test_syntax.ml:1;        1;  304.00 
+                                                 load(test_utils);                          test/test_utils.ml:1;        1;  292.00 
+                           Typechecker.TypecheckingResult.compare;                         lib/typechecker.ml:11;        1;  214.00 
