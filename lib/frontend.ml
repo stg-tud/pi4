@@ -643,9 +643,7 @@ let is_header_field_access (name : string) (expr : Petr4.Types.Expression.t) =
 
 let rec expr_to_term (ctx : Syntax.Expression.bv String.Map.t)
     (header_table : Syntax.HeaderTable.t) (size : int)
-    (expr : Petr4.Types.Expression.t)
-      (* We need a context where we look up BareNames and get a
-         Syntax.Expression.bv back *) =
+    (expr : Petr4.Types.Expression.t) =
   match expr with
   | Int { x = { value; _ }; _ } -> bigint_to_bv value size
   | ExpressionMember
@@ -956,7 +954,6 @@ and control_block_to_command ctx (tables : Syntax.Command.t String.Map.t)
       in
       Syntax.Command.Seq (acc, cmd))
 
-(* let table_to_command decls = *)
 and control_to_command (header_table : Syntax.HeaderTable.t)
     (control_name : string) (control_locals : Petr4.Types.Declaration.t list)
     (control_apply : Petr4.Types.Block.t)
@@ -1092,8 +1089,6 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
           Map.set tcmds ~key:table_name.string ~data:table_cmd
         | _ -> tcmds_result)
   in
-
-  (* return Syntax.Command.Skip *)
   let%map cmd =
     control_block_to_command String.Map.empty table_commands headers_param_name
       header_table control_name control_apply
@@ -1184,10 +1179,6 @@ and annotation_body_to_command (header_table : Syntax.HeaderTable.t)
     in
     let%map r_cmd = annotation_body_to_command header_table constants decls r in
     Syntax.Command.Seq (l_cmd, r_cmd)
-
-(* let bigint_to_hex value size = let%map int_value = bigint_to_int value in
-   Printf.sprintf (Scanf.format_from_string (Printf.sprintf "0x%%0%dx" (size /
-   4)) "%d") int_value *)
 
 let collect_constants (Petr4.Types.Program decls) =
   List.fold decls ~init:(Ok String.Map.empty) ~f:(fun acc decl ->
