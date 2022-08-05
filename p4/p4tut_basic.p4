@@ -44,8 +44,8 @@ struct headers {
 /*************************************************************************
 *********************** P A R S E R  ***********************************
 *************************************************************************/
-@pi4("MyParser as (x:{y:ε|y.pkt_in.length > 272}) -> ethernet~")
-@pi4("MyParser as (x:{y:ε|y.pkt_in.length > 272}) -> ipv4~")
+@pi4("(MyParser;MyIngress) as (x:{y:standard_metadata|y.pkt_in.length > 272}) -> ethernet~")
+// @pi4("MyParser as (x:{y:ε|y.pkt_in.length > 272}) -> ipv4~")
 parser MyParser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,
@@ -88,10 +88,34 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 
 
+    action drop() {
+        mark_to_drop(standard_metadata);
+    }
+
+    action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
+        standard_metadata.egress_spec = port;
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
+        hdr.ethernet.dstAddr = dstAddr;
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+    }
+
+    table ipv4_lpm {
+        key = {
+            hdr.ipv4.dstAddr: lpm;
+        }
+        actions = {
+            ipv4_forward;
+            drop;
+            NoAction;
+        }
+        size = 1024;
+        // default_action = drop();
+    }
+
     apply {
-        // if (hdr.ipv4.isValid()) {
-        //     ipv4_lpm.apply();
-        // }
+        if (hdr.ipv4.isValid()) {
+            ipv4_lpm.apply();
+        }
     }
 }
 

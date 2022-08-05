@@ -7,6 +7,7 @@ end
 
 module Test = Test_utils.TestRunner (TestConfig)
 
+(* This test currently fails because of a bug in the substitution inlining*)
 let test_reassign_field () = 
   let program = {|
     header_type ether_t {

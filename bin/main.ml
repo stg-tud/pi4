@@ -96,16 +96,18 @@ let p4_check filename includes _maxlen verbose =
     match p4prog with
     | Petr4.Types.Program decls -> (
       let result =
-        let%map header_table = Frontend.build_header_table p4prog in
+        let%bind header_table = Frontend.build_header_table p4prog in
         Log.debug (fun m ->
             m "Header table: %a\n" Pretty.pp_header_table header_table);
+        let%map constants = Frontend.collect_constants p4prog in
         let annotations = Frontend.collect_annotations header_table p4prog in
         List.iter annotations ~f:(fun annot ->
             match annot with
             | TypeAnnotation (body, typ) -> (
               let result =
                 let%map prog =
-                  Frontend.annotation_to_command header_table decls annot
+                  Frontend.annotation_to_command header_table constants decls
+                    annot
                 in
                 Log.debug (fun m -> m "Program: %a" Pretty.pp_command prog);
                 T.check_type prog typ header_table
@@ -173,11 +175,15 @@ let command =
       fun () ->
         Fmt_tty.setup_std_outputs ();
         Logs.set_reporter @@ Logs_fmt.reporter ();
-        if verbose then Logs.set_level @@ Some Logs.Debug
-          (* Logs.Src.set_level Pi4.Logging.ssa_src @@ Some Logs.Debug; *)
-          (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug;     *)
-          (* Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug; *)
-          (* Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Debug; *)
+        if verbose then (
+          Logs.set_level @@ Some Logs.Debug;
+          (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug; *)
+          Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Info;
+          Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;
+          Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Info;
+          Logs.Src.set_level Pi4.Logging.prover_profile_src @@ Some Logs.Info;
+          Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;
+          Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Debug)
         else Logs.set_level @@ Some Logs.Info;
         if ir then
           match typ with

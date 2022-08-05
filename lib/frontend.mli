@@ -5,14 +5,17 @@ type error =
   | `HeaderTypeNotDeclaredError of string
   | `NotImplementedError of string
   | `TypeDeclarationNotFoundError of string
+  | `FrontendError of string
+  | `LookupError of string
   ]
 
 val build_header_table :
   Petr4.Types.program ->
   (Syntax.Declaration.field list String.Map.t, [> error ]) result
 
-val parser_to_command :
+(* val parser_to_command :
   Syntax.HeaderTable.t ->
+  Bigint.t String.Map.t -> 
   Petr4.Types.Parser.state list ->
   Petr4.Types.Parameter.t list ->
   ( Syntax.Command.t,
@@ -22,9 +25,9 @@ val parser_to_command :
     | `LookupError of string
     | `InvalidArgumentError of string
     ] )
-  result
+  result *)
 
-val control_to_command :
+(* val control_to_command :
   Syntax.HeaderTable.t ->
   Petr4.Types.Block.t ->
   Petr4.Types.Parameter.t list ->
@@ -35,13 +38,14 @@ val control_to_command :
     | `FrontendError of string
     | `LookupError of string
     ] )
-  result
+  result *)
 
 val collect_annotations :
   Syntax.HeaderTable.t -> Petr4.Types.program -> Syntax.Annotation.t list
 
 val annotation_to_command :
   Syntax.HeaderTable.t ->
+  Bigint.t String.Map.t ->
   Petr4.Types.Declaration.t list ->
   Syntax.Annotation.t ->
   ( Syntax.Command.t,
@@ -53,3 +57,5 @@ val annotation_to_command :
     | `NotImplementedError of string
     ] )
   result
+
+val collect_constants : Petr4.Types.program -> (Bigint.t String.Map.t, [> error ]) result

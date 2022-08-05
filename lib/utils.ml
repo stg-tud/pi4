@@ -21,15 +21,17 @@ let rec sequence_error = function
     match x with
     | Error _ as e -> e
     | Ok y -> (
-      match sequence_error xs with
-      | Error _ as e -> e
-      | Ok ys -> Ok (y :: ys) ) )
+      match sequence_error xs with Error _ as e -> e | Ok ys -> Ok (y :: ys)))
 
 let bin_of_int (d : int) =
-  if d < 0 then invalid_arg "bin_of_int" else
-  if d = 0 then "0" else
-  let rec aux acc d =
-    if d = 0 then acc else
-    aux (string_of_int (d land 1) :: acc) (d lsr 1)
-  in
-  String.concat ~sep:"" (aux [] d)
+  if d < 0 then invalid_arg "bin_of_int"
+  else if d = 0 then "0"
+  else
+    let rec aux acc d =
+      if d = 0 then acc else aux (string_of_int (d land 1) :: acc) (d lsr 1)
+    in
+    String.concat ~sep:"" (aux [] d)
+
+let min_bit_width n =
+  let open Owl_base in
+  int_of_float (Maths.log2 (float_of_int n) +. 1.)

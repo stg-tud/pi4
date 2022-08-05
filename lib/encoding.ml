@@ -54,10 +54,6 @@ let rec freshen_binders (hty : HeapType.t) (pick_unique_name : string -> string)
         x',
         freshen_binders hty2 pick_unique_name )
 
-let min_bit_width maxlen =
-  let open Owl_base in
-  int_of_float (Maths.log2 (float_of_int maxlen) +. 1.)
-
 let rec to_string_aux (bv : Syntax.BitVector.t) =
   let open Syntax.BitVector in
   match bv with
@@ -114,7 +110,7 @@ let rec dynamic_size_to_smt (bv : DynamicSize.t) (len : int) (maxlen : int) =
   match bv with
   | Dynamic d ->
     let const = Smtlib.const d in
-    let mbw = min_bit_width maxlen in
+    let mbw = Utils.min_bit_width maxlen in
     if len > mbw then
       { smt_term = zero_extend (len - mbw) const;
         let_bindings = [];
@@ -182,7 +178,7 @@ end
 
 module FixedWidthBitvectorEncoding (C : Config) : S = struct
   let consts (var : string) (ht : HeaderTable.t) =
-    let pkt_size = min_bit_width C.maxlen in
+    let pkt_size = Utils.min_bit_width C.maxlen in
     HeaderTable.to_list ht
     |> List.fold ~init:[] ~f:(fun acc inst ->
            let inst_size = Instance.sizeof inst in
@@ -246,7 +242,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
 
   let pktbounds (x : string) : Smtlib.term =
     let open Smtlib in
-    let pkt_size = min_bit_width C.maxlen in
+    let pkt_size = Utils.min_bit_width C.maxlen in
 
     let pkt_in = const_pkt_in x in
     let pkt_in_length = const_pkt_in_len x in
@@ -269,7 +265,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
   let append_packet (x0 : string) (x1 : string) (x2 : string) (packet : string)
       =
     let open Smtlib in
-    let pkt_size = min_bit_width C.maxlen in
+    let pkt_size = Utils.min_bit_width C.maxlen in
 
     let pkt var = const_access var packet in
     let pkt_len var = const_pkt_len var packet in
@@ -363,12 +359,12 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
           constraints = []
         }
     | Length (x, p) ->
-      assert (length >= min_bit_width C.maxlen);
+      assert (length >= Utils.min_bit_width C.maxlen);
       let%map binder = Env.index_to_name ctx x in
       let smt_pkt =
         Smtlib.const (Fmt.str "%s.%a.length" binder Pretty.pp_packet p)
       in
-      let ssize_diff = length - min_bit_width C.maxlen in
+      let ssize_diff = length - Utils.min_bit_width C.maxlen in
       let smt =
         if ssize_diff > 0 then zero_extend ssize_diff smt_pkt else smt_pkt
       in
@@ -524,7 +520,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       (e2 : Expression.arith) =
     let%bind max_tm1 = max_arith_value e1 C.maxlen in
     let%bind max_tm2 = max_arith_value e2 C.maxlen in
-    let static_size = min_bit_width (max max_tm1 max_tm2) in
+    let static_size = Utils.min_bit_width (max max_tm1 max_tm2) in
     let%bind e1_enc = arith_expr_to_smt ctx static_size e1 in
     let%map e2_enc = arith_expr_to_smt ctx static_size e2 in
     let init =

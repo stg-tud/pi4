@@ -23,4 +23,5 @@ depends: [
   "landmarks"
   "logs"
   "owl-base"
+  "bitv"
 ]

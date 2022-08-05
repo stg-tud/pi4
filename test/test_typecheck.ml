@@ -277,27 +277,6 @@ let test_typecheck_seq_extract3 () =
   in
   Test.check_program Test.typecheck program typ
 
-let test_typecheck_seq_extract3_2 () =
-  let program =
-    {|
-      header_type a_t {
-        a: 4;
-      }
-      header_type b_t {
-        b: 2;
-      }
-      header_type c_t {
-        c: 1;
-      }
-      header a : a_t
-      header b : b_t
-      header c : c_t
-      extract(a);(extract(b);extract(c))
-    |}
-  in
-  let typ = "(x: {y:ε|y.pkt_in.length>8}) -> Σy:a.(Σz:b.c)" in
-  Test.check_program Test.typecheck program typ
-
 let test_typecheck_seq_extract_skip () =
   let program =
     {|
@@ -560,8 +539,6 @@ let test_set =
       test_typecheck_seq_extract_extract;
     test_case "Extracting three instances typechecks" `Quick
       test_typecheck_seq_extract3;
-    test_case "Extracting three instances typechecks (2)" `Slow
-      test_typecheck_seq_extract3_2;
     test_case "'extract(A);skip' typechecks" `Quick
       test_typecheck_seq_extract_skip;
     test_case "'add' typechecks" `Quick test_typecheck_add;

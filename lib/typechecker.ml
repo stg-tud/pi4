@@ -984,7 +984,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             ]
         in
         return (Refinement (y, Top, pred))
-    | Seq (c1, c2) ->
+    | Seq (c1, c2) -> (
       Log.debug (fun m ->
           m "@[<v>Typechecking sequence:@ c1:@[<v>@ %a @]@ c2:@[<v>@ %a@]@]"
             Pretty.pp_command c1 Pretty.pp_command c2);
@@ -1031,7 +1031,11 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             hty_subst);
       Log.debug (fun m ->
           m "Context for substitution type:@ %a" Pretty.pp_context ctx');
-      return hty_subst
+      match (c1, c2) with
+      | Ascription _, _ | _, Ascription _ -> return hty_subst
+      | _ ->
+        let hty_subst = Substitution.simplify hty_subst C.maxlen in
+        return hty_subst)
     | Skip ->
       Log.debug (fun m -> m "@[<v>Typechecking skip...@]");
       Log.debug (fun m ->
