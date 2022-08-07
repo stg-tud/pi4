@@ -1031,37 +1031,35 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
                       | _ -> key_form_result)
                 | _ -> form)
           in
-          let default_action_cmd = Syntax.Command.Skip in
-          let actions =
+          let petr4_actions =
             List.fold table_props ~init:[] ~f:(fun actions prop ->
                 match prop with
                 | Actions { actions = action_list; _ } ->
                   List.append action_list actions
                 | _ -> actions)
           in
-          let actions_to_command (actions : Petr4.Types.Table.action_ref list)
-              default_action =
-            let action_count = List.length actions in
-            let actions_bit_size = Utils.min_bit_width action_count in
-            List.foldi actions ~init:(Ok default_action)
-              ~f:(fun idx cmd_result action ->
+          let action_count = List.length petr4_actions in
+          let actions_bit_size = Utils.min_bit_width action_count in
+          let%bind action_commands =
+            List.foldi petr4_actions ~init:(Ok String.Map.empty)
+              ~f:(fun idx acc_res action ->
                 let action_name = petr4_name_to_string action.name in
                 let%bind action_cmd =
                   if String.(action_name = "NoAction") then
                     return Syntax.Command.Skip
                   else
-                    let%bind adata =
+                    let%bind act_data =
                       String.Map.find action_data action_name
                       |> Result.of_option
                            ~error:(`FrontendError "Could not lookup action")
                     in
                     let%bind param_lookup =
-                      List.fold adata.params ~init:(Ok String.Map.empty)
+                      List.fold act_data.params ~init:(Ok String.Map.empty)
                         ~f:(fun acc_result param ->
                           acc_result >>= fun acc ->
                           let param_name = param.variable.string in
                           let param_field_name =
-                            Fmt.str "%s_%s" adata.name param_name
+                            Fmt.str "%s_%s" act_data.name param_name
                           in
                           let%map param_field_slice =
                             Syntax.Expression.field_to_slice table_inst
@@ -1071,26 +1069,50 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
                     in
 
                     control_block_to_command param_lookup String.Map.empty
-                      headers_param_name header_table control_name adata.body
+                      headers_param_name header_table control_name act_data.body
                 in
-
-                cmd_result >>| fun cmd ->
-                Syntax.(
-                  Command.If
-                    ( Formula.Eq
-                        ( BvExpr table_act_field,
-                          int_to_bv_expr idx actions_bit_size ),
-                      action_cmd,
-                      cmd )))
+                acc_res >>| fun acc ->
+                Map.set acc ~key:action_name ~data:(idx, action_cmd))
           in
-          let%bind action_cmds =
-            actions_to_command actions default_action_cmd
+          let%bind default_action_cmd =
+            List.fold table_props ~init:(Ok Syntax.Command.Skip)
+              ~f:(fun def_act_res prop ->
+                match prop with
+                | Custom { name = custom_name; value; _ }
+                  when String.(custom_name.string = "default_action") -> (
+                  match value with
+                  | FunctionCall
+                      { func =
+                          Name { name = BareName { name = def_act_name; _ }; _ };
+                        _
+                      } ->
+                    Map.find action_commands def_act_name.string
+                    |> Option.map ~f:snd
+                    |> Result.of_option
+                         ~error:
+                           (`FrontendError "Could not lookup default action")
+                  | _ ->
+                    Error
+                      (`NotImplementedError
+                        "default_action is not a FunctionCall"))
+                | _ -> def_act_res)
+          in
+          let actions_cmd =
+            Map.data action_commands
+            |> List.fold ~init:default_action_cmd ~f:(fun cmd (i, action) ->
+                   Syntax.(
+                     Command.If
+                       ( Formula.Eq
+                           ( BvExpr table_act_field,
+                             int_to_bv_expr i actions_bit_size ),
+                         action,
+                         cmd )))
           in
           let table_cmd =
             Syntax.Command.(
               Seq
                 ( Add table_inst,
-                  Syntax.Command.(If (match_key_form, action_cmds, Skip)) ))
+                  Syntax.Command.(If (match_key_form, actions_cmd, Skip)) ))
           in
 
           tcmds_result >>| fun tcmds ->
