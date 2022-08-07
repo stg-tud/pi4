@@ -58,7 +58,40 @@ match_kind {
 
 @metadata @name("standard_metadata")
 struct standard_metadata_t {
-    bit<9>  egress_spec;
+    bit<9>      ingress_port;
+    bit<9>      egress_spec;
+    bit<9>      egress_port;
+    bit<32>     instance_type;
+    bit<32>     packet_length;
+    @alias("queueing_metadata.enq_timestamp")
+    bit<32> enq_timestamp;
+    @alias("queueing_metadata.enq_qdepth")
+    bit<19> enq_qdepth;
+    @alias("queueing_metadata.deq_timedelta")
+    bit<32> deq_timedelta;
+    /// queue depth at the packet dequeue time.
+    @alias("queueing_metadata.deq_qdepth")
+    bit<19> deq_qdepth;
+
+    // intrinsic metadata
+    @alias("intrinsic_metadata.ingress_global_timestamp")
+    bit<48> ingress_global_timestamp;
+    @alias("intrinsic_metadata.egress_global_timestamp")
+    bit<48> egress_global_timestamp;
+    /// multicast group id (key for the mcast replication table)
+    @alias("intrinsic_metadata.mcast_grp")
+    bit<16> mcast_grp;
+    /// Replication ID for multicast
+    @alias("intrinsic_metadata.egress_rid")
+    bit<16> egress_rid;
+    /// Indicates that a verify_checksum() method has failed.
+    /// 1 if a checksum error was found, otherwise 0.
+    bit<1>  checksum_error;
+    /// Error produced by parsing
+    // error parser_error;
+    /// set packet priority
+    @alias("intrinsic_metadata.priority")
+    bit<3> priority;
 }
 
 enum CounterType {
