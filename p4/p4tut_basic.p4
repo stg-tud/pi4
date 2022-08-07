@@ -44,8 +44,7 @@ struct headers {
 /*************************************************************************
 *********************** P A R S E R  ***********************************
 *************************************************************************/
-@pi4("(MyParser;MyIngress) as (x:{y:standard_metadata|y.pkt_in.length > 272}) -> ethernet~")
-// @pi4("MyParser as (x:{y:ε|y.pkt_in.length > 272}) -> ipv4~")
+@pi4("(MyParser;MyIngress;MyDeparser) as (x:{y:standard_metadata|y.pkt_in.length > 272}) -> ethernet~")
 parser MyParser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,
@@ -109,7 +108,7 @@ control MyIngress(inout headers hdr,
             NoAction;
         }
         size = 1024;
-        // default_action = drop();
+        default_action = drop();
     }
 
     apply {
