@@ -752,6 +752,14 @@ let rec petr4_expr_to_formula ctx (headers_param : string)
     let%bind t1 = expr_to_term ctx header_table 0 e1 in
     let%map t2 = expr_to_term ctx header_table size e2 in
     Syntax.Formula.Eq (BvExpr t1, BvExpr t2)
+  | BinaryOp { op = And _; args = e1, e2; _ } ->
+    let%bind f1 = petr4_expr_to_formula ctx headers_param header_table e1 in
+    let%map f2 = petr4_expr_to_formula ctx headers_param header_table e2 in
+    Syntax.Formula.And (f1, f2)
+  | BinaryOp { op = Or _; args = e1, e2; _ } ->
+    let%bind f1 = petr4_expr_to_formula ctx headers_param header_table e1 in
+    let%map f2 = petr4_expr_to_formula ctx headers_param header_table e2 in
+    Syntax.Formula.Or (f1, f2)
   | BinaryOp _ ->
     Error
       (`NotImplementedError
