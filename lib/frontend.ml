@@ -1168,6 +1168,7 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
                 | Custom { name = custom_name; value; _ }
                   when String.(custom_name.string = "default_action") -> (
                   match value with
+                  | Name { name = BareName { name = def_act_name; _ }; _ }
                   | FunctionCall
                       { func =
                           Name { name = BareName { name = def_act_name; _ }; _ };
@@ -1178,10 +1179,14 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
                     |> Result.of_option
                          ~error:
                            (`FrontendError "Could not lookup default action")
-                  | _ ->
+                  | _ as e ->
+                    Log.debug (fun m ->
+                        m "Default_Action: %s"
+                          (Sexplib.Sexp.to_string_hum
+                             (Petr4.Types.Expression.sexp_of_t e)));
                     Error
                       (`NotImplementedError
-                        "default_action is not a FunctionCall"))
+                        "default_action is not a FunctionCall nor a Name"))
                 | _ -> def_act_res)
           in
           let actions_cmd =
