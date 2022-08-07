@@ -641,11 +641,22 @@ let is_header_field_access (name : string) (expr : Petr4.Types.Expression.t) =
     String.(member_name.string = name)
   | _ -> false
 
-let rec expr_to_term (ctx : Syntax.Expression.bv String.Map.t)
-    (header_table : Syntax.HeaderTable.t) (size : int)
-    (expr : Petr4.Types.Expression.t) =
+let is_standard_metadata_access (expr : Petr4.Types.Expression.t) =
+  match expr with
+  | ExpressionMember { expr = Name { name = BareName { name; _ }; _ }; _ } ->
+    String.(name.string = "standard_metadata")
+  | _ -> false
+
+let rec petr4_expr_to_expr (ctx : Syntax.Expression.bv String.Map.t)
+    (header_table : Syntax.HeaderTable.t) (constants : Bigint.t String.Map.t)
+    (size : int) (expr : Petr4.Types.Expression.t) =
   match expr with
   | Int { x = { value; _ }; _ } -> bigint_to_bv value size
+  | ExpressionMember
+      { expr = Name { name = BareName { name = instance_name; _ }; _ };
+        name = member_name;
+        _
+      }
   | ExpressionMember
       { expr = ExpressionMember { name = instance_name; _ };
         name = member_name;
@@ -677,27 +688,38 @@ let rec expr_to_term (ctx : Syntax.Expression.bv String.Map.t)
         else Expression.Slice (Sliceable.Instance (0, inst), 0, cast_size))
     | _ ->
       Error
-        (`NotImplementedError "Not implemented (Frontend.expr_to_term - Cast)"))
+        (`NotImplementedError
+          "Not implemented (Frontend.petr4_expr_to_expr - Cast)"))
   | BinaryOp { op = Petr4.Types.Op.Minus _; args = e1, e2; _ } ->
-    let%bind tm1 = expr_to_term ctx header_table size e1 in
-    let%map tm2 = expr_to_term ctx header_table size e2 in
+    let%bind tm1 = petr4_expr_to_expr ctx header_table constants size e1 in
+    let%map tm2 = petr4_expr_to_expr ctx header_table constants size e2 in
     Syntax.Expression.Minus (tm1, tm2)
-  | Name { name = BareName { name; _ }; _ } ->
-    let%map param_expr =
-      String.Map.find ctx name.string
-      |> Result.of_option
-           ~error:(`FrontendError (Fmt.str "Could not look up %s" name.string))
-    in
-    param_expr
+  | Name { name = BareName { name; _ }; _ } -> (
+    match String.Map.find ctx name.string with
+    | Some param_expr -> return param_expr
+    | None ->
+      (* TODO: Can we unify the constants and ctx? *)
+      let%bind const =
+        String.Map.find constants name.string
+        |> Result.of_option
+             ~error:
+               (`FrontendError (Fmt.str "Could not look up %s" name.string))
+      in
+      bigint_to_bv const size)
   | _ as e ->
     Log.debug (fun m ->
         m "Expr: %s"
           (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_t e)));
-    Error (`NotImplementedError "Not implemented (Frontend.expr_to_term)")
+    Error (`NotImplementedError "Not implemented (Frontend.petr4_expr_to_expr)")
 
 let sizeof (header_table : Syntax.HeaderTable.t)
     (expr : Petr4.Types.Expression.t) =
   match expr with
+  | ExpressionMember
+      { expr = Name { name = BareName { name = instance_name; _ }; _ };
+        name = member_name;
+        _
+      }
   | ExpressionMember
       { expr = ExpressionMember { name = instance_name; _ };
         name = member_name;
@@ -712,69 +734,105 @@ let sizeof (header_table : Syntax.HeaderTable.t)
   | _ -> Error (`NotImplementedError "sizeof not implemented for expression.")
 
 let rec petr4_expr_to_formula ctx (headers_param : string)
-    (header_table : Syntax.HeaderTable.t) (expr : Petr4.Types.Expression.t) =
+    (header_table : Syntax.HeaderTable.t) (constants : Bigint.t String.Map.t)
+    (expr : Petr4.Types.Expression.t) =
   match expr with
   | True _ -> return Syntax.Formula.True
   | False _ -> return Syntax.Formula.False
   | Int _ ->
-    Error (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Int)")
+    Error
+      (`NotImplementedError "Not implemented (Frontend.expr_to_formula - Int)")
   | String _ ->
     Error
-      (`NotImplementedError "Not implemented (Frontend.expr_to_expr - String)")
+      (`NotImplementedError
+        "Not implemented (Frontend.expr_to_formula - String)")
   | Name _ ->
     Error
-      (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Name)")
+      (`NotImplementedError "Not implemented (Frontend.expr_to_formula - Name)")
   | ArrayAccess _ ->
     Error
       (`NotImplementedError
-        "Not implemented (Frontend.expr_to_expr - ArrayAccess)")
+        "Not implemented (Frontend.expr_to_formula - ArrayAccess)")
   | BitStringAccess _ ->
     Error
       (`NotImplementedError
-        "Not implemented (Frontend.expr_to_expr - BitStringAccess)")
+        "Not implemented (Frontend.expr_to_formula - BitStringAccess)")
   | List _ ->
     Error
-      (`NotImplementedError "Not implemented (Frontend.expr_to_expr - List)")
+      (`NotImplementedError "Not implemented (Frontend.expr_to_formula - List)")
   | Record _ ->
     Error
-      (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Record)")
+      (`NotImplementedError
+        "Not implemented (Frontend.expr_to_formula - Record)")
   | UnaryOp { op = Not _; arg = e; _ } ->
-    let%map e' = petr4_expr_to_formula ctx headers_param header_table e in
+    let%map e' =
+      petr4_expr_to_formula ctx headers_param header_table constants e
+    in
     Syntax.Formula.Neg e'
   | UnaryOp _ ->
     Error
-      (`NotImplementedError "Not implemented (Frontend.expr_to_expr - UnaryOp)")
+      (`NotImplementedError
+        "Not implemented (Frontend.expr_to_formula - UnaryOp)")
   | BinaryOp { op = Eq _; args = e1, e2; _ } ->
     let%bind size =
       if is_header_field_access "hdr" e1 then sizeof header_table e1
       else return 0
     in
-    let%bind t1 = expr_to_term ctx header_table 0 e1 in
-    let%map t2 = expr_to_term ctx header_table size e2 in
+    let%bind t1 = petr4_expr_to_expr ctx header_table constants 0 e1 in
+    let%map t2 = petr4_expr_to_expr ctx header_table constants size e2 in
     Syntax.Formula.Eq (BvExpr t1, BvExpr t2)
+  | BinaryOp { op = Ge _; args = e1, e2; _ } ->
+    let%bind size =
+      if is_header_field_access "hdr" e1 || is_standard_metadata_access e1 then
+        sizeof header_table e1
+      else return 0
+    in
+    Log.debug (fun m ->
+        m "E1: %s"
+          (Sexplib.Sexp.to_string_hum ([%sexp_of: Petr4.Types.Expression.t] e1)));
+    Log.debug (fun m ->
+        m "E2: %s"
+          (Sexplib.Sexp.to_string_hum ([%sexp_of: Petr4.Types.Expression.t] e2)));
+    let%bind t1 = petr4_expr_to_expr ctx header_table constants size e1 in
+    let%map t2 = petr4_expr_to_expr ctx header_table constants size e2 in
+    Syntax.(
+      Formula.Or
+        ( Formula.Gt (Expression.BvExpr t1, Expression.BvExpr t2),
+          Formula.Eq (Expression.BvExpr t1, Expression.BvExpr t2) ))
   | BinaryOp { op = And _; args = e1, e2; _ } ->
-    let%bind f1 = petr4_expr_to_formula ctx headers_param header_table e1 in
-    let%map f2 = petr4_expr_to_formula ctx headers_param header_table e2 in
+    let%bind f1 =
+      petr4_expr_to_formula ctx headers_param header_table constants e1
+    in
+    let%map f2 =
+      petr4_expr_to_formula ctx headers_param header_table constants e2
+    in
     Syntax.Formula.And (f1, f2)
   | BinaryOp { op = Or _; args = e1, e2; _ } ->
-    let%bind f1 = petr4_expr_to_formula ctx headers_param header_table e1 in
-    let%map f2 = petr4_expr_to_formula ctx headers_param header_table e2 in
+    let%bind f1 =
+      petr4_expr_to_formula ctx headers_param header_table constants e1
+    in
+    let%map f2 =
+      petr4_expr_to_formula ctx headers_param header_table constants e2
+    in
     Syntax.Formula.Or (f1, f2)
-  | BinaryOp _ ->
+  | BinaryOp _ as e ->
+    Log.debug (fun m ->
+        m "Binary op: %s"
+          (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_t e)));
     Error
       (`NotImplementedError
-        "Not implemented (Frontend.expr_to_expr - BinaryOp)")
+        "Not implemented (Frontend.expr_to_formula - BinaryOp)")
   | Cast _ ->
     Error
-      (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Cast)")
+      (`NotImplementedError "Not implemented (Frontend.expr_to_formula - Cast)")
   | TypeMember _ ->
     Error
       (`NotImplementedError
-        "Not implemented (Frontend.expr_to_expr - TypeMember)")
+        "Not implemented (Frontend.expr_to_formula - TypeMember)")
   | ErrorMember _ ->
     Error
       (`NotImplementedError
-        "Not implemented (Frontend.expr_to_expr - ErrorMember)")
+        "Not implemented (Frontend.expr_to_formula - ErrorMember)")
   | ExpressionMember { expr; name = member_name; _ } -> (
     match member_name.string with
     | "isValid" ->
@@ -783,35 +841,39 @@ let rec petr4_expr_to_formula ctx (headers_param : string)
     | _ ->
       Error
         (`NotImplementedError
-          "Not implemented (Frontend.expr_to_expr - ExpressionMember)"))
+          "Not implemented (Frontend.expr_to_formula - ExpressionMember)"))
   | Ternary _ ->
     Error
-      (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Ternary)")
+      (`NotImplementedError
+        "Not implemented (Frontend.expr_to_formula - Ternary)")
   | FunctionCall { func = e; type_args = []; args = []; _ } ->
-    petr4_expr_to_formula ctx headers_param header_table e
+    petr4_expr_to_formula ctx headers_param header_table constants e
   | FunctionCall _ ->
     Error
       (`NotImplementedError
-        "Not implemented (Frontend.expr_to_expr - FunctionCall)")
+        "Not implemented (Frontend.expr_to_formula - FunctionCall)")
   | NamelessInstantiation _ ->
     Error
       (`NotImplementedError
-        "Not implemented (Frontend.expr_to_expr - NamelessInstantiation)")
+        "Not implemented (Frontend.expr_to_formula - NamelessInstantiation)")
   | Mask _ ->
     Error
-      (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Mask)")
+      (`NotImplementedError "Not implemented (Frontend.expr_to_formula - Mask)")
   | Range _ ->
     Error
-      (`NotImplementedError "Not implemented (Frontend.expr_to_expr - Range)")
+      (`NotImplementedError
+        "Not implemented (Frontend.expr_to_formula - Range)")
 
 type action_data =
   { name : string;
     params : Petr4.Types.Parameter.t list;
     body : Petr4.Types.Block.t
   }
+[@@deriving sexp]
 
-let rec petr4_statement_to_command ctx tables (headers_param_name : string)
-    (header_table : Syntax.HeaderTable.t) (control_name : string)
+let rec petr4_statement_to_command ctx tables actions
+    (headers_param_name : string) (header_table : Syntax.HeaderTable.t)
+    (constants : Bigint.t String.Map.t) (control_name : string)
     (stmt : _ Petr4.Types.Statement.pt) =
   match stmt with
   | MethodCall
@@ -888,17 +950,25 @@ let rec petr4_statement_to_command ctx tables (headers_param_name : string)
             egress_spec_field_l,
             egress_spec_field_r,
             Expression.BvExpr (bv_s "111111111") ))
+    | Name { name = BareName { name; _ }; _ } ->
+      Map.find actions name.string
+      |> Result.of_option
+           ~error:
+             (`FrontendError (Fmt.str "Could not lookup action %s" name.string))
     | _ as e ->
       Log.debug (fun m ->
           m "%s"
             (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_t e)));
-      Error (`FrontendError "Method Called on a Non-member expression"))
+      Error
+        (`FrontendError
+          "Method Called on a Non-member expression \
+           (Frontend.petr4_statement_to_command)"))
   | Assignment { lhs = ExpressionMember { expr; name = field; _ }; rhs; _ } -> (
     match petr4_expr_to_instance headers_param_name header_table expr with
     | Ok inst ->
       let open Syntax in
       let%bind l, r = Instance.field_bounds inst field.string in
-      let%map bv = expr_to_term ctx header_table (r - l) rhs in
+      let%map bv = petr4_expr_to_expr ctx header_table constants (r - l) rhs in
       Command.Assign (inst, l, r, BvExpr bv)
     | Error e -> Error e)
   | Assignment _ ->
@@ -912,22 +982,22 @@ let rec petr4_statement_to_command ctx tables (headers_param_name : string)
          DirectApplication)")
   | Conditional { cond; tru; fls; _ } ->
     let%bind expr =
-      petr4_expr_to_formula ctx headers_param_name header_table cond
+      petr4_expr_to_formula ctx headers_param_name header_table constants cond
     in
     let%bind tru_cmd =
-      petr4_statement_to_command ctx tables headers_param_name header_table
-        control_name tru
+      petr4_statement_to_command ctx tables actions headers_param_name
+        header_table constants control_name tru
     in
     let%map fls_cmd =
       Option.map fls ~f:(fun fls_stmt ->
-          petr4_statement_to_command ctx tables headers_param_name header_table
-            control_name fls_stmt)
+          petr4_statement_to_command ctx tables actions headers_param_name
+            header_table constants control_name fls_stmt)
       |> Option.value ~default:(Ok Syntax.Command.Skip)
     in
     Syntax.Command.If (expr, tru_cmd, fls_cmd)
   | BlockStatement { block; _ } ->
-    control_block_to_command ctx tables headers_param_name header_table
-      control_name block
+    control_block_to_command ctx tables actions headers_param_name header_table
+      constants control_name block
   | Exit _ ->
     Error
       (`NotImplementedError
@@ -951,30 +1021,46 @@ let rec petr4_statement_to_command ctx tables (headers_param_name : string)
          DeclarationStatement)")
 
 and control_block_to_command ctx (tables : Syntax.Command.t String.Map.t)
-    (headers_param : string) (header_table : Syntax.HeaderTable.t)
-    (control_name : string) (block : Petr4.Types.Block.t) =
+    (actions : Syntax.Command.t String.Map.t) (headers_param : string)
+    (header_table : Syntax.HeaderTable.t) constants (control_name : string)
+    (block : Petr4.Types.Block.t) =
   List.fold block.statements ~init:(Ok Syntax.Command.Skip)
     ~f:(fun acc_result stmt ->
       let%bind acc = acc_result in
       let%map cmd =
-        petr4_statement_to_command ctx tables headers_param header_table
-          control_name stmt
+        petr4_statement_to_command ctx tables actions headers_param header_table
+          constants control_name stmt
       in
       Syntax.Command.Seq (acc, cmd))
 
 and control_to_command (header_table : Syntax.HeaderTable.t)
-    (control_name : string) (control_locals : Petr4.Types.Declaration.t list)
+    (constants : Bigint.t String.Map.t) (control_name : string)
+    (control_locals : Petr4.Types.Declaration.t list)
     (control_apply : Petr4.Types.Block.t)
     (control_params : Petr4.Types.Parameter.t list) =
   let%bind headers_param_name = param_name "headers" control_params in
 
-  let action_data =
+  let act_data =
     List.fold control_locals ~init:String.Map.empty ~f:(fun map local ->
         match local with
         | Action { name; params; body; _ } ->
           Map.set map ~key:name.string
             ~data:{ name = name.string; params; body }
         | _ -> map)
+  in
+
+  let%bind non_table_actions =
+    List.fold control_locals ~init:(Ok String.Map.empty)
+      ~f:(fun acc_res local ->
+        match local with
+        | Action { name; params = []; body; _ } ->
+          let%bind cmd =
+            control_block_to_command String.Map.empty String.Map.empty
+              String.Map.empty headers_param_name header_table constants
+              control_name body
+          in
+          acc_res >>| fun acc -> Map.set acc ~key:name.string ~data:cmd
+        | _ -> acc_res)
   in
 
   let%bind table_commands =
@@ -1049,7 +1135,7 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
                     return Syntax.Command.Skip
                   else
                     let%bind act_data =
-                      String.Map.find action_data action_name
+                      String.Map.find act_data action_name
                       |> Result.of_option
                            ~error:(`FrontendError "Could not lookup action")
                     in
@@ -1069,7 +1155,8 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
                     in
 
                     control_block_to_command param_lookup String.Map.empty
-                      headers_param_name header_table control_name act_data.body
+                      String.Map.empty headers_param_name header_table constants
+                      control_name act_data.body
                 in
                 acc_res >>| fun acc ->
                 Map.set acc ~key:action_name ~data:(idx, action_cmd))
@@ -1120,8 +1207,8 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
         | _ -> tcmds_result)
   in
   let%map cmd =
-    control_block_to_command String.Map.empty table_commands headers_param_name
-      header_table control_name control_apply
+    control_block_to_command String.Map.empty table_commands non_table_actions
+      headers_param_name header_table constants control_name control_apply
   in
   Simplify.simplify_command cmd
 
@@ -1150,8 +1237,8 @@ let declaration_to_command (header_table : Syntax.HeaderTable.t)
       | Control { name = control_name; locals; apply; params; _ }
         when String.(control_name.string = name) ->
         Some
-          (control_to_command header_table control_name.string locals apply
-             params)
+          (control_to_command header_table constants control_name.string locals
+             apply params)
       | _ -> None)
   |> Option.value
        ~default:

@@ -122,19 +122,21 @@ let p4_check filename includes _maxlen verbose =
                           Pretty.pp_annotation_body body (Pretty.pp_pi_type [])
                           typ)
                 |> union |> print_endline
-              (* | Error (`ConversionError e) -> Fmt.pr "@[A conversion error
-                 occurred: %s@]" e *)
-              (* | Error (`FieldAccessError e) -> Fmt.pr "@[A field access error
-                 occurred: %s@]" e *)
+              | Error (`ConversionError e) ->
+                Fmt.pr "@[A conversion error\n                 occurred: %s@]" e
+              | Error (`FieldAccessError e) ->
+                Fmt.pr "@[A field access error\n                 occurred: %s@]"
+                  e
               | Error (`FrontendError e) ->
                 Fmt.pr "@[A frontend error occurred: %s@]" e
-              (* | Error `InvalidArgumentError e -> Fmt.pr "@[A not implemented
-                 error occurred: %s@]" e *)
+              | Error (`InvalidArgumentError e) ->
+                Fmt.pr
+                  "@[A not implemented\n                 error occurred: %s@]" e
               | Error (`NotImplementedError e) ->
                 Fmt.pr
                   "@[A not implemented\n                 error occurred: %s@]" e
-              (* | Error `LookupError e -> Fmt.pr "@[A lookup error occurred:
-                 %s@]" e *)
+              | Error (`LookupError e) ->
+                Fmt.pr "@[A lookup error occurred:\n                 %s@]" e
               | Error _ -> print_endline "An error occurred."))
       in
       match result with
