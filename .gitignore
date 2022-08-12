@@ -35,3 +35,4 @@ pi4
 _site/
 node_modules/
 .vscode/
+*.log

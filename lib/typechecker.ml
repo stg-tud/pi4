@@ -689,6 +689,7 @@ end
 module SemanticChecker (C : Encoding.Config) : Checker = struct
   module P = Prover.Make (Encoding.FixedWidthBitvectorEncoding (C))
   module FC = FormChecker (P)
+  module EC = ExprChecker (P)
   include HeapTypeOps (P)
 
   let rec compute_type (cmd : Command.t)
@@ -856,72 +857,83 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m ->
           m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
-      let%bind incl = includes header_table ctx hty_arg inst in
-      if not incl then
+
+      let%bind tyr = EC.check_expr header_table ctx hty_arg tm in
+      let expr_typechecks =
+        match tyr with
+        | BitVec (StaticSize size) ->
+          assert (size = right - left);
+          size = right - left
+        | _ -> false
+      in
+
+      if not expr_typechecks then
         Error
           (`TypeError
-            (Printf.sprintf "Instance '%s' not included in header type."
-               inst.name))
+            (Printf.sprintf
+               "Assigned expression must have the same shape as the header \
+                field."))
       else
-        let inst_size = Instance.sizeof inst in
+        let%bind incl = includes header_table ctx hty_arg inst in
+        if not incl then
+          Error
+            (`TypeError
+              (Printf.sprintf "Instance '%s' not included in header type."
+                 inst.name))
+        else
+          let inst_size = Instance.sizeof inst in
 
-        (* Ensure that all instances != inst are equal *)
-        let insts_equal =
-          other_instances header_table inst |> Syntax.inst_equality 0 1
-        in
+          (* Ensure that all instances != inst are equal *)
+          let insts_equal =
+            other_instances header_table inst |> Syntax.inst_equality 0 1
+          in
 
-        (* For instance inst, ensure that all bits except for the assigned ones
-           are equal *)
-        (* let fields_equal = if left > 0 then Eq ( BvExpr (Slice (Instance (0,
-           inst), 0, left)), BvExpr (Slice (Instance (1, inst), 0, left)) ) else
-           True in let fields_equal = if inst_size - right > 0 then let eq_right
-           = Eq ( BvExpr (Slice (Instance (0, inst), right, inst_size)), BvExpr
-           (Slice (Instance (1, inst), right, inst_size)) ) in And
-           (fields_equal, eq_right) else fields_equal in *)
-        let fields_equal =
-          if left = 0 then
-            if (* ι[0:r] *)
-               inst_size - right > 0 then
-              (* right < sizeof(ι) *)
-              Eq
-                ( BvExpr (Slice (Instance (0, inst), right, inst_size)),
-                  BvExpr (Slice (Instance (1, inst), right, inst_size)) )
-            else (* right = sizeof(ι) *)
-              True
-          else if (* ι[n:r] where n > 0 *)
-                  inst_size - right > 0 then
-            (* ι[n:m] where n > 0 ∧ m < r *)
-            And
-              ( Eq
-                  ( BvExpr (Slice (Instance (0, inst), 0, left)),
-                    BvExpr (Slice (Instance (1, inst), 0, left)) ),
+          (* For instance inst, ensure that all bits except for the assigned
+             ones are equal *)
+          let fields_equal =
+            if left = 0 then
+              if (* ι[0:r] *)
+                 inst_size - right > 0 then
+                (* right < sizeof(ι) *)
                 Eq
                   ( BvExpr (Slice (Instance (0, inst), right, inst_size)),
-                    BvExpr (Slice (Instance (1, inst), right, inst_size)) ) )
-          else
-            (* ι[n:m] where n > 0 ∧ m = r *)
-            Eq
-              ( BvExpr (Slice (Instance (0, inst), 0, left)),
-                BvExpr (Slice (Instance (1, inst), 0, left)) )
-        in
-
-        let y = Env.pick_fresh_name ctx "y" in
-        let pred =
-          Formula.ands
-            [ Syntax.packet_equality 0 1 PktIn;
-              Syntax.packet_equality 0 1 PktOut;
-              insts_equal;
-              fields_equal;
+                    BvExpr (Slice (Instance (1, inst), right, inst_size)) )
+              else (* right = sizeof(ι) *)
+                True
+            else if (* ι[n:r] where n > 0 *)
+                    inst_size - right > 0 then
+              (* ι[n:m] where n > 0 ∧ m < r *)
+              And
+                ( Eq
+                    ( BvExpr (Slice (Instance (0, inst), 0, left)),
+                      BvExpr (Slice (Instance (1, inst), 0, left)) ),
+                  Eq
+                    ( BvExpr (Slice (Instance (0, inst), right, inst_size)),
+                      BvExpr (Slice (Instance (1, inst), right, inst_size)) ) )
+            else
+              (* ι[n:m] where n > 0 ∧ m = r *)
               Eq
-                ( BvExpr (Slice (Instance (0, inst), left, right)),
-                  shift_expr tm 0 1 );
-              Or
-                ( And (Neg (IsValid (0, inst)), Neg (IsValid (1, inst))),
-                  And (IsValid (0, inst), IsValid (1, inst)) )
-            ]
-        in
+                ( BvExpr (Slice (Instance (0, inst), 0, left)),
+                  BvExpr (Slice (Instance (1, inst), 0, left)) )
+          in
 
-        return (Refinement (y, Top, pred))
+          let y = Env.pick_fresh_name ctx "y" in
+          let pred =
+            Formula.ands
+              [ Syntax.packet_equality 0 1 PktIn;
+                Syntax.packet_equality 0 1 PktOut;
+                insts_equal;
+                fields_equal;
+                Eq
+                  ( BvExpr (Slice (Instance (0, inst), left, right)),
+                    shift_expr tm 0 1 );
+                Or
+                  ( And (Neg (IsValid (0, inst)), Neg (IsValid (1, inst))),
+                    And (IsValid (0, inst), IsValid (1, inst)) )
+              ]
+          in
+
+          return (Refinement (y, Top, pred))
     | Reset ->
       Log.debug (fun m -> m "@[<v>Typechecking reset...@]");
       let y = Env.pick_fresh_name ctx "y" in

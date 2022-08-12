@@ -21,6 +21,7 @@ depends: [
   "ppx_jane"
   "fmt"
   "landmarks"
+  "landmarks-ppx"
   "logs"
   "owl-base"
   "bitv"

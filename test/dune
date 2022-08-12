@@ -1,9 +1,13 @@
 (executable
  (modes byte exe)
  (name test)
- (preprocess (pps ppx_jane))
- (libraries alcotest fmt.cli landmarks logs.fmt pi4))
+ (preprocess
+  (pps ppx_jane))
+ (libraries alcotest fmt.cli landmarks logs.fmt pi4)
+ (instrumentation
+  (backend landmarks --auto)))
 
 (rule
  (alias runtest)
- (action (run ./test.exe -q -e)))
+ (action
+  (run ./test.exe -q -e)))

@@ -1,9 +1,11 @@
 (library
  (name pi4)
  (public_name pi4)
- ; (preprocess (pps ppx_jane landmarks.ppx --auto ))
- (preprocess (pps ppx_jane))
- (libraries bitv core fmt landmarks logs menhirLib owl-base petr4 z3))
+ (preprocess
+  (pps ppx_jane))
+ (libraries bitv core fmt landmarks logs menhirLib owl-base petr4 z3)
+ (instrumentation
+  (backend landmarks --auto)))
 
 (include_subdirs no)
 
@@ -16,4 +18,7 @@
 (rule
  (deps parser.messages parser.mly)
  (targets parser_messages.ml)
- (action (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))
+ (action
+  (with-stdout-to
+   %{targets}
+   (run menhir --compile-errors %{deps}))))

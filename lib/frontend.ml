@@ -39,346 +39,6 @@ let param_name (param : string) (params : Petr4.Types.Parameter.t list) =
          (Error
             (`FrontendError (Printf.sprintf "No param with name '%s'" param)))
 
-module Parser = struct
-  module ParserCfg = struct
-    module type Comp = sig
-      type t
-
-      val sexp_of_t : t -> Sexp.t
-      val t_of_sexp : Sexp.t -> t
-      val compare : t -> t -> int
-    end
-
-    module rec CfgNode : sig
-      type t =
-        { name : string;
-          statements : Syntax.Command.t list;
-          successors : EdgeSet.t
-        }
-      [@@deriving compare, sexp]
-
-      include Comp with type t := t
-    end = struct
-      module T = struct
-        type t =
-          { name : string;
-            statements : Syntax.Command.t list;
-            successors : EdgeSet.t
-          }
-        [@@deriving compare, sexp]
-      end
-
-      include T
-      include Comparable.Make (T)
-    end
-
-    and EdgeType : sig
-      type t =
-        | Default
-        | Match of Syntax.Instance.t * string * Bigint.t
-      [@@deriving compare, sexp]
-
-      include Comp with type t := t
-    end = struct
-      module T = struct
-        type t =
-          | Default
-          | Match of Syntax.Instance.t * string * Bigint.t
-        [@@deriving compare, sexp]
-      end
-
-      include T
-      include Comparable.Make (T)
-    end
-
-    and Edge : sig
-      type t =
-        { node : CfgNode.t;
-          typ : EdgeType.t
-        }
-      [@@deriving compare, sexp]
-
-      include Comp with type t := t
-    end = struct
-      module T = struct
-        type t =
-          { node : CfgNode.t;
-            typ : EdgeType.t
-          }
-        [@@deriving compare, sexp]
-      end
-
-      include T
-      include Comparable.Make (T)
-    end
-
-    and EdgeSet : sig
-      include Set.S with type Elt.t := Edge.t
-    end =
-      Set.Make (Edge)
-
-    let mk_empty_node name =
-      CfgNode.{ name; statements = []; successors = EdgeSet.empty }
-  end
-
-  let petr4_parser_statement_to_command (_headers_param_name : string)
-      (header_table : Syntax.HeaderTable.t) (stmt : _ Petr4.Types.Statement.pt)
-      =
-    match stmt with
-    | MethodCall { func; args; _ } -> (
-      match func with
-      | ExpressionMember { name; _ } when String.(name.string = "extract") -> (
-        match args with
-        | [ arg ] -> (
-          match arg with
-          | Expression
-              { value = ExpressionMember { expr = ExpressionMember _; name; _ };
-                _
-              }
-            when String.(name.string = "next") ->
-            Error (`NotImplementedError "Extract into header stack")
-          | Expression { value = ExpressionMember { name = inst_name; _ }; _ }
-            ->
-            let%map inst =
-              Syntax.HeaderTable.lookup_instance inst_name.string header_table
-            in
-            Syntax.Command.Extract inst
-          | Expression
-              { value =
-                  ArrayAccess
-                    { array = ExpressionMember { name = inst_name; _ };
-                      index = Int { x; _ };
-                      _
-                    };
-                _
-              } ->
-            Syntax.(
-              let%bind array_idx = bigint_to_int x.value in
-              let%map inst =
-                HeaderTable.lookup_instance
-                  (inst_name.string ^ string_of_int array_idx)
-                  header_table
-              in
-              Command.Extract inst)
-          | Expression _ ->
-            Error
-              (`NotImplementedError
-                "Not implemented (Frontend.petr4_parser_statement_to_command)")
-          | _ ->
-            Error (`InvalidArgumentError "TODO: Argument is not an expression"))
-        | _ -> Error (`InvalidArgumentError "Invalid argument to extract"))
-      | _ -> Error (`FrontendError "Method Called on a Non-member expression"))
-    | stmt ->
-      Error
-        (`NotImplementedError
-          (Fmt.str
-             "Statement not implemented \
-              (Frontend.petr4_parser_statement_to_command): %s"
-             (Sexplib.Sexp.to_string_hum (Petr4.Types.Statement.sexp_of_t stmt))))
-
-  let collect_parser_states (headers_param_name : string)
-      (header_table : Syntax.HeaderTable.t)
-      (states : Petr4.Types.Parser.state list) =
-    let accept = ParserCfg.mk_empty_node "accept" in
-    let reject = ParserCfg.mk_empty_node "reject" in
-    let init : ParserCfg.CfgNode.t String.Map.t =
-      String.Map.of_alist_exn [ ("accept", accept); ("reject", reject) ]
-    in
-    List.fold states ~init:(Ok init) ~f:(fun acc_result state ->
-        let%bind acc = acc_result in
-        let%map statements =
-          List.filter_map state.statements ~f:(fun stmt ->
-              Some
-                (petr4_parser_statement_to_command headers_param_name
-                   header_table stmt))
-          |> Utils.sequence_error
-        in
-        Map.set acc ~key:state.name.string
-          ~data:
-            ParserCfg.CfgNode.
-              { name = state.name.string;
-                statements;
-                successors = ParserCfg.EdgeSet.empty
-              })
-
-  let build_cfg_edges (constants : Bigint.t String.Map.t)
-      (transition : Petr4.Types.Parser.transition)
-      (cfg_nodes : ParserCfg.CfgNode.t String.Map.t)
-      (header_table : Syntax.HeaderTable.t) =
-    match transition with
-    | Select { exprs; cases; _ } ->
-      let%bind inst, field =
-        List.find_map exprs ~f:(fun expr ->
-            match expr with
-            | ExpressionMember { expr = hdr; name = field_name; _ } ->
-              (let%bind inst_name =
-                 match hdr with
-                 | ExpressionMember { name; _ } -> return name.string
-                 | ArrayAccess
-                     { array = ExpressionMember { name = inst_name; _ };
-                       index = Int { x; _ };
-                       _
-                     } ->
-                   let%map array_idx = bigint_to_int x.value in
-                   inst_name.string ^ string_of_int array_idx
-                 | e ->
-                   Error
-                     (`NotImplementedError
-                       (Fmt.str
-                          "Not implemented (Frontend.build_cfg_edges - \
-                           Select-Expression (%s))"
-                          (Sexplib.Sexp.to_string_hum
-                             (Petr4.Types.Expression.sexp_of_t e))))
-               in
-               let%map inst =
-                 Syntax.HeaderTable.lookup_instance inst_name header_table
-               in
-               (inst, field_name.string))
-              |> Some
-            | _ -> None)
-        |> Option.value
-             ~default:
-               (Error (`FrontendError "Could not process select expression."))
-      in
-      List.fold cases ~init:(Ok []) ~f:(fun edges_acc { matches; next; _ } ->
-          let next' = String.Map.find_exn cfg_nodes next.string in
-          List.fold matches ~init:edges_acc ~f:(fun match_acc_result mtch ->
-              let%bind match_acc = match_acc_result in
-              let%map edge_type =
-                match mtch with
-                | Default _ -> return ParserCfg.EdgeType.Default
-                | DontCare _ ->
-                  Error
-                    (`NotImplementedError
-                      "Not implemented (Frontend.build_cfg_edges - DontCare)")
-                | Expression { expr = Int { x; _ }; _ } ->
-                  return (ParserCfg.EdgeType.Match (inst, field, x.value))
-                | Expression
-                    { expr = Name { name = BareName { name; _ }; _ }; _ } ->
-                  String.Map.find constants name.string
-                  |> Option.map ~f:(fun const ->
-                         ParserCfg.EdgeType.Match (inst, field, const))
-                  |> Result.of_option
-                       ~error:(`FrontendError "Could not lookup constant")
-                | Expression { expr; _ } ->
-                  Error
-                    (`NotImplementedError
-                      (Fmt.str
-                         "Not implemented (Frontend.build_cfg_edges - \
-                          Match-Expression %s)"
-                         (Sexplib.Sexp.to_string_hum
-                            (Petr4.Types.Expression.sexp_of_t expr))))
-              in
-              let edge = ParserCfg.Edge.{ node = next'; typ = edge_type } in
-              edge :: match_acc))
-    | Direct { next; _ } ->
-      let%map next =
-        String.Map.find cfg_nodes next.string
-        |> Result.of_option ~error:(`FrontendError "Next node not found.")
-      in
-      [ ParserCfg.Edge.{ node = next; typ = ParserCfg.EdgeType.Default } ]
-
-  let build_parser_cfg (header_table : Syntax.HeaderTable.t)
-      (constants : Bigint.t String.Map.t)
-      (parser_states : Petr4.Types.Parser.state list)
-      (parser_params : Petr4.Types.Parameter.t list) =
-    let%bind headers_param_name = param_name "headers" parser_params in
-    let%bind cfg_nodes =
-      collect_parser_states headers_param_name header_table parser_states
-    in
-    List.fold parser_states ~init:(Ok cfg_nodes) ~f:(fun acc_result state ->
-        let%bind acc = acc_result in
-        let node_name = state.name.string in
-        let node = String.Map.find_exn acc node_name in
-        let%map edges =
-          build_cfg_edges constants state.transition cfg_nodes header_table
-        in
-        let edge_set =
-          List.fold edges ~init:node.successors ~f:(fun acc edge ->
-              ParserCfg.EdgeSet.add acc edge)
-        in
-        String.Map.set acc ~key:node_name
-          ~data:{ node with successors = edge_set })
-
-  let parser_cfg_to_command (cfg : ParserCfg.CfgNode.t String.Map.t) =
-    let%bind start =
-      String.Map.find cfg "start"
-      |> Result.of_option
-           ~error:(`FrontendError "CFG does not contain state 'start'.")
-    in
-    let rec traverse_nodes (state : ParserCfg.CfgNode.t) =
-      let stmts_cmd =
-        List.fold state.statements ~init:Syntax.Command.Skip ~f:(fun acc stmt ->
-            Syntax.Command.Seq (stmt, acc))
-      in
-      if Set.is_empty state.successors then return stmts_cmd
-      else
-        let default, successors =
-          Set.partition_tf state.successors ~f:(fun edge ->
-              match edge.typ with
-              | ParserCfg.EdgeType.Default -> true
-              | _ -> false)
-        in
-        let%bind default_edge =
-          Result.of_option (Set.nth default 0)
-            ~error:(`FrontendError "Default successor is missing.")
-        in
-        let default_cmd =
-          match default_edge.node with
-          | { name = "accept"; _ } ->
-            if Set.is_empty successors then return stmts_cmd
-            else return Syntax.Command.Skip
-          | { name = "reject"; _ } ->
-            Error (`FrontendError "Don't know how to handle reject.")
-          | next ->
-            let%bind node =
-              String.Map.find cfg next.name
-              |> Result.of_option
-                   ~error:(`FrontendError "Could not lookup node from CFG.")
-            in
-            let%bind acc = traverse_nodes node in
-            Ok (Syntax.Command.Seq (stmts_cmd, acc))
-        in
-        if Set.is_empty successors then default_cmd
-        else
-          let%map succ_cmd =
-            Set.fold successors ~init:default_cmd ~f:(fun acc_result edge ->
-                let%bind acc = acc_result in
-                match edge.typ with
-                | ParserCfg.EdgeType.Default ->
-                  Error
-                    (`FrontendError
-                      "Default edges should have been filtered out at this \
-                       point.")
-                | ParserCfg.EdgeType.Match (inst, field, value) ->
-                  let%bind slice =
-                    Syntax.Expression.field_to_slice inst field 0
-                  in
-                  let%bind inst_field = Syntax.Instance.get_field inst field in
-                  let%bind bv = bigint_to_bv value inst_field.typ in
-                  let expr = Syntax.(Formula.Eq (BvExpr slice, BvExpr bv)) in
-                  let%bind node =
-                    String.Map.find cfg edge.node.name
-                    |> Result.of_option
-                         ~error:
-                           (`FrontendError "Could not lookup node from CFG.")
-                  in
-                  let%map cmd = traverse_nodes node in
-                  Syntax.Command.If (expr, cmd, acc))
-          in
-          Syntax.Command.Seq (stmts_cmd, succ_cmd)
-    in
-    let%map result = traverse_nodes start in
-    Simplify.simplify_command result
-
-  let petr4_parser_to_command header_table constants parser_states parser_params
-      =
-    let%bind parser_cfg =
-      build_parser_cfg header_table constants parser_states parser_params
-    in
-    parser_cfg_to_command parser_cfg
-end
-
 let petr4_name_to_string (name : Petr4.Types.name) =
   match name with
   | BareName { name; _ } | QualifiedName { name; _ } -> name.string
@@ -480,7 +140,7 @@ let build_header_table (Petr4.Types.Program decls) =
                   List.fold (List.range 0 size) ~init:inner_acc
                     ~f:(fun macc idx ->
                       String.Map.set macc
-                        ~key:(Printf.sprintf "%s%d" name.string idx)
+                        ~key:(Printf.sprintf "%s%d" field_name.string idx)
                         ~data:fields)
                 | _ -> Error (`NotImplementedError ""))
           else acc
@@ -511,12 +171,15 @@ let build_header_table (Petr4.Types.Program decls) =
                                ~default:
                                  (Error
                                     (`FrontendError
-                                      "Could not look up type declaration \
+                                      "Could not look up type\n\
+                                      \   declaration  \
                                        (Frontend.build_header_table)"))
+                        | BitType { expr = Int { x; _ }; _ } ->
+                          bigint_to_int x.value
                         | _ ->
                           Error
                             (`NotImplementedError
-                              "Action type is not a TypeName")
+                              "Action type is not implemented")
                       in
                       ( Fmt.str "%s_%s" action_name.string param.variable.string,
                         field_type ))
@@ -554,9 +217,9 @@ let build_header_table (Petr4.Types.Program decls) =
                                       ~error:
                                         (`FrontendError
                                           (Fmt.str
-                                             "Field %s does not exist on \
-                                              instance %s"
-                                             inst.name field_name.string))
+                                             "Field %s does not exist on\n\
+                                             \    instance %s" inst.name
+                                             field_name.string))
                                in
                                return
                                  Syntax.Declaration.
@@ -568,8 +231,8 @@ let build_header_table (Petr4.Types.Program decls) =
                              | _ ->
                                Error
                                  (`NotImplementedError
-                                   "(Frontend.build_header_table - table match \
-                                    key)")))
+                                   "(Frontend.build_header_table - table match\n\
+                                   \    key)")))
                     in
                     Some key_fields
                   | _ -> None)
@@ -887,6 +550,11 @@ let rec petr4_statement_to_command ctx tables actions
         petr4_expr_to_instance headers_param_name header_table expr
       in
       Syntax.Command.Add inst
+    else if String.(name.string = "setInvalid") then
+      let%map inst =
+        petr4_expr_to_instance headers_param_name header_table expr
+      in
+      Syntax.Command.Remove inst
     else if String.(name.string = "apply") then
       match expr with
       | Name { name = BareName { name; _ }; _ } ->
@@ -1229,6 +897,367 @@ let extract_annotation_body (header_table : Syntax.HeaderTable.t)
     let%map annotation = Parsing.parse_annotation header_table body in
     Some annotation
   | _ -> return None
+
+module Parser = struct
+  module ParserCfg = struct
+    module type Comp = sig
+      type t
+
+      val sexp_of_t : t -> Sexp.t
+      val t_of_sexp : Sexp.t -> t
+      val compare : t -> t -> int
+    end
+
+    module rec CfgNode : sig
+      type t =
+        { name : string;
+          statements : Syntax.Command.t list;
+          successors : EdgeSet.t
+        }
+      [@@deriving compare, sexp]
+
+      include Comp with type t := t
+    end = struct
+      module T = struct
+        type t =
+          { name : string;
+            statements : Syntax.Command.t list;
+            successors : EdgeSet.t
+          }
+        [@@deriving compare, sexp]
+      end
+
+      include T
+      include Comparable.Make (T)
+    end
+
+    and EdgeType : sig
+      type t =
+        | Default
+        | Match of Syntax.Instance.t * string * Bigint.t
+      [@@deriving compare, sexp]
+
+      include Comp with type t := t
+    end = struct
+      module T = struct
+        type t =
+          | Default
+          | Match of Syntax.Instance.t * string * Bigint.t
+        [@@deriving compare, sexp]
+      end
+
+      include T
+      include Comparable.Make (T)
+    end
+
+    and Edge : sig
+      type t =
+        { node : CfgNode.t;
+          typ : EdgeType.t
+        }
+      [@@deriving compare, sexp]
+
+      include Comp with type t := t
+    end = struct
+      module T = struct
+        type t =
+          { node : CfgNode.t;
+            typ : EdgeType.t
+          }
+        [@@deriving compare, sexp]
+      end
+
+      include T
+      include Comparable.Make (T)
+    end
+
+    and EdgeSet : sig
+      include Set.S with type Elt.t := Edge.t
+    end =
+      Set.Make (Edge)
+
+    let mk_empty_node name =
+      CfgNode.{ name; statements = []; successors = EdgeSet.empty }
+  end
+
+  let petr4_parser_statement_to_command (_headers_param_name : string)
+      (header_table : Syntax.HeaderTable.t) (stmt : _ Petr4.Types.Statement.pt)
+      =
+    match stmt with
+    | MethodCall { func; args; _ } -> (
+      match func with
+      | ExpressionMember { name; _ } when String.(name.string = "extract") -> (
+        match args with
+        | [ arg ] -> (
+          match arg with
+          | Expression
+              { value = ExpressionMember { expr = ExpressionMember _; name; _ };
+                _
+              } as e
+            when String.(name.string = "next") ->
+            Log.debug (fun m ->
+                m "Parser: %s"
+                  (Sexplib.Sexp.to_string_hum
+                     (Petr4.Types.Argument.sexp_of_t e)));
+            Error (`NotImplementedError "Extract into header stack")
+          | Expression { value = ExpressionMember { name = inst_name; _ }; _ }
+            ->
+            let%map inst =
+              Syntax.HeaderTable.lookup_instance inst_name.string header_table
+            in
+            Syntax.Command.Extract inst
+          | Expression
+              { value =
+                  ArrayAccess
+                    { array = ExpressionMember { name = inst_name; _ };
+                      index = Int { x; _ };
+                      _
+                    };
+                _
+              } ->
+            Syntax.(
+              let%bind array_idx = bigint_to_int x.value in
+              let%map inst =
+                HeaderTable.lookup_instance
+                  (inst_name.string ^ string_of_int array_idx)
+                  header_table
+              in
+              Command.Extract inst)
+          | Expression _ ->
+            Error
+              (`NotImplementedError
+                "Not implemented (Frontend.petr4_parser_statement_to_command)")
+          | _ ->
+            Error (`InvalidArgumentError "TODO: Argument is not an expression"))
+        | _ -> Error (`InvalidArgumentError "Invalid argument to extract"))
+      | _ -> Error (`FrontendError "Method Called on a Non-member expression"))
+    | Assignment { lhs = ExpressionMember { expr; name = field; _ }; rhs; _ } ->
+      let%bind inst = petr4_expr_to_instance "" header_table expr in
+      let%bind l, r = Syntax.Instance.field_bounds inst field.string in
+      let%map bv =
+        petr4_expr_to_expr String.Map.empty header_table String.Map.empty
+          (r - l) rhs
+      in
+      Syntax.Command.Assign (inst, l, r, BvExpr bv)
+    | stmt ->
+      Error
+        (`NotImplementedError
+          (Fmt.str
+             "Statement not implemented \
+              (Frontend.petr4_parser_statement_to_command): %s"
+             (Sexplib.Sexp.to_string_hum (Petr4.Types.Statement.sexp_of_t stmt))))
+
+  let collect_parser_states (headers_param_name : string)
+      (header_table : Syntax.HeaderTable.t)
+      (states : Petr4.Types.Parser.state list) =
+    let accept = ParserCfg.mk_empty_node "accept" in
+    let reject = ParserCfg.mk_empty_node "reject" in
+    let init : ParserCfg.CfgNode.t String.Map.t =
+      String.Map.of_alist_exn [ ("accept", accept); ("reject", reject) ]
+    in
+    List.fold states ~init:(Ok init) ~f:(fun acc_result state ->
+        let%bind acc = acc_result in
+        let%map statements =
+          List.filter_map state.statements ~f:(fun stmt ->
+              Some
+                (petr4_parser_statement_to_command headers_param_name
+                   header_table stmt))
+          |> Utils.sequence_error
+        in
+        Map.set acc ~key:state.name.string
+          ~data:
+            ParserCfg.CfgNode.
+              { name = state.name.string;
+                statements;
+                (* statements = []; *)
+                successors = ParserCfg.EdgeSet.empty
+              })
+
+  let build_cfg_edges (constants : Bigint.t String.Map.t)
+      (transition : Petr4.Types.Parser.transition)
+      (cfg_nodes : ParserCfg.CfgNode.t String.Map.t)
+      (header_table : Syntax.HeaderTable.t) =
+    match transition with
+    | Select { exprs; cases; _ } ->
+      let%bind inst, field =
+        List.find_map exprs ~f:(fun expr ->
+            match expr with
+            | ExpressionMember { expr = hdr; name = field_name; _ } ->
+              (let%bind inst_name =
+                 match hdr with
+                 | ExpressionMember { name; _ } -> return name.string
+                 | ArrayAccess
+                     { array = ExpressionMember { name = inst_name; _ };
+                       index = Int { x; _ };
+                       _
+                     } ->
+                   let%map array_idx = bigint_to_int x.value in
+                   inst_name.string ^ string_of_int array_idx
+                 | e ->
+                   Error
+                     (`NotImplementedError
+                       (Fmt.str
+                          "Not implemented (Frontend.build_cfg_edges - \
+                           Select-Expression (%s))"
+                          (Sexplib.Sexp.to_string_hum
+                             (Petr4.Types.Expression.sexp_of_t e))))
+               in
+               let%map inst =
+                 Syntax.HeaderTable.lookup_instance inst_name header_table
+               in
+               (inst, field_name.string))
+              |> Some
+            | _ -> None)
+        |> Option.value
+             ~default:
+               (Error (`FrontendError "Could not process select expression."))
+      in
+      List.fold cases ~init:(Ok []) ~f:(fun edges_acc { matches; next; _ } ->
+          let next' = String.Map.find_exn cfg_nodes next.string in
+          List.fold matches ~init:edges_acc ~f:(fun match_acc_result mtch ->
+              let%bind match_acc = match_acc_result in
+              let%map edge_type =
+                match mtch with
+                | Default _ -> return ParserCfg.EdgeType.Default
+                | DontCare _ ->
+                  Error
+                    (`NotImplementedError
+                      "Not implemented (Frontend.build_cfg_edges - DontCare)")
+                | Expression { expr = Int { x; _ }; _ } ->
+                  return (ParserCfg.EdgeType.Match (inst, field, x.value))
+                | Expression
+                    { expr = Name { name = BareName { name; _ }; _ }; _ } ->
+                  String.Map.find constants name.string
+                  |> Option.map ~f:(fun const ->
+                         ParserCfg.EdgeType.Match (inst, field, const))
+                  |> Result.of_option
+                       ~error:(`FrontendError "Could not lookup constant")
+                | Expression { expr; _ } ->
+                  Error
+                    (`NotImplementedError
+                      (Fmt.str
+                         "Not implemented (Frontend.build_cfg_edges - \
+                          Match-Expression %s)"
+                         (Sexplib.Sexp.to_string_hum
+                            (Petr4.Types.Expression.sexp_of_t expr))))
+              in
+              let edge = ParserCfg.Edge.{ node = next'; typ = edge_type } in
+              edge :: match_acc))
+    | Direct { next; _ } ->
+      let%map next =
+        String.Map.find cfg_nodes next.string
+        |> Result.of_option ~error:(`FrontendError "Next node not found.")
+      in
+      [ ParserCfg.Edge.{ node = next; typ = ParserCfg.EdgeType.Default } ]
+
+  let build_parser_cfg (header_table : Syntax.HeaderTable.t)
+      (constants : Bigint.t String.Map.t)
+      (parser_states : Petr4.Types.Parser.state list)
+      (parser_params : Petr4.Types.Parameter.t list) =
+    let%bind headers_param_name = param_name "headers" parser_params in
+    let%bind cfg_nodes =
+      collect_parser_states headers_param_name header_table parser_states
+    in
+    Log.debug (fun m ->
+        m "CFG Nodes: %s"
+          (Sexplib.Sexp.to_string_hum
+             ([%sexp_of: ParserCfg.CfgNode.t String.Map.t] cfg_nodes)));
+    List.fold parser_states ~init:(Ok cfg_nodes) ~f:(fun acc_result state ->
+        let%bind acc = acc_result in
+        let node_name = state.name.string in
+        let node = String.Map.find_exn acc node_name in
+        let%map edges =
+          build_cfg_edges constants state.transition cfg_nodes header_table
+        in
+        let edge_set =
+          List.fold edges ~init:node.successors ~f:(fun acc edge ->
+              ParserCfg.EdgeSet.add acc edge)
+        in
+        String.Map.set acc ~key:node_name
+          ~data:{ node with successors = edge_set })
+
+  let parser_cfg_to_command (cfg : ParserCfg.CfgNode.t String.Map.t) =
+    let%bind start =
+      String.Map.find cfg "start"
+      |> Result.of_option
+           ~error:(`FrontendError "CFG does not contain state 'start'.")
+    in
+    let rec traverse_nodes (state : ParserCfg.CfgNode.t) =
+      let stmts_cmd =
+        List.fold state.statements ~init:Syntax.Command.Skip ~f:(fun acc stmt ->
+            Syntax.Command.Seq (stmt, acc))
+      in
+      if Set.is_empty state.successors then return stmts_cmd
+      else
+        let default, successors =
+          Set.partition_tf state.successors ~f:(fun edge ->
+              match edge.typ with
+              | ParserCfg.EdgeType.Default -> true
+              | _ -> false)
+        in
+        let%bind default_edge =
+          Result.of_option (Set.nth default 0)
+            ~error:(`FrontendError "Default successor is missing.")
+        in
+        let default_cmd =
+          match default_edge.node with
+          | { name = "accept"; _ } ->
+            if Set.is_empty successors then return stmts_cmd
+            else return Syntax.Command.Skip
+          | { name = "reject"; _ } ->
+            Error (`FrontendError "Don't know how to handle reject.")
+          | next ->
+            let%bind node =
+              String.Map.find cfg next.name
+              |> Result.of_option
+                   ~error:(`FrontendError "Could not lookup node from CFG.")
+            in
+            let%bind acc = traverse_nodes node in
+            Ok (Syntax.Command.Seq (stmts_cmd, acc))
+        in
+        if Set.is_empty successors then default_cmd
+        else
+          let%map succ_cmd =
+            Set.fold successors ~init:default_cmd ~f:(fun acc_result edge ->
+                let%bind acc = acc_result in
+                match edge.typ with
+                | ParserCfg.EdgeType.Default ->
+                  Error
+                    (`FrontendError
+                      "Default edges should have been filtered out at this \
+                       point.")
+                | ParserCfg.EdgeType.Match (inst, field, value) ->
+                  let%bind slice =
+                    Syntax.Expression.field_to_slice inst field 0
+                  in
+                  let%bind inst_field = Syntax.Instance.get_field inst field in
+                  let%bind bv = bigint_to_bv value inst_field.typ in
+                  let expr = Syntax.(Formula.Eq (BvExpr slice, BvExpr bv)) in
+                  let%bind node =
+                    String.Map.find cfg edge.node.name
+                    |> Result.of_option
+                         ~error:
+                           (`FrontendError "Could not lookup node from CFG.")
+                  in
+                  let%map cmd = traverse_nodes node in
+                  Syntax.Command.If (expr, cmd, acc))
+          in
+          Syntax.Command.Seq (stmts_cmd, succ_cmd)
+    in
+    let%map result = traverse_nodes start in
+    Simplify.simplify_command result
+
+  let petr4_parser_to_command header_table constants parser_states parser_params
+      =
+    let%bind parser_cfg =
+      build_parser_cfg header_table constants parser_states parser_params
+    in
+    Log.debug (fun m ->
+        m "Parser CFG: %s"
+          (Sexplib.Sexp.to_string_hum
+             ([%sexp_of: ParserCfg.CfgNode.t String.Map.t] parser_cfg)));
+    parser_cfg_to_command parser_cfg
+end
 
 let declaration_to_command (header_table : Syntax.HeaderTable.t)
     (constants : Bigint.t String.Map.t) (decls : Petr4.Types.Declaration.t list)

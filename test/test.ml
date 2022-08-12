@@ -33,8 +33,8 @@ let () =
   Logs.set_reporter @@ Logs.format_reporter ();
   Logs.set_level ~all:true @@ Some Logs.Debug;
   Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
-  Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Debug;
-  Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug;
+  Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Info;
+  Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;
 
 
   (* start_profiling (); *)

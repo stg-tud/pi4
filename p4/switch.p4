@@ -822,6 +822,7 @@ struct headers {
     vlan_tag_t[2]                           vlan_tag_;
 }
 
+@pi4("(ParserImpl) as (x:{y:standard_metadata|y.pkt_in.length > 304}) -> ethernet~")
 parser ParserImpl(packet_in packet, out headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
     @name(".parse_all_int_meta_value_heders") state parse_all_int_meta_value_heders {
         packet.extract(hdr.int_switch_id_header);
