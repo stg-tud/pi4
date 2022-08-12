@@ -806,7 +806,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
                   BvExpr (Bv (BitVector.zero inst_size)) )
             ]
         in
-        Cache.update inst true;
+        let _ = if !Cache.enabled then Cache.update inst true else () in
         return (Refinement (y, Top, pred))
     | Ascription (cmd, x, ascb_hty_in, ascb_hty_out) ->
       Log.debug (fun m ->
@@ -866,7 +866,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       let%bind has_enough_bits =
         packet_length_gte_n header_table ctx inst_size hty_arg
       in
-      if has_enough_bits then (
+      if has_enough_bits then
         let y = Env.pick_fresh_name ctx "y" in
         let pred =
           Formula.ands
@@ -884,8 +884,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               packet_equality 0 1 PktOut
             ]
         in
-        Cache.update inst true;
-        return (Refinement (y, Top, pred)))
+        let _ = if !Cache.enabled then Cache.update inst true else () in
+        return (Refinement (y, Top, pred))
       else
         Error
           (`TypeError
@@ -903,7 +903,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
       let cache_snapshot = !Cache.data in
       let%bind tye = FC.check_form header_table ctx hty_arg e in
-      Cache.populate_from_form e false;
+      let _ = if !Cache.enabled then Cache.populate_from_form e false else () in
       match tye with
       | Bool ->
         let x = Env.pick_fresh_name ctx "x" in
@@ -925,7 +925,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           Simplify.fold_refinements (Refinement (x, hty_arg, Neg e))
         in
         let cache_then = !Cache.data in
-        Cache.data := cache_snapshot;
+        let _ = if !Cache.enabled then Cache.data := cache_snapshot else () in
         let%bind tyc2 =
           compute_type c2 (hty_var, hty_in_else) ctx header_table
         in
@@ -934,7 +934,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             m "@[<v>Computed type for else-branch:@ %a@]"
               (Pretty.pp_header_type ctx_else)
               tyc2);
-        Cache.merge cache_then !Cache.data;
+        let _ =
+          if !Cache.enabled then Cache.merge cache_then !Cache.data else ()
+        in
         return
           (Choice
              ( Refinement (y, tyc1, shift_form e 0 1),
@@ -1041,7 +1043,11 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
                    And (Neg (IsValid (0, i)), acc))
           ]
       in
-      Cache.invalidate (HeaderTable.to_list header_table);
+      let _ =
+        if !Cache.enabled then
+          Cache.invalidate (HeaderTable.to_list header_table)
+        else ()
+      in
       return (Refinement (y, Top, pred))
     | Remit inst ->
       Log.debug (fun m -> m "@[<v>Typechecking remit(%s)...@]" inst.name);
@@ -1086,7 +1092,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               Neg (IsValid (0, inst))
             ]
         in
-        Cache.update inst false;
+        let _ = if !Cache.enabled then Cache.update inst false else () in
         return (Refinement (y, Top, pred))
     | Seq (c1, c2) -> (
       Log.debug (fun m ->
