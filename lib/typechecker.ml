@@ -126,10 +126,17 @@ let other_instances (header_table : HeaderTable.t) (inst : Instance.t) =
   |> List.filter ~f:(fun i -> not ([%compare.equal: Instance.t] i inst))
 
 module type S = sig
-  val check_type : Command.t -> pi_type -> HeaderTable.t -> TypecheckingResult.t
+  val check_type :
+    ?enable_includes_cache:bool ->
+    Command.t ->
+    pi_type ->
+    HeaderTable.t ->
+    TypecheckingResult.t
 end
 
 module type Checker = sig
+  val init : unit -> unit
+
   val compute_type :
     Command.t ->
     string * HeapType.t ->
@@ -155,28 +162,98 @@ module type Checker = sig
     result
 end
 
+module IncludesCache = struct
+  let enabled = ref false
+  let data = ref (Map.empty (module Instance))
+  let clear = data := Map.empty (module Instance)
+
+  let update inst valid =
+    Log.debug (fun m ->
+        m "Updated include_cache: %a %b" Pretty.pp_instance inst valid);
+    data := Map.set !data ~key:inst ~data:valid
+
+  let rec populate_from_form form is_neg =
+    match form with
+    | And (f_l, f_r) ->
+      populate_from_form f_l is_neg;
+      populate_from_form f_r is_neg
+    | IsValid (_, i) -> update i (not is_neg)
+    | Neg (IsValid (_, i)) -> update i is_neg
+    | _ -> ()
+
+  let rec invalidate lst =
+    match lst with
+    | [] -> ()
+    | x :: xs ->
+      update x false;
+      invalidate xs
+
+  let lookup inst = Map.find !data inst
+
+  let merge c1 c2 =
+    data :=
+      Map.merge c1 c2 ~f:(fun ~key:_ merge_elem ->
+          match merge_elem with
+          | `Both (v1, v2) ->
+            if v1 && v2 then Some true
+            else if (not v1) && not v2 then Some false
+            else None
+          | `Left _ -> None
+          | `Right _ -> None)
+end
+
 module HeapTypeOps (P : Prover.S) = struct
+  module Cache = IncludesCache
+
   let includes (header_table : HeaderTable.t) (ctx : Env.context)
       (hty : HeapType.t) (inst : Instance.t) =
-    Log.debug (fun m ->
-        m "@[<v>Checking if instance '%s' is included in type@ %a@]"
-          Instance.(inst.name)
-          (Pretty.pp_header_type ctx)
-          hty);
-    let x = Env.pick_fresh_name ctx "x" in
-    let refined = HeapType.Refinement (x, Top, IsValid (0, inst)) in
-    P.check_subtype hty refined ctx header_table
+    let check_includes () =
+      Log.debug (fun m ->
+          m "@[<v>Checking if instance '%s' is included in type@ %a@]"
+            Instance.(inst.name)
+            (Pretty.pp_header_type ctx)
+            hty);
+      let x = Env.pick_fresh_name ctx "x" in
+      let refined = HeapType.Refinement (x, Top, IsValid (0, inst)) in
+      let result = P.check_subtype hty refined ctx header_table in
+      Result.iter result ~f:(fun does_incl ->
+          Cache.data := Map.set !Cache.data ~key:inst ~data:does_incl);
+      result
+    in
+    if !Cache.enabled then (
+      match Cache.lookup inst with
+      | Some result ->
+        Log.debug (fun m -> m "@[INSTANCE CACHE: HIT (%s)@]" inst.name);
+        return result
+      | None ->
+        Log.debug (fun m -> m "@[INSTANCE CACHE: MISS (%s)@]" inst.name);
+        check_includes ())
+    else check_includes ()
 
   let excludes (header_table : HeaderTable.t) (ctx : Env.context)
       (hty : HeapType.t) (inst : Instance.t) =
-    Log.debug (fun m ->
-        m "@[<v>Checking if instance '%s' is excluded from type@ %a@]"
-          Instance.(inst.name)
-          (Pretty.pp_header_type ctx)
-          hty);
-    let x = Env.pick_fresh_name ctx "x" in
-    let refined = HeapType.Refinement (x, Top, Neg (IsValid (0, inst))) in
-    P.check_subtype hty refined ctx header_table
+    let check_excludes () =
+      Log.debug (fun m ->
+          m "@[<v>Checking if instance '%s' is excluded from type@ %a@]"
+            Instance.(inst.name)
+            (Pretty.pp_header_type ctx)
+            hty);
+      let x = Env.pick_fresh_name ctx "x" in
+      let refined = HeapType.Refinement (x, Top, Neg (IsValid (0, inst))) in
+      let result = P.check_subtype hty refined ctx header_table in
+      Result.iter result ~f:(fun does_incl ->
+          Cache.data := Map.set !Cache.data ~key:inst ~data:does_incl);
+      result
+    in
+    if !Cache.enabled then (
+      match Cache.lookup inst with
+      | Some result ->
+        Log.debug (fun m -> m "@[INSTANCE CACHE: HIT (%s)@]" inst.name);
+        return (not result)
+      | None ->
+        Log.debug (fun m -> m "@[INSTANCE CACHE: MISS (%s)@]" inst.name);
+        check_excludes ())
+    else check_excludes ()
 
   let packet_length_gte_n (header_table : HeaderTable.t) (ctx : Env.context)
       (n : int) (hty : HeapType.t) =
@@ -285,6 +362,8 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
   module FC = FormChecker (P)
   module C = Chomp.Optimized (P)
   include HeapTypeOps (P)
+
+  let init () = ()
 
   let rec compute_type (cmd : Command.t)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
@@ -692,6 +771,10 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
   module EC = ExprChecker (P)
   include HeapTypeOps (P)
 
+  let init () =
+    Cache.enabled := true;
+    Cache.clear
+
   let rec compute_type (cmd : Command.t)
       ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
       (header_table : HeaderTable.t) =
@@ -723,6 +806,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
                   BvExpr (Bv (BitVector.zero inst_size)) )
             ]
         in
+        Cache.update inst true;
         return (Refinement (y, Top, pred))
     | Ascription (cmd, x, ascb_hty_in, ascb_hty_out) ->
       Log.debug (fun m ->
@@ -782,7 +866,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       let%bind has_enough_bits =
         packet_length_gte_n header_table ctx inst_size hty_arg
       in
-      if has_enough_bits then
+      if has_enough_bits then (
         let y = Env.pick_fresh_name ctx "y" in
         let pred =
           Formula.ands
@@ -800,7 +884,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               packet_equality 0 1 PktOut
             ]
         in
-        return (Refinement (y, Top, pred))
+        Cache.update inst true;
+        return (Refinement (y, Top, pred)))
       else
         Error
           (`TypeError
@@ -816,7 +901,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m ->
           m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
+      let cache_snapshot = !Cache.data in
       let%bind tye = FC.check_form header_table ctx hty_arg e in
+      Cache.populate_from_form e false;
       match tye with
       | Bool ->
         let x = Env.pick_fresh_name ctx "x" in
@@ -837,6 +924,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         let hty_in_else =
           Simplify.fold_refinements (Refinement (x, hty_arg, Neg e))
         in
+        let cache_then = !Cache.data in
+        Cache.data := cache_snapshot;
         let%bind tyc2 =
           compute_type c2 (hty_var, hty_in_else) ctx header_table
         in
@@ -845,6 +934,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             m "@[<v>Computed type for else-branch:@ %a@]"
               (Pretty.pp_header_type ctx_else)
               tyc2);
+        Cache.merge cache_then !Cache.data;
         return
           (Choice
              ( Refinement (y, tyc1, shift_form e 0 1),
@@ -951,6 +1041,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
                    And (Neg (IsValid (0, i)), acc))
           ]
       in
+      Cache.invalidate (HeaderTable.to_list header_table);
       return (Refinement (y, Top, pred))
     | Remit inst ->
       Log.debug (fun m -> m "@[<v>Typechecking remit(%s)...@]" inst.name);
@@ -995,6 +1086,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
               Neg (IsValid (0, inst))
             ]
         in
+        Cache.update inst false;
         return (Refinement (y, Top, pred))
     | Seq (c1, c2) -> (
       Log.debug (fun m ->
@@ -1059,10 +1151,11 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
 end
 
 module Make (C : Checker) : S = struct
-  let check_type (cmd : Command.t) (ty : pi_type) (header_table : HeaderTable.t)
-      =
+  let check_type ?(enable_includes_cache = true) (cmd : Command.t)
+      (ty : pi_type) (header_table : HeaderTable.t) =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
+      let _ = if enable_includes_cache then C.init () else () in
       let result =
         let%bind tycout = C.compute_type cmd (x, annot_tyin) [] header_table in
         let ctx = [ (x, Env.VarBind annot_tyin) ] in

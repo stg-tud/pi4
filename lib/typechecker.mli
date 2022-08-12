@@ -7,15 +7,21 @@ module TypecheckingResult : sig
   [@@deriving compare, sexp]
 
   val is_error : t -> bool
-
   val pp : Format.formatter -> t -> unit
 end
 
 module type S = sig
-  val check_type : Command.t -> pi_type -> HeaderTable.t -> TypecheckingResult.t
+  val check_type :
+    ?enable_includes_cache:bool ->
+    Command.t ->
+    pi_type ->
+    HeaderTable.t ->
+    TypecheckingResult.t
 end
 
 module type Checker = sig
+  val init : unit -> unit
+
   val compute_type :
     Command.t ->
     string * HeapType.t ->
