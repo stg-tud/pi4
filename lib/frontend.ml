@@ -140,7 +140,7 @@ let build_header_table (Petr4.Types.Program decls) =
                   List.fold (List.range 0 size) ~init:inner_acc
                     ~f:(fun macc idx ->
                       String.Map.set macc
-                        ~key:(Printf.sprintf "%s%d" field_name.string idx)
+                        ~key:(Printf.sprintf "%s_%d" field_name.string idx)
                         ~data:fields)
                 | _ -> Error (`NotImplementedError ""))
           else acc
@@ -899,6 +899,25 @@ let extract_annotation_body (header_table : Syntax.HeaderTable.t)
   | _ -> return None
 
 module Parser = struct
+  type header_stack =
+    { name : string;
+      header_type : string;
+      size : int
+    }
+  [@@deriving sexp, compare]
+
+  type parser_statement =
+    | ExtractHeader of Syntax.Instance.t
+    | ExtractHeaderStack of header_stack
+    | Assignment of Syntax.Instance.t * int * int * Syntax.Expression.t
+  [@@deriving sexp, compare]
+
+  type match_expression =
+    | HeaderField of Syntax.Instance.t * string
+    | LastStackIndex of
+        header_stack * string (* string argument is the field name *)
+  [@@deriving sexp, compare]
+
   module ParserCfg = struct
     module type Comp = sig
       type t
@@ -911,7 +930,7 @@ module Parser = struct
     module rec CfgNode : sig
       type t =
         { name : string;
-          statements : Syntax.Command.t list;
+          statements : parser_statement list;
           successors : EdgeSet.t
         }
       [@@deriving compare, sexp]
@@ -921,7 +940,7 @@ module Parser = struct
       module T = struct
         type t =
           { name : string;
-            statements : Syntax.Command.t list;
+            statements : parser_statement list;
             successors : EdgeSet.t
           }
         [@@deriving compare, sexp]
@@ -934,7 +953,7 @@ module Parser = struct
     and EdgeType : sig
       type t =
         | Default
-        | Match of Syntax.Instance.t * string * Bigint.t
+        | Match of match_expression * Bigint.t
       [@@deriving compare, sexp]
 
       include Comp with type t := t
@@ -942,7 +961,7 @@ module Parser = struct
       module T = struct
         type t =
           | Default
-          | Match of Syntax.Instance.t * string * Bigint.t
+          | Match of match_expression * Bigint.t
         [@@deriving compare, sexp]
       end
 
@@ -980,9 +999,8 @@ module Parser = struct
       CfgNode.{ name; statements = []; successors = EdgeSet.empty }
   end
 
-  let petr4_parser_statement_to_command (_headers_param_name : string)
-      (header_table : Syntax.HeaderTable.t) (stmt : _ Petr4.Types.Statement.pt)
-      =
+  let extract_parser_statements (header_table : Syntax.HeaderTable.t)
+      header_stacks (stmt : _ Petr4.Types.Statement.pt) =
     match stmt with
     | MethodCall { func; args; _ } -> (
       match func with
@@ -991,7 +1009,9 @@ module Parser = struct
         | [ arg ] -> (
           match arg with
           | Expression
-              { value = ExpressionMember { expr = ExpressionMember _; name; _ };
+              { value =
+                  ExpressionMember
+                    { expr = ExpressionMember { name = inst_name; _ }; name; _ };
                 _
               } as e
             when String.(name.string = "next") ->
@@ -999,13 +1019,23 @@ module Parser = struct
                 m "Parser: %s"
                   (Sexplib.Sexp.to_string_hum
                      (Petr4.Types.Argument.sexp_of_t e)));
-            Error (`NotImplementedError "Extract into header stack")
+
+            let%map header_stack =
+              Map.find header_stacks inst_name.string
+              |> Result.of_option
+                   ~error:
+                     (`FrontendError
+                       (Printf.sprintf
+                          "Could not look up header stack for instance %s"
+                          inst_name.string))
+            in
+            ExtractHeaderStack header_stack
           | Expression { value = ExpressionMember { name = inst_name; _ }; _ }
             ->
             let%map inst =
               Syntax.HeaderTable.lookup_instance inst_name.string header_table
             in
-            Syntax.Command.Extract inst
+            ExtractHeader inst
           | Expression
               { value =
                   ArrayAccess
@@ -1019,10 +1049,10 @@ module Parser = struct
               let%bind array_idx = bigint_to_int x.value in
               let%map inst =
                 HeaderTable.lookup_instance
-                  (inst_name.string ^ string_of_int array_idx)
+                  (Fmt.str "%s_%d" inst_name.string array_idx)
                   header_table
               in
-              Command.Extract inst)
+              ExtractHeader inst)
           | Expression _ ->
             Error
               (`NotImplementedError
@@ -1038,7 +1068,7 @@ module Parser = struct
         petr4_expr_to_expr String.Map.empty header_table String.Map.empty
           (r - l) rhs
       in
-      Syntax.Command.Assign (inst, l, r, BvExpr bv)
+      Assignment (inst, l, r, BvExpr bv)
     | stmt ->
       Error
         (`NotImplementedError
@@ -1047,8 +1077,8 @@ module Parser = struct
               (Frontend.petr4_parser_statement_to_command): %s"
              (Sexplib.Sexp.to_string_hum (Petr4.Types.Statement.sexp_of_t stmt))))
 
-  let collect_parser_states (headers_param_name : string)
-      (header_table : Syntax.HeaderTable.t)
+  let collect_parser_states (_headers_param_name : string)
+      (header_table : Syntax.HeaderTable.t) header_stacks
       (states : Petr4.Types.Parser.state list) =
     let accept = ParserCfg.mk_empty_node "accept" in
     let reject = ParserCfg.mk_empty_node "reject" in
@@ -1056,32 +1086,43 @@ module Parser = struct
       String.Map.of_alist_exn [ ("accept", accept); ("reject", reject) ]
     in
     List.fold states ~init:(Ok init) ~f:(fun acc_result state ->
-        let%bind acc = acc_result in
-        let%map statements =
-          List.filter_map state.statements ~f:(fun stmt ->
-              Some
-                (petr4_parser_statement_to_command headers_param_name
-                   header_table stmt))
+        acc_result >>= fun acc ->
+        let%map parser_statements =
+          List.map state.statements ~f:(fun stmt ->
+              extract_parser_statements header_table header_stacks stmt)
           |> Utils.sequence_error
         in
         Map.set acc ~key:state.name.string
           ~data:
             ParserCfg.CfgNode.
               { name = state.name.string;
-                statements;
-                (* statements = []; *)
-                successors = ParserCfg.EdgeSet.empty
+                statements = parser_statements;
+                successors = ParserCfg.EdgeSet.empty (* header_stack = None *)
               })
 
-  let build_cfg_edges (constants : Bigint.t String.Map.t)
+  let build_cfg_edges (constants : Bigint.t String.Map.t) header_stacks
       (transition : Petr4.Types.Parser.transition)
       (cfg_nodes : ParserCfg.CfgNode.t String.Map.t)
       (header_table : Syntax.HeaderTable.t) =
     match transition with
     | Select { exprs; cases; _ } ->
-      let%bind inst, field =
+      let%bind match_expr =
         List.find_map exprs ~f:(fun expr ->
             match expr with
+            | ExpressionMember
+                { name = field_name;
+                  expr =
+                    ExpressionMember
+                      { name;
+                        expr = ExpressionMember { name = header_stack_name; _ };
+                        _
+                      };
+                  _
+                }
+              when String.(name.string = "last") ->
+              Map.find header_stacks header_stack_name.string
+              |> Option.map ~f:(fun hs ->
+                     return (LastStackIndex (hs, field_name.string)))
             | ExpressionMember { expr = hdr; name = field_name; _ } ->
               (let%bind inst_name =
                  match hdr with
@@ -1092,7 +1133,7 @@ module Parser = struct
                        _
                      } ->
                    let%map array_idx = bigint_to_int x.value in
-                   inst_name.string ^ string_of_int array_idx
+                   Fmt.str "%s_%d" inst_name.string array_idx
                  | e ->
                    Error
                      (`NotImplementedError
@@ -1105,7 +1146,7 @@ module Parser = struct
                let%map inst =
                  Syntax.HeaderTable.lookup_instance inst_name header_table
                in
-               (inst, field_name.string))
+               HeaderField (inst, field_name.string))
               |> Some
             | _ -> None)
         |> Option.value
@@ -1124,12 +1165,12 @@ module Parser = struct
                     (`NotImplementedError
                       "Not implemented (Frontend.build_cfg_edges - DontCare)")
                 | Expression { expr = Int { x; _ }; _ } ->
-                  return (ParserCfg.EdgeType.Match (inst, field, x.value))
+                  return (ParserCfg.EdgeType.Match (match_expr, x.value))
                 | Expression
                     { expr = Name { name = BareName { name; _ }; _ }; _ } ->
                   String.Map.find constants name.string
                   |> Option.map ~f:(fun const ->
-                         ParserCfg.EdgeType.Match (inst, field, const))
+                         ParserCfg.EdgeType.Match (match_expr, const))
                   |> Result.of_option
                        ~error:(`FrontendError "Could not lookup constant")
                 | Expression { expr; _ } ->
@@ -1151,30 +1192,140 @@ module Parser = struct
       [ ParserCfg.Edge.{ node = next; typ = ParserCfg.EdgeType.Default } ]
 
   let build_parser_cfg (header_table : Syntax.HeaderTable.t)
-      (constants : Bigint.t String.Map.t)
+      (constants : Bigint.t String.Map.t) header_stacks
       (parser_states : Petr4.Types.Parser.state list)
       (parser_params : Petr4.Types.Parameter.t list) =
     let%bind headers_param_name = param_name "headers" parser_params in
     let%bind cfg_nodes =
-      collect_parser_states headers_param_name header_table parser_states
+      collect_parser_states headers_param_name header_table header_stacks
+        parser_states
     in
     Log.debug (fun m ->
         m "CFG Nodes: %s"
           (Sexplib.Sexp.to_string_hum
              ([%sexp_of: ParserCfg.CfgNode.t String.Map.t] cfg_nodes)));
-    List.fold parser_states ~init:(Ok cfg_nodes) ~f:(fun acc_result state ->
-        let%bind acc = acc_result in
-        let node_name = state.name.string in
-        let node = String.Map.find_exn acc node_name in
-        let%map edges =
-          build_cfg_edges constants state.transition cfg_nodes header_table
-        in
-        let edge_set =
-          List.fold edges ~init:node.successors ~f:(fun acc edge ->
-              ParserCfg.EdgeSet.add acc edge)
-        in
-        String.Map.set acc ~key:node_name
-          ~data:{ node with successors = edge_set })
+    let%map cfg =
+      List.fold parser_states ~init:(Ok cfg_nodes) ~f:(fun acc_result state ->
+          let%bind acc = acc_result in
+          let node_name = state.name.string in
+          let node = String.Map.find_exn acc node_name in
+          let%map edges =
+            build_cfg_edges constants header_stacks state.transition cfg_nodes
+              header_table
+          in
+          let edge_set =
+            List.fold edges ~init:node.successors ~f:(fun acc edge ->
+                ParserCfg.EdgeSet.add acc edge)
+          in
+          String.Map.set acc ~key:node_name
+            ~data:{ node with successors = edge_set })
+    in
+    let self_loops =
+      Map.fold cfg ~init:String.Map.empty ~f:(fun ~key:_ ~data:node acc ->
+          match node with
+          | ParserCfg.CfgNode.
+              { name = node_name;
+                successors;
+                statements = [ ExtractHeaderStack stack ]
+              } ->
+            let loops =
+              Set.filter successors ~f:(fun ParserCfg.Edge.{ node; _ } ->
+                  String.(node.name = node_name))
+            in
+            let contains_loop = not (Set.is_empty loops) in
+            if contains_loop then
+              let unrolled_nodes =
+                List.fold (List.range 0 stack.size) ~init:String.Map.empty
+                  ~f:(fun acc idx ->
+                    let indexed_node_name = Fmt.str "%s_%d" node_name idx in
+                    let inst_name = Fmt.str "%s_%d" stack.name idx in
+                    let inst =
+                      Syntax.HeaderTable.lookup_instance_exn inst_name
+                        header_table
+                    in
+                    Map.set acc ~key:indexed_node_name
+                      ~data:
+                        ( ParserCfg.CfgNode.
+                            { name = indexed_node_name;
+                              successors = ParserCfg.EdgeSet.empty;
+                              statements = [ ExtractHeader inst ]
+                            },
+                          idx ))
+              in
+              let with_succs =
+                Map.data unrolled_nodes
+                |> List.map ~f:(fun (node, idx) ->
+                       if idx = stack.size - 1 then
+                         let s =
+                           Set.filter successors ~f:(fun edge ->
+                               match edge with
+                               | ParserCfg.Edge.{ typ = Default; _ } -> true
+                               | _ -> false)
+                         in
+                         { node with successors = s }
+                       else
+                         let unrolled_successors =
+                           ParserCfg.EdgeSet.map successors ~f:(fun edge ->
+                               match edge with
+                               | ParserCfg.Edge.
+                                   { node;
+                                     typ =
+                                       Match
+                                         (LastStackIndex (stack, field), value)
+                                   }
+                                 when String.(node.name = node_name) ->
+                                 let next_node, _ =
+                                   Map.find_exn unrolled_nodes
+                                     (Fmt.str "%s_%d" node.name (idx + 1))
+                                 in
+                                 let stack_inst =
+                                   Syntax.HeaderTable.lookup_instance_exn
+                                     (Fmt.str "%s_%d" stack.name idx)
+                                     header_table
+                                 in
+                                 ParserCfg.Edge.
+                                   { node = next_node;
+                                     typ =
+                                       ParserCfg.EdgeType.Match
+                                         (HeaderField (stack_inst, field), value)
+                                   }
+                               | _ as e -> e)
+                         in
+                         { node with successors = unrolled_successors })
+              in
+              Map.set acc ~key:node_name ~data:with_succs
+            else acc
+          | _ -> acc)
+    in
+    Map.fold cfg ~init:String.Map.empty ~f:(fun ~key ~data:node acc ->
+        match String.Map.find self_loops node.name with
+        | Some loop_nodes ->
+          Log.debug (fun m ->
+              m "Node: %s"
+                (Sexplib.Sexp.to_string_hum (ParserCfg.CfgNode.sexp_of_t node)));
+          List.fold loop_nodes ~init:acc ~f:(fun list_acc n ->
+              Map.set list_acc ~key:n.name ~data:n)
+        | _ ->
+          (* Check if *)
+          let update =
+            ParserCfg.EdgeSet.map node.successors ~f:(fun edge ->
+                let new_node =
+                  String.Map.find self_loops edge.node.name
+                  |> Option.map ~f:(fun loop_nodes -> List.hd_exn loop_nodes)
+                  |> Option.value ~default:edge.node
+                in
+                { edge with node = new_node })
+          in
+          Map.set acc ~key ~data:{ node with successors = update })
+
+  let parser_statement_to_command (statement : parser_statement) =
+    match statement with
+    | ExtractHeader inst -> return (Syntax.Command.Extract inst)
+    | Assignment (inst, l, r, expr) ->
+      return (Syntax.Command.Assign (inst, l, r, expr))
+    | ExtractHeaderStack _ ->
+      Error
+        (`FrontendError "Parser statement should be eliminated by unrolling.")
 
   let parser_cfg_to_command (cfg : ParserCfg.CfgNode.t String.Map.t) =
     let%bind start =
@@ -1183,9 +1334,12 @@ module Parser = struct
            ~error:(`FrontendError "CFG does not contain state 'start'.")
     in
     let rec traverse_nodes (state : ParserCfg.CfgNode.t) =
-      let stmts_cmd =
-        List.fold state.statements ~init:Syntax.Command.Skip ~f:(fun acc stmt ->
-            Syntax.Command.Seq (stmt, acc))
+      let%bind stmts_cmd =
+        List.fold state.statements ~init:(Ok Syntax.Command.Skip)
+          ~f:(fun acc_result stmt ->
+            acc_result >>= fun acc ->
+            let%map stmt_cmd = parser_statement_to_command stmt in
+            Syntax.Command.Seq (stmt_cmd, acc))
       in
       if Set.is_empty state.successors then return stmts_cmd
       else
@@ -1226,7 +1380,9 @@ module Parser = struct
                     (`FrontendError
                       "Default edges should have been filtered out at this \
                        point.")
-                | ParserCfg.EdgeType.Match (inst, field, value) ->
+                | ParserCfg.EdgeType.Match (LastStackIndex _, _) ->
+                  Error (`FrontendError "LastStackIndex Not implemented")
+                | ParserCfg.EdgeType.Match (HeaderField (inst, field), value) ->
                   let%bind slice =
                     Syntax.Expression.field_to_slice inst field 0
                   in
@@ -1247,10 +1403,11 @@ module Parser = struct
     let%map result = traverse_nodes start in
     Simplify.simplify_command result
 
-  let petr4_parser_to_command header_table constants parser_states parser_params
-      =
+  let petr4_parser_to_command header_table constants header_stacks parser_states
+      parser_params =
     let%bind parser_cfg =
-      build_parser_cfg header_table constants parser_states parser_params
+      build_parser_cfg header_table constants header_stacks parser_states
+        parser_params
     in
     Log.debug (fun m ->
         m "Parser CFG: %s"
@@ -1259,15 +1416,50 @@ module Parser = struct
     parser_cfg_to_command parser_cfg
 end
 
+let collect_header_stacks (decls : Petr4.Types.Declaration.t list) =
+  let extract_header_stack acc decl =
+    match decl with
+    | Petr4.Types.Declaration.Struct { name; fields; _ }
+      when String.(name.string = "headers") ->
+      let collect_header_stack acc_result
+          Petr4.Types.Declaration.{ name = header_name; typ; _ } =
+        match typ with
+        | HeaderStack
+            { header = TypeName { name = BareName { name = header_type; _ }; _ };
+              size = Int { x = stack_size; _ };
+              _
+            } ->
+          let%bind stack_size = bigint_to_int stack_size.value in
+          acc_result >>| fun acc ->
+          Map.set acc ~key:header_name.string
+            ~data:
+              Parser.
+                { name = header_name.string;
+                  header_type = header_type.string;
+                  size = stack_size
+                }
+        | _ -> acc_result
+      in
+      List.fold fields ~init:acc ~f:collect_header_stack
+    | _ -> acc
+  in
+  List.fold decls ~init:(Ok String.Map.empty) ~f:extract_header_stack
+
 let declaration_to_command (header_table : Syntax.HeaderTable.t)
     (constants : Bigint.t String.Map.t) (decls : Petr4.Types.Declaration.t list)
     (name : string) =
+  let%bind header_stacks = collect_header_stacks decls in
+  Log.debug (fun m ->
+      m "Header stacks: %s"
+        (Sexplib.Sexp.to_string_hum
+           ([%sexp_of: Parser.header_stack String.Map.t] header_stacks)));
   List.find_map decls ~f:(fun decl ->
       match decl with
       | Parser { name = parser_name; params; states; _ }
         when String.(parser_name.string = name) ->
         Some
-          (Parser.petr4_parser_to_command header_table constants states params)
+          (Parser.petr4_parser_to_command header_table constants header_stacks
+             states params)
       | Control { name = control_name; locals; apply; params; _ }
         when String.(control_name.string = name) ->
         Some

@@ -839,7 +839,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             [ (x, Env.VarBind ascb_hty_in) ]
             header_table
         in
-        if output_is_subtype then return ascb_hty_out
+        if output_is_subtype then
+          let _ = if !Cache.enabled then Cache.clear else () in
+          return ascb_hty_out
         else
           Error
             (`TypeError
@@ -1145,6 +1147,10 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       | Ascription _, _ | _, Ascription _ -> return hty_subst
       | _ ->
         let hty_subst = Substitution.simplify hty_subst C.maxlen in
+        Log.debug (fun m ->
+            m "Inlined substitution type:@ %a"
+              (Pretty.pp_header_type ctx')
+              hty_subst);
         return hty_subst)
     | Skip ->
       Log.debug (fun m -> m "@[<v>Typechecking skip...@]");

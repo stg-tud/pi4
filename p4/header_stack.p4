@@ -34,7 +34,7 @@ parser MyParser(packet_in packet,
         packet.extract(hdr.int_val.next);
         transition select(hdr.int_val.last.bos) {
             1w0: parse_int_val;
-            1w1: accept;
+            default: accept;
         }
     }
 }

@@ -35,7 +35,7 @@ struct headers {
     ipv4_t          ipv4;
     vlan_tag_t[2]   vlan_tag_;
 }
-@pi4("(MyParser) as (x:{y:standard_metadata|y.pkt_in.length > 304}) -> ethernet~")
+@pi4("(MyParser) as (x:{y:standard_metadata|y.pkt_in.length > 336}) -> ethernet~")
 parser MyParser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,
