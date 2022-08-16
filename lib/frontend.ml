@@ -1242,8 +1242,6 @@ module Parser = struct
       collect_parser_states headers_param_name constants header_table
         header_stacks parser_states
     in
-    (* Log.debug (fun m -> m "CFG Nodes: %s" (Sexplib.Sexp.to_string_hum
-       ([%sexp_of: ParserCfg.CfgNode.t String.Map.t] cfg_nodes))); *)
     let%map cfg =
       List.fold parser_states ~init:(Ok cfg_nodes) ~f:(fun acc_result state ->
           let%bind acc = acc_result in
@@ -1406,6 +1404,7 @@ module Parser = struct
           in
           Map.set acc ~key ~data:{ name; command = cmd; successors = succs })
     in
+
     let%bind start =
       String.Map.find stage1 "start"
       |> Result.of_option
@@ -1417,7 +1416,6 @@ module Parser = struct
       Hashtbl.create ~growth_allowed:true ~size:(Map.length stage2)
         (module String)
     in
-    let _command = ref Syntax.Command.Skip in
     Stack.until_empty stack (fun node ->
         (* Check if node is in ft *)
         if Hashtbl.find ft node.name |> Option.is_none then
@@ -1431,7 +1429,7 @@ module Parser = struct
                   | Some _ -> acc
                   | None -> succ.name :: acc)
             in
-            if List.is_empty non_translated then (
+            if List.is_empty non_translated then
               (* All successors are fully translated *)
               (* Create command for current node and put into ft *)
               let default, non_default =
@@ -1454,7 +1452,7 @@ module Parser = struct
                 else
                   (* Here we look up the command from ft *)
                   match Hashtbl.find ft default_successor.name with
-                  | Some cmd -> cmd
+                  | Some cmd -> Syntax.Command.Seq (node.command, cmd)
                   | None ->
                     failwith
                       (Fmt.str "Successor %s should be fully transformed"
@@ -1502,7 +1500,7 @@ module Parser = struct
                         Syntax.Command.Seq
                           (node.command, Syntax.Command.If (form, then_cmd, acc)))
               in
-              Hashtbl.set ft ~key:node.name ~data:successors_cmd)
+              Hashtbl.set ft ~key:node.name ~data:successors_cmd
             else (
               (* Push current node on stack and push every successor that is not
                  fully translated on stack *)
@@ -1522,8 +1520,6 @@ module Parser = struct
       build_parser_cfg header_table constants header_stacks parser_states
         parser_params
     in
-    (* Log.debug (fun m -> m "Parser CFG: %s" (Sexplib.Sexp.to_string_hum
-       ([%sexp_of: ParserCfg.CfgNode.t String.Map.t] parser_cfg))); *)
     parser_cfg_to_command parser_cfg
 end
 

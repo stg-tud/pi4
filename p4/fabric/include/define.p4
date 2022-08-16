@@ -31,6 +31,8 @@
 #define WITH_XCONNECT
 #endif
 
+#define WITH_IPV6
+
 #if ! defined(WITH_SIMPLE_NEXT)
 #define WITH_HASHED_NEXT
 #endif

@@ -247,7 +247,13 @@ struct metadata {
     spgw_meta_t   spgw;
 #endif // WITH_SPGW
 #ifdef WITH_BNG
-    bng_meta_t    bng;
+    // bng_meta_t    bng;
+    bit<2>    bng_type; // upstream or downstream
+    bit<32>   bng_line_id; // subscriber line
+    bit<16>   bng_pppoe_session_id;
+    bit<32>   bng_ds_meter_result; // for downstream metering
+    vlan_id_t bng_s_tag;
+    vlan_id_t bng_c_tag;
 #endif // WITH_BNG
 #ifdef WITH_INT
     int_metadata_t int_meta;
@@ -273,9 +279,9 @@ struct headers {
     gtpu_options_t outer_gtpu_options;
     gtpu_ext_psc_t outer_gtpu_ext_psc;
 #endif // WITH_SPGW
-    gtpu_t gtpu;
-    gtpu_options_t gtpu_options;
-    gtpu_ext_psc_t gtpu_ext_psc;
+    // gtpu_t gtpu;
+    // gtpu_options_t gtpu_options;
+    // gtpu_ext_psc_t gtpu_ext_psc;
     ipv4_t inner_ipv4;
     udp_t inner_udp;
     tcp_t inner_tcp;

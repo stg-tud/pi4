@@ -19,7 +19,7 @@
 
 #include "define.p4"
 
-@pi4("FabricParser as (x:⊤) -> ⊤")
+@pi4("FabricParser as (x:{y:⊤ | y.meta.valid ∧ y.standard_metadata.valid ∧ y.pkt_in.length == 1500}) -> ⊤")
 parser FabricParser (packet_in packet,
                      out headers hdr,
                      inout metadata meta,
@@ -68,7 +68,7 @@ parser FabricParser (packet_in packet,
     state parse_vlan_tag {
         packet.extract(hdr.vlan_tag);
 #ifdef WITH_BNG
-        meta.bng.s_tag = hdr.vlan_tag.vlan_id;
+        meta.bng_s_tag = hdr.vlan_tag.vlan_id;
 #endif // WITH_BNG
         transition select(packet.lookahead<bit<16>>()){
 #if defined(WITH_XCONNECT) || defined(WITH_DOUBLE_VLAN_TERMINATION)
@@ -82,7 +82,7 @@ parser FabricParser (packet_in packet,
     state parse_inner_vlan_tag {
         packet.extract(hdr.inner_vlan_tag);
 #ifdef WITH_BNG
-        meta.bng.c_tag = hdr.inner_vlan_tag.vlan_id;
+        meta.bng_c_tag = hdr.inner_vlan_tag.vlan_id;
 #endif // WITH_BNG
         transition parse_eth_type;
     }
