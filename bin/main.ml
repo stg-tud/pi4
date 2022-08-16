@@ -96,10 +96,11 @@ let p4_check filename includes _maxlen verbose =
     match p4prog with
     | Petr4.Types.Program decls -> (
       let result =
-        let%bind header_table = Frontend.build_header_table p4prog in
+        let%bind type_decls = Frontend.get_type_declarations decls in
+        let%bind header_table = Frontend.build_header_table type_decls p4prog in
         Log.debug (fun m ->
             m "Header table: %a\n" Pretty.pp_header_table header_table);
-        let%map constants = Frontend.collect_constants p4prog in
+        let%map constants = Frontend.collect_constants type_decls p4prog in
         let annotations = Frontend.collect_annotations header_table p4prog in
         List.iter annotations ~f:(fun annot ->
             match annot with
@@ -142,13 +143,16 @@ let p4_check filename includes _maxlen verbose =
       match result with
       | Ok _ -> ()
       | Error (`FrontendError e) -> print_endline e
-      (* | Error (`ConversionError e) -> Fmt.pr "@[A conversion error occurred:
-         %s@]" e *)
+      | Error (`ConversionError e) ->
+        Fmt.pr "@[A conversion error occurred:\n         %s@]" e
       | Error (`NotImplementedError e) ->
         Fmt.pr "@[A not implemented error occurred: %s@]" e
-      (* | Error (`HeaderTypeNotDeclaredError e) -> Fmt.pr "@[An error occurred:
-         %s@]" e *)
-      | _ -> print_endline "An error occurred"))
+      | Error (`HeaderTypeNotDeclaredError e) ->
+        Fmt.pr "@[A header type not declared error occurred:\n         %s@]" e
+      | Error (`TypeDeclarationNotFoundError e) ->
+        Fmt.pr "@[An error occurred:\n      %s@]" e
+      | Error (`LookupError e) ->
+        Fmt.pr "@[A lookup error occurred:\n      %s@]" e))
   | `Error (_, _) -> print_endline "Petr4 could not parse the input file."
 
 let command =
