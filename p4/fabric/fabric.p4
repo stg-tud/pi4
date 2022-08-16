@@ -18,7 +18,7 @@
 #include <v1model.p4>
 
 #include "include/size.p4"
-// #include "include/control/filtering.p4"
+#include "include/control/filtering.p4"
 // #include "include/control/forwarding.p4"
 // #include "include/control/pre_next.p4"
 // #include "include/control/acl.p4"
@@ -45,14 +45,14 @@
 // #ifdef WITH_INT
 // #include "include/int/int_main.p4"
 // #endif // WITH_INT
-
+@pi4("FabricIngress as (x:{y:⊤ | y.meta.valid ∧ y.standard_metadata.valid}) -> ⊤")
 control FabricIngress (inout headers hdr,
                        inout metadata meta,
                        inout standard_metadata_t standard_metadata) {
 
 //     LookupMdInit() lkp_md_init;
 //     PacketIoIngress() pkt_io_ingress;
-//     Filtering() filtering;
+    Filtering() filtering;
 //     Forwarding() forwarding;
 //     PreNext() pre_next;
 //     Acl() acl;
@@ -71,7 +71,7 @@ control FabricIngress (inout headers hdr,
 //         lkp_md_init.apply(hdr, fabric_metadata.lkp);
 //         pkt_io_ingress.apply(hdr, fabric_metadata, standard_metadata);
 //         slice_tc_classifier.apply(hdr, fabric_metadata, standard_metadata);
-//         filtering.apply(hdr, fabric_metadata, standard_metadata);
+        filtering.apply(hdr, meta, standard_metadata);
 // #ifdef WITH_SPGW
 //         if (fabric_metadata.skip_forwarding == _FALSE) {
 //             spgw.apply(hdr, fabric_metadata, standard_metadata);

@@ -19,7 +19,8 @@
 
 #include "define.p4"
 
-@pi4("FabricParser as (x:{y:⊤ | y.meta.valid ∧ y.standard_metadata.valid ∧ y.pkt_in.length == 1500}) -> ⊤")
+// @pi4("(FabricParser;FabricDeparser) as (x:{y:⊤ | y.meta.valid ∧ y.standard_metadata.valid ∧ y.pkt_in.length == 1500}) -> ⊤")
+// @pi4("FabricDeparser as (x:{y:⊤ | y.meta.valid ∧ y.standard_metadata.valid ∧ y.pkt_in.length == 0}) -> ⊤")
 parser FabricParser (packet_in packet,
                      out headers hdr,
                      inout metadata meta,
@@ -329,11 +330,11 @@ control FabricDeparser(packet_out packet,in headers hdr) {
 #endif // WITH_BNG
         packet.emit(hdr.mpls);
 #ifdef WITH_SPGW
-        packet.emit(hdr.gtpu_ipv4);
-        packet.emit(hdr.gtpu_udp);
-        packet.emit(hdr.outer_gtpu);
-        packet.emit(hdr.outer_gtpu_options);
-        packet.emit(hdr.outer_gtpu_ext_psc);
+        // packet.emit(hdr.gtpu_ipv4);
+        // packet.emit(hdr.gtpu_udp);
+        // packet.emit(hdr.outer_gtpu);
+        // packet.emit(hdr.outer_gtpu_options);
+        // packet.emit(hdr.outer_gtpu_ext_psc);
 #endif // WITH_SPGW
         packet.emit(hdr.ipv4);
 #ifdef WITH_IPV6
@@ -343,9 +344,9 @@ control FabricDeparser(packet_out packet,in headers hdr) {
         packet.emit(hdr.udp);
         packet.emit(hdr.icmp);
         // if we parsed a GTPU packet but did not decap it
-        packet.emit(hdr.gtpu);
-        packet.emit(hdr.gtpu_options);
-        packet.emit(hdr.gtpu_ext_psc);
+        // packet.emit(hdr.gtpu);
+        // packet.emit(hdr.gtpu_options);
+        // packet.emit(hdr.gtpu_ext_psc);
         packet.emit(hdr.inner_ipv4);
         packet.emit(hdr.inner_tcp);
         packet.emit(hdr.inner_udp);

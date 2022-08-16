@@ -217,43 +217,58 @@ let build_header_table (type_decls : Bigint.t String.Map.t)
                 List.find_map properties ~f:(function
                   | Key { keys; _ } ->
                     let key_fields =
-                      Utils.sequence_error
-                        (List.map keys ~f:(fun key ->
-                             match key.key with
-                             | ExpressionMember
-                                 { name = field_name;
-                                   expr =
-                                     ExpressionMember { name = header_name; _ };
-                                   _
-                                 } ->
-                               let%bind inst =
-                                 Syntax.HeaderTable.lookup_instance
-                                   header_name.string header_table
-                               in
-                               let%bind field_size =
-                                 Syntax.Instance.find_field inst
-                                   field_name.string
-                                 |> Option.map ~f:(fun field -> field.typ)
-                                 |> Result.of_option
-                                      ~error:
-                                        (`FrontendError
-                                          (Fmt.str
-                                             "Field %s does not exist on\n\
-                                             \    instance %s" inst.name
-                                             field_name.string))
-                               in
-                               return
-                                 Syntax.Declaration.
-                                   { name =
-                                       Fmt.str "%s_%s_key" inst.name
-                                         field_name.string;
-                                     typ = field_size
-                                   }
-                             | _ ->
-                               Error
-                                 (`NotImplementedError
-                                   "(Frontend.build_header_table - table match\n\
-                                   \    key)")))
+                      List.fold keys ~init:(Ok []) ~f:(fun acc_result key ->
+                          acc_result >>= fun acc ->
+                          match key.key with
+                          | ExpressionMember
+                              { expr =
+                                  Name
+                                    { name = BareName { name = header_name; _ };
+                                      _
+                                    };
+                                name = field_name;
+                                _
+                              }
+                          | ExpressionMember
+                              { name = field_name;
+                                expr =
+                                  ExpressionMember { name = header_name; _ };
+                                _
+                              } ->
+                            let%bind inst =
+                              Syntax.HeaderTable.lookup_instance
+                                header_name.string header_table
+                            in
+                            let%map field_size =
+                              Syntax.Instance.find_field inst field_name.string
+                              |> Option.map ~f:(fun field -> field.typ)
+                              |> Result.of_option
+                                   ~error:
+                                     (`FrontendError
+                                       (Fmt.str
+                                          "Field %s does not exist on\n\
+                                          \    instance %s" inst.name
+                                          field_name.string))
+                            in
+
+                            Syntax.Declaration.
+                              { name =
+                                  Fmt.str "%s_%s_key" inst.name
+                                    field_name.string;
+                                typ = field_size
+                              }
+                            :: acc
+                          | FunctionCall _ -> 
+                            return acc
+                          | _ as k ->
+                            Log.debug (fun m ->
+                                m "Key: %s"
+                                  (Sexplib.Sexp.to_string_hum
+                                     (Petr4.Types.Expression.sexp_of_t k)));
+                            Error
+                              (`NotImplementedError
+                                "(Frontend.build_header_table - table match\n\
+                                \    key)"))
                     in
                     Some key_fields
                   | _ -> None)
@@ -1556,10 +1571,6 @@ let declaration_to_command (header_table : Syntax.HeaderTable.t)
     (constants : constants) (decls : Petr4.Types.Declaration.t list)
     (name : string) =
   let%bind header_stacks = collect_header_stacks decls in
-  Log.debug (fun m ->
-      m "Header stacks: %s"
-        (Sexplib.Sexp.to_string_hum
-           ([%sexp_of: Parser.header_stack String.Map.t] header_stacks)));
   List.find_map decls ~f:(fun decl ->
       match decl with
       | Parser { name = parser_name; params; states; _ }
