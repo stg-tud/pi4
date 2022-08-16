@@ -1419,8 +1419,6 @@ module Parser = struct
     in
     let _command = ref Syntax.Command.Skip in
     Stack.until_empty stack (fun node ->
-        Log.debug (fun m ->
-            m "Node: %s" (Sexplib.Sexp.to_string_hum (sexp_of_node1 node)));
         (* Check if node is in ft *)
         if Hashtbl.find ft node.name |> Option.is_none then
           (* Node is not fully translated *)
@@ -1436,11 +1434,6 @@ module Parser = struct
             if List.is_empty non_translated then (
               (* All successors are fully translated *)
               (* Create command for current node and put into ft *)
-              Log.debug (fun m ->
-                  m "Successors: %s"
-                    (Sexplib.Sexp.to_string_hum
-                       ([%sexp_of: successor list] node.successors)));
-
               let default, non_default =
                 List.partition_tf node.successors ~f:(fun edge ->
                     match edge.typ with
@@ -1506,10 +1499,10 @@ module Parser = struct
                             failwith "Could not lookup command for successor"
                         in
 
-                        Syntax.Command.If (form, then_cmd, acc))
+                        Syntax.Command.Seq
+                          (node.command, Syntax.Command.If (form, then_cmd, acc)))
               in
-              Hashtbl.set ft ~key:node.name
-                ~data:(Syntax.Command.Seq (node.command, successors_cmd)))
+              Hashtbl.set ft ~key:node.name ~data:successors_cmd)
             else (
               (* Push current node on stack and push every successor that is not
                  fully translated on stack *)
@@ -1521,11 +1514,6 @@ module Parser = struct
         else ());
 
     let start_cmd = Hashtbl.find_exn ft "start" in
-
-    (* Log.debug (fun m -> m "JOOO: %a" Pretty.pp_command start_cmd); *)
-
-    (* Log.debug (fun m -> m "Stage1: %s" (Sexplib.Sexp.to_string_hum
-       ([%sexp_of: node1 String.Map.t] stage2))); *)
     return (Simplify.simplify_command start_cmd)
 
   let petr4_parser_to_command header_table constants header_stacks parser_states
