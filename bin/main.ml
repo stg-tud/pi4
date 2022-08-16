@@ -100,14 +100,22 @@ let p4_check filename includes _maxlen verbose =
         let%bind header_table = Frontend.build_header_table type_decls p4prog in
         Log.debug (fun m ->
             m "Header table: %a\n" Pretty.pp_header_table header_table);
-        let%map constants = Frontend.collect_constants type_decls p4prog in
+        let%bind constants = Frontend.collect_constants type_decls p4prog in
+        let%map instantiated_controls =
+          Frontend.instantiated_controls header_table constants decls
+        in
+        Log.debug (fun m ->
+            m "Instantiated controls: %s"
+              (Sexplib.Sexp.to_string_hum
+                 ([%sexp_of: Syntax.Command.t String.Map.t]
+                    instantiated_controls)));
         let annotations = Frontend.collect_annotations header_table p4prog in
         List.iter annotations ~f:(fun annot ->
             match annot with
             | TypeAnnotation (body, typ) -> (
               let result =
                 let%map prog =
-                  Frontend.annotation_to_command header_table constants decls
+                  Frontend.annotation_to_command header_table constants instantiated_controls decls
                     annot
                 in
                 Log.debug (fun m -> m "Program: %a" Pretty.pp_command prog);
@@ -152,7 +160,11 @@ let p4_check filename includes _maxlen verbose =
       | Error (`TypeDeclarationNotFoundError e) ->
         Fmt.pr "@[An error occurred:\n      %s@]" e
       | Error (`LookupError e) ->
-        Fmt.pr "@[A lookup error occurred:\n      %s@]" e))
+        Fmt.pr "@[A lookup error occurred:\n      %s@]" e
+      | Error (`FieldAccessError e) ->
+        Fmt.pr "@[A field access error occurred: %s@]" e
+      | Error (`InvalidArgumentError e) ->
+        Fmt.pr "@[An invalid argument error occurred: %s@]" e))
   | `Error (_, _) -> print_endline "Petr4 could not parse the input file."
 
 let command =

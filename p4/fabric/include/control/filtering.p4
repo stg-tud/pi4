@@ -47,7 +47,8 @@ control Filtering (inout headers hdr,
 
     action permit_with_internal_vlan(vlan_id_t vlan_id, port_type_t port_type) {
         meta.vlan_id = vlan_id;
-        permit(port_type);
+        // permit(port_type);
+        meta.port_type = port_type;
     }
 
     // FIXME: remove the use of ternary match on inner VLAN.

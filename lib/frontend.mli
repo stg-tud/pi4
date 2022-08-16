@@ -17,6 +17,9 @@ type constant =
 
 type constants = constant String.Map.t [@@deriving sexp, compare]
 
+type instantiated_controls = Syntax.Command.t String.Map.t
+[@@deriving sexp, compare]
+
 val build_header_table :
   Bigint.t String.Map.t ->
   Petr4.Types.program ->
@@ -28,6 +31,7 @@ val collect_annotations :
 val annotation_to_command :
   Syntax.HeaderTable.t ->
   constants ->
+  instantiated_controls ->
   Petr4.Types.Declaration.t list ->
   Syntax.Annotation.t ->
   ( Syntax.Command.t,
@@ -47,3 +51,17 @@ val collect_constants :
 
 val get_type_declarations :
   Petr4.Types.Declaration.t list -> (Bigint.t String.Map.t, [> error ]) result
+
+val instantiated_controls :
+  Syntax.HeaderTable.t ->
+  constants ->
+  Petr4.Types.Declaration.t list ->
+  ( Syntax.Command.t String.Map.t,
+    [> `ConversionError of string
+    | `FieldAccessError of string
+    | `FrontendError of string
+    | `InvalidArgumentError of string
+    | `LookupError of string
+    | `NotImplementedError of string
+    ] )
+  result

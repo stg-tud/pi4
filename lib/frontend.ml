@@ -19,6 +19,9 @@ type constant =
 
 type constants = constant String.Map.t [@@deriving sexp, compare]
 
+type instantiated_controls = Syntax.Command.t String.Map.t
+[@@deriving sexp, compare]
+
 let bigint_to_int bint =
   Bigint.to_int bint
   |> Result.of_option ~error:(`ConversionError "Can't convert Bigint to int.")
@@ -258,8 +261,7 @@ let build_header_table (type_decls : Bigint.t String.Map.t)
                                 typ = field_size
                               }
                             :: acc
-                          | FunctionCall _ -> 
-                            return acc
+                          | FunctionCall _ -> return acc
                           | _ as k ->
                             Log.debug (fun m ->
                                 m "Key: %s"
@@ -349,8 +351,12 @@ let is_standard_metadata_access (expr : Petr4.Types.Expression.t) =
 let rec petr4_expr_to_expr (ctx : Syntax.Expression.bv String.Map.t)
     (header_table : Syntax.HeaderTable.t) (constants : constants) (size : int)
     (expr : Petr4.Types.Expression.t) =
+  let open Syntax.Expression in
   match expr with
-  | Int { x = { value; _ }; _ } -> bigint_to_bv value size
+  | True _ -> return (BvExpr (Syntax.bv_s "1"))
+  | Int { x = { value; _ }; _ } ->
+    let%map bv = bigint_to_bv value size in
+    BvExpr bv
   | ExpressionMember
       { expr = Name { name = BareName { name = instance_name; _ }; _ };
         name = member_name;
@@ -365,7 +371,8 @@ let rec petr4_expr_to_expr (ctx : Syntax.Expression.bv String.Map.t)
       let%bind inst =
         HeaderTable.lookup_instance instance_name.string header_table
       in
-      Expression.field_to_slice inst member_name.string 0)
+      let%map slice = Expression.field_to_slice inst member_name.string 0 in
+      BvExpr slice)
   | Cast { typ = BitType { expr = Int { x; _ }; _ }; expr; _ } -> (
     let%bind cast_size = bigint_to_int x.value in
     match expr with
@@ -381,21 +388,42 @@ let rec petr4_expr_to_expr (ctx : Syntax.Expression.bv String.Map.t)
         let%map field = Instance.get_field inst field_name.string in
         if field.typ < cast_size then
           let diff = cast_size - field.typ in
-          Expression.(
-            Concat
-              (bv_s (String.make diff '0'), Expression.instance_slice 0 inst))
-        else Expression.Slice (Sliceable.Instance (0, inst), 0, cast_size))
+          BvExpr
+            (Concat
+               (bv_s (String.make diff '0'), Expression.instance_slice 0 inst))
+        else BvExpr (Slice (Sliceable.Instance (0, inst), 0, cast_size)))
     | _ ->
       Error
         (`NotImplementedError
           "Not implemented (Frontend.petr4_expr_to_expr - Cast)"))
-  | BinaryOp { op = Petr4.Types.Op.Minus _; args = e1, e2; _ } ->
+  | BinaryOp { op = Petr4.Types.Op.Minus _; args = e1, e2; _ } -> (
     let%bind tm1 = petr4_expr_to_expr ctx header_table constants size e1 in
-    let%map tm2 = petr4_expr_to_expr ctx header_table constants size e2 in
-    Syntax.Expression.Minus (tm1, tm2)
+    let%bind tm2 = petr4_expr_to_expr ctx header_table constants size e2 in
+    match (tm1, tm2) with
+    | BvExpr bv1, BvExpr bv2 -> return (BvExpr (Minus (bv1, bv2)))
+    | _ ->
+      Error
+        (`FrontendError
+          "Expected BvExpr (Frontend.petr4_expr_to_expr - BinaryOp Minus"))
+  | BinaryOp
+      { op = Petr4.Types.Op.Plus _;
+        args =
+          Name { name = BareName { name = constant_name; _ }; _ }, Int { x; _ };
+        _
+      } ->
+    let%bind constant =
+      Map.find constants constant_name.string
+      |> Result.of_option
+           ~error:
+             (`FrontendError
+               "Could not lookup constant - Frontend.petr4_expr_to_expr - Plus")
+    in
+    let%bind e1 = bigint_to_int constant.value in
+    let%map e2 = bigint_to_int x.value in
+    ArithExpr (Plus (Num e1, Num e2))
   | Name { name = BareName { name; _ }; _ } -> (
     match String.Map.find ctx name.string with
-    | Some param_expr -> return param_expr
+    | Some param_expr -> return (BvExpr param_expr)
     | None ->
       (* TODO: Can we unify the constants and ctx? *)
       let%bind const =
@@ -404,7 +432,8 @@ let rec petr4_expr_to_expr (ctx : Syntax.Expression.bv String.Map.t)
              ~error:
                (`FrontendError (Fmt.str "Could not look up %s" name.string))
       in
-      bigint_to_bv const.value size)
+      let%map bv = bigint_to_bv const.value size in
+      BvExpr bv)
   | _ as e ->
     Log.debug (fun m ->
         m "Expr: %s"
@@ -479,7 +508,7 @@ let rec petr4_expr_to_formula ctx (headers_param : string)
     in
     let%bind t1 = petr4_expr_to_expr ctx header_table constants 0 e1 in
     let%map t2 = petr4_expr_to_expr ctx header_table constants size e2 in
-    Syntax.Formula.Eq (BvExpr t1, BvExpr t2)
+    Syntax.Formula.Eq (t1, t2)
   | BinaryOp { op = Ge _; args = e1, e2; _ } ->
     let%bind size =
       if is_header_field_access "hdr" e1 || is_standard_metadata_access e1 then
@@ -494,10 +523,7 @@ let rec petr4_expr_to_formula ctx (headers_param : string)
           (Sexplib.Sexp.to_string_hum ([%sexp_of: Petr4.Types.Expression.t] e2)));
     let%bind t1 = petr4_expr_to_expr ctx header_table constants size e1 in
     let%map t2 = petr4_expr_to_expr ctx header_table constants size e2 in
-    Syntax.(
-      Formula.Or
-        ( Formula.Gt (Expression.BvExpr t1, Expression.BvExpr t2),
-          Formula.Eq (Expression.BvExpr t1, Expression.BvExpr t2) ))
+    Syntax.(Formula.Or (Formula.Gt (t1, t2), Formula.Eq (t1, t2)))
   | BinaryOp { op = And _; args = e1, e2; _ } ->
     let%bind f1 =
       petr4_expr_to_formula ctx headers_param header_table constants e1
@@ -572,8 +598,8 @@ type action_data =
 
 let rec petr4_statement_to_command ctx tables actions
     (headers_param_name : string) (header_table : Syntax.HeaderTable.t)
-    (constants : constants) (control_name : string)
-    (stmt : _ Petr4.Types.Statement.pt) =
+    (constants : constants) (instantiated_controls : instantiated_controls)
+    (control_name : string) (stmt : _ Petr4.Types.Statement.pt) =
   match stmt with
   | MethodCall
       { func = ExpressionMember { name; expr; _ };
@@ -611,7 +637,7 @@ let rec petr4_statement_to_command ctx tables actions
            [0])")
   | MethodCall { func; args; _ } -> (
     match func with
-    | ExpressionMember { name; _ } as exprm ->
+    | ExpressionMember { name; expr; _ } as exprm ->
       if String.(name.string = "emit") then
         match args with
         | [ arg ] -> (
@@ -633,6 +659,19 @@ let rec petr4_statement_to_command ctx tables actions
             Error
               (`InvalidArgumentError "Argument to emit is not an expression"))
         | _ -> Error (`InvalidArgumentError "Invalid argument to emit")
+      else if String.(name.string = "apply") then
+        match expr with
+        | Name { name = BareName { name = control_inst; _ }; _ } ->
+          Map.find instantiated_controls control_inst.string
+          |> Result.of_option
+               ~error:
+                 (`FrontendError
+                   "Could not lookup control instance \
+                    (Frontend.petr4_statement_to_command)")
+        | _ ->
+          Error
+            (`NotImplementedError
+              "Not implemented (Frontend.petr4_statement_to_command - apply)")
       else (
         Fmt.pr "%s"
           (Sexplib.Sexp.to_string_hum (Petr4.Types.Expression.sexp_of_t exprm));
@@ -655,6 +694,10 @@ let rec petr4_statement_to_command ctx tables actions
             egress_spec_field_r,
             Expression.BvExpr (bv_s "111111111") ))
     | Name { name = BareName { name; _ }; _ } ->
+      Log.debug (fun m ->
+          m "Actions: %s"
+            (Sexplib.Sexp.to_string_hum
+               ([%sexp_of: Syntax.Command.t String.Map.t] actions)));
       Map.find actions name.string
       |> Result.of_option
            ~error:
@@ -673,7 +716,7 @@ let rec petr4_statement_to_command ctx tables actions
       let open Syntax in
       let%bind l, r = Instance.field_bounds inst field.string in
       let%map bv = petr4_expr_to_expr ctx header_table constants (r - l) rhs in
-      Command.Assign (inst, l, r, BvExpr bv)
+      Command.Assign (inst, l, r, bv)
     | Error e -> Error e)
   | Assignment _ ->
     Error
@@ -690,18 +733,18 @@ let rec petr4_statement_to_command ctx tables actions
     in
     let%bind tru_cmd =
       petr4_statement_to_command ctx tables actions headers_param_name
-        header_table constants control_name tru
+        header_table constants instantiated_controls control_name tru
     in
     let%map fls_cmd =
       Option.map fls ~f:(fun fls_stmt ->
           petr4_statement_to_command ctx tables actions headers_param_name
-            header_table constants control_name fls_stmt)
+            header_table constants instantiated_controls control_name fls_stmt)
       |> Option.value ~default:(Ok Syntax.Command.Skip)
     in
     Syntax.Command.If (expr, tru_cmd, fls_cmd)
   | BlockStatement { block; _ } ->
     control_block_to_command ctx tables actions headers_param_name header_table
-      constants control_name block
+      constants instantiated_controls control_name block
   | Exit _ ->
     Error
       (`NotImplementedError
@@ -726,20 +769,20 @@ let rec petr4_statement_to_command ctx tables actions
 
 and control_block_to_command ctx (tables : Syntax.Command.t String.Map.t)
     (actions : Syntax.Command.t String.Map.t) (headers_param : string)
-    (header_table : Syntax.HeaderTable.t) constants (control_name : string)
-    (block : Petr4.Types.Block.t) =
+    (header_table : Syntax.HeaderTable.t) constants instantiated_controls
+    (control_name : string) (block : Petr4.Types.Block.t) =
   List.fold block.statements ~init:(Ok Syntax.Command.Skip)
     ~f:(fun acc_result stmt ->
       let%bind acc = acc_result in
       let%map cmd =
         petr4_statement_to_command ctx tables actions headers_param header_table
-          constants control_name stmt
+          constants instantiated_controls control_name stmt
       in
       Syntax.Command.Seq (acc, cmd))
 
 and control_to_command (header_table : Syntax.HeaderTable.t)
-    (constants : constants) (control_name : string)
-    (control_locals : Petr4.Types.Declaration.t list)
+    (constants : constants) (instantiated_controls : instantiated_controls)
+    (control_name : string) (control_locals : Petr4.Types.Declaration.t list)
     (control_apply : Petr4.Types.Block.t)
     (control_params : Petr4.Types.Parameter.t list) =
   let%bind headers_param_name = param_name "headers" control_params in
@@ -761,7 +804,7 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
           let%bind cmd =
             control_block_to_command String.Map.empty String.Map.empty
               String.Map.empty headers_param_name header_table constants
-              control_name body
+              instantiated_controls control_name body
           in
           acc_res >>| fun acc -> Map.set acc ~key:name.string ~data:cmd
         | _ -> acc_res)
@@ -860,7 +903,7 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
 
                     control_block_to_command param_lookup String.Map.empty
                       String.Map.empty headers_param_name header_table constants
-                      control_name act_data.body
+                      instantiated_controls control_name act_data.body
                 in
                 acc_res >>| fun acc ->
                 Map.set acc ~key:action_name ~data:(idx, action_cmd))
@@ -917,7 +960,8 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
   in
   let%map cmd =
     control_block_to_command String.Map.empty table_commands non_table_actions
-      headers_param_name header_table constants control_name control_apply
+      headers_param_name header_table constants instantiated_controls
+      control_name control_apply
   in
   Simplify.simplify_command cmd
 
@@ -1105,7 +1149,7 @@ module Parser = struct
       let%map bv =
         petr4_expr_to_expr String.Map.empty header_table constants (r - l) rhs
       in
-      Assignment (inst, l, r, BvExpr bv)
+      Assignment (inst, l, r, bv)
     | stmt ->
       Error
         (`NotImplementedError
@@ -1568,8 +1612,8 @@ let collect_header_stacks (decls : Petr4.Types.Declaration.t list) =
   List.fold decls ~init:(Ok String.Map.empty) ~f:extract_header_stack
 
 let declaration_to_command (header_table : Syntax.HeaderTable.t)
-    (constants : constants) (decls : Petr4.Types.Declaration.t list)
-    (name : string) =
+    (constants : constants) (instantiated_controls : instantiated_controls)
+    (decls : Petr4.Types.Declaration.t list) (name : string) =
   let%bind header_stacks = collect_header_stacks decls in
   List.find_map decls ~f:(fun decl ->
       match decl with
@@ -1581,8 +1625,8 @@ let declaration_to_command (header_table : Syntax.HeaderTable.t)
       | Control { name = control_name; locals; apply; params; _ }
         when String.(control_name.string = name) ->
         Some
-          (control_to_command header_table constants control_name.string locals
-             apply params)
+          (control_to_command header_table constants instantiated_controls
+             control_name.string locals apply params)
       | _ -> None)
   |> Option.value
        ~default:
@@ -1615,30 +1659,40 @@ let collect_annotations (header_table : Syntax.HeaderTable.t)
       | _ -> acc)
 
 let rec annotation_to_command (header_table : Syntax.HeaderTable.t)
-    (constants : constants) (decls : Petr4.Types.Declaration.t list)
-    (annotation : Syntax.Annotation.t) =
+    (constants : constants) (instantiated_controls : instantiated_controls)
+    (decls : Petr4.Types.Declaration.t list) (annotation : Syntax.Annotation.t)
+    =
   match annotation with
   | TypeAnnotation (body, _) ->
-    annotation_body_to_command header_table constants decls body
+    annotation_body_to_command header_table constants instantiated_controls
+      decls body
 
 and annotation_body_to_command (header_table : Syntax.HeaderTable.t)
-    (constants : constants) (decls : Petr4.Types.Declaration.t list)
+    (constants : constants) (instantiated_controls : instantiated_controls)
+    (decls : Petr4.Types.Declaration.t list)
     (annotation_body : Syntax.Annotation.annotation_body) =
   match annotation_body with
   | Reset -> return Syntax.Command.Reset
-  | Block _name -> declaration_to_command header_table constants decls _name
+  | Block _name ->
+    declaration_to_command header_table constants instantiated_controls decls
+      _name
   | TypedBlock (body, typ) -> (
     let%map body_cmd =
-      annotation_body_to_command header_table constants decls body
+      annotation_body_to_command header_table constants instantiated_controls
+        decls body
     in
     match typ with
     | Pi (binder, input, output) ->
       Syntax.Command.Ascription (body_cmd, binder, input, output))
   | Sequence (l, r) ->
     let%bind l_cmd =
-      annotation_body_to_command header_table constants decls l
+      annotation_body_to_command header_table constants instantiated_controls
+        decls l
     in
-    let%map r_cmd = annotation_body_to_command header_table constants decls r in
+    let%map r_cmd =
+      annotation_body_to_command header_table constants instantiated_controls
+        decls r
+    in
     Syntax.Command.Seq (l_cmd, r_cmd)
 
 let collect_constants (type_decls : Bigint.t String.Map.t)
@@ -1679,3 +1733,41 @@ let collect_constants (type_decls : Bigint.t String.Map.t)
               (Sexplib.Sexp.to_string_hum (Petr4.Types.Declaration.sexp_of_t c)));
         acc
       | _ -> acc)
+
+let instantiated_controls header_table constants
+    (decls : Petr4.Types.Declaration.t list) =
+  let instantiated =
+    List.fold decls ~init:[] ~f:(fun acc decl ->
+        match decl with
+        | Control { locals; _ } ->
+          List.fold locals ~init:acc ~f:(fun inner_acc local ->
+              match local with
+              | Petr4.Types.Declaration.Instantiation
+                  { typ =
+                      TypeName { name = BareName { name = control_name; _ }; _ };
+                    name = instance_name;
+                    _
+                  } ->
+                (control_name.string, instance_name.string) :: inner_acc
+              | _ -> inner_acc)
+        | _ -> acc)
+  in
+  List.fold decls ~init:(Ok String.Map.empty) ~f:(fun acc_result decl ->
+      acc_result >>= fun acc ->
+      match decl with
+      | Control { name; locals; apply; params; _ } ->
+        let instance_names =
+          List.fold instantiated ~init:[]
+            ~f:(fun acc (control_name, instance_name) ->
+              if String.(control_name = name.string) then instance_name :: acc
+              else acc)
+        in
+        if not (List.is_empty instance_names) then
+          let%map cmd =
+            control_to_command header_table constants String.Map.empty
+              name.string locals apply params
+          in
+          List.fold instance_names ~init:acc ~f:(fun macc inst_name ->
+              Map.set macc ~key:inst_name ~data:cmd)
+        else return acc
+      | _ -> acc_result)
