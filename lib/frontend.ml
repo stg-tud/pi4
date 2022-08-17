@@ -1442,7 +1442,7 @@ module Parser = struct
 
   let handle_result result =
     match result with Ok r -> r | _ -> failwith "An error occurred"
-
+    
   let parser_cfg_to_command (cfg : ParserCfg.CfgNode.t String.Map.t) =
     let%bind stage1 =
       Map.fold ~init:(Ok String.Map.empty) cfg
@@ -1481,10 +1481,15 @@ module Parser = struct
     Stack.until_empty stack (fun node ->
         (* Check if node is in ft *)
         if Hashtbl.find ft node.name |> Option.is_none then
-          (* Node is not fully translated *)
-          if List.is_empty node.successors then
+          if
+            (* Node is not fully translated *)
+            (* Log.debug (fun m -> m "[%s] Node not fully translated" node.name); *)
+            List.is_empty node.successors
+          then
+            (* Log.debug (fun m -> m "[%s] Successors not empty" node.name); *)
             Hashtbl.set ft ~key:node.name ~data:node.command
           else
+            (* Log.debug (fun m -> m "[%s] Successors not empty" node.name); *)
             let non_translated =
               List.fold node.successors ~init:[] ~f:(fun acc succ ->
                   match Hashtbl.find ft succ.name with
@@ -1505,25 +1510,35 @@ module Parser = struct
                 | Some s -> s
                 | None -> failwith "Default successor is missing"
               in
+              (* Log.debug (fun m -> m "[%s] Default successor %s" node.name
+                 (shum ([%sexp_of: successor] default_successor))); *)
               let default_cmd =
                 if String.(default_successor.name = "accept") then
-                  if List.is_empty non_default then node.command
-                  else Syntax.Command.Skip
+                  Syntax.Command.Skip
                 else if String.(default_successor.name = "reject") then
                   failwith "Don't know how to handle reject"
                 else
                   (* Here we look up the command from ft *)
                   match Hashtbl.find ft default_successor.name with
-                  | Some cmd -> Syntax.Command.Seq (node.command, cmd)
+                  | Some cmd ->
+                    if List.is_empty non_default then cmd
+                    else Syntax.Command.Seq (node.command, cmd)
                   | None ->
                     failwith
                       (Fmt.str "Successor %s should be fully transformed"
                          default_successor.name)
               in
+              (* Log.debug (fun m -> m "[%s] Default command %a" node.name
+                 Pretty.pp_command default_cmd); *)
               (* TODO: handle non_default *)
               let successors_cmd =
-                if List.is_empty non_default then default_cmd
+                if List.is_empty non_default then
+                  (* Log.debug (fun m -> m "[%s] Non-default successors empty"
+                     node.name); *)
+                  default_cmd
                 else
+                  (* Log.debug (fun m -> m "[%s] Non-default successors not
+                     empty" node.name); *)
                   List.fold non_default ~init:default_cmd
                     ~f:(fun acc successor ->
                       match successor.typ with
@@ -1558,11 +1573,13 @@ module Parser = struct
                           | None ->
                             failwith "Could not lookup command for successor"
                         in
-
-                        Syntax.Command.Seq
-                          (node.command, Syntax.Command.If (form, then_cmd, acc)))
+                        Syntax.Command.If (form, then_cmd, acc))
               in
-              Hashtbl.set ft ~key:node.name ~data:successors_cmd
+              let nc = Syntax.Command.Seq (node.command, successors_cmd) in
+
+              (* Log.debug (fun m -> m "[%s] Node command: %a" node.name
+                 Pretty.pp_command nc); *)
+              Hashtbl.set ft ~key:node.name ~data:nc
             else (
               (* Push current node on stack and push every successor that is not
                  fully translated on stack *)
