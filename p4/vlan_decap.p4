@@ -36,7 +36,7 @@ struct headers {
   ipv4_t      ipv4;
 }
 
-@pi4("(MyParser;MyIngress) as (x:{y:standard_metadata|y.pkt_in.length > 304}) -> {z:⊤|¬z.vlan.valid}")
+@pi4("(MyParser;MyIngress;MyDeparser) as (x:{y:standard_metadata|y.pkt_in.length > 304}) -> {z:⊤|¬z.vlan.valid}")
 parser MyParser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,
@@ -103,7 +103,11 @@ control MyEgress(inout headers hdr,
 }
 
 control MyDeparser(packet_out packet, in headers hdr) {
-    apply { }
+    apply { 
+      packet.emit(hdr.ethernet);
+      packet.emit(hdr.vlan);
+      packet.emit(hdr.ipv4);
+    }
 }
 
 V1Switch(MyParser(), MyChecksum(), MyIngress(), MyEgress(), MyChecksum(), MyDeparser()) main;
