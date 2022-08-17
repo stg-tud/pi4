@@ -36,7 +36,7 @@ struct headers {
     vlan_t vlan;
 }
 
-@pi4_roundtrip("{y:ε|y.pkt_in.length > 304}")
+@pi4("(Parser;Ingress;((Deparser;reset;Parser) as (x:{z:ethernet~| z.ethernet.etherType == 0x8100 && z.vlan.valid && (z.ipv4.valid => z.vlan.etherType == 0x0800) && ((!z.ipv4.valid) => z.vlan.etherType != 0x0800) && z.pkt_out.length == 0 && z.pkt_in.length > 0}) -> {y:⊤| x =i= y })) as (x:{y:ε|y.pkt_out.length == 0 && y.pkt_in.length > 304}) -> ⊤")
 parser Parser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,
@@ -67,7 +67,7 @@ parser Parser(packet_in packet,
 control MyChecksum(inout headers hdr, inout metadata meta) {
     apply { }
 }
-@pi4("(x:{y:ε|y.pkt_in.length > 304}) -> ⊤")
+
 control Ingress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
@@ -77,7 +77,6 @@ control Ingress(inout headers hdr,
           if(hdr.ipv4.isValid()) {
             hdr.vlan.etherType = 0x0800;
           }
-          hdr.ethernet.etherType = 0x8100;
         }
     }
 }
