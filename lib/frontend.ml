@@ -169,7 +169,11 @@ let build_header_table (type_decls : Bigint.t String.Map.t)
         | _ -> acc)
   in
   let%bind metadata_fields = lookup_header_type "metadata" in
-  let header_table = Map.set header_table ~key:"meta" ~data:metadata_fields in
+  let header_table =
+    if not (List.is_empty metadata_fields) then
+      Map.set header_table ~key:"meta" ~data:metadata_fields
+    else header_table
+  in
   (* Create header instance for standard_metadata *)
   let%bind standard_meta_fields = lookup_header_type "standard_metadata_t" in
   let header_table =
@@ -509,18 +513,21 @@ let rec petr4_expr_to_formula ctx (headers_param : string)
     let%bind t1 = petr4_expr_to_expr ctx header_table constants 0 e1 in
     let%map t2 = petr4_expr_to_expr ctx header_table constants size e2 in
     Syntax.Formula.Eq (t1, t2)
+  | BinaryOp { op = Gt _; args = e1, e2; _ } ->
+    let%bind size =
+      if is_header_field_access "hdr" e1 || is_standard_metadata_access e1 then
+        sizeof header_table e1
+      else return 0
+    in
+    let%bind t1 = petr4_expr_to_expr ctx header_table constants size e1 in
+    let%map t2 = petr4_expr_to_expr ctx header_table constants size e2 in
+    Syntax.(Formula.Gt (t1, t2))
   | BinaryOp { op = Ge _; args = e1, e2; _ } ->
     let%bind size =
       if is_header_field_access "hdr" e1 || is_standard_metadata_access e1 then
         sizeof header_table e1
       else return 0
     in
-    Log.debug (fun m ->
-        m "E1: %s"
-          (Sexplib.Sexp.to_string_hum ([%sexp_of: Petr4.Types.Expression.t] e1)));
-    Log.debug (fun m ->
-        m "E2: %s"
-          (Sexplib.Sexp.to_string_hum ([%sexp_of: Petr4.Types.Expression.t] e2)));
     let%bind t1 = petr4_expr_to_expr ctx header_table constants size e1 in
     let%map t2 = petr4_expr_to_expr ctx header_table constants size e2 in
     Syntax.(Formula.Or (Formula.Gt (t1, t2), Formula.Eq (t1, t2)))
@@ -694,10 +701,6 @@ let rec petr4_statement_to_command ctx tables actions
             egress_spec_field_r,
             Expression.BvExpr (bv_s "111111111") ))
     | Name { name = BareName { name; _ }; _ } ->
-      Log.debug (fun m ->
-          m "Actions: %s"
-            (Sexplib.Sexp.to_string_hum
-               ([%sexp_of: Syntax.Command.t String.Map.t] actions)));
       Map.find actions name.string
       |> Result.of_option
            ~error:

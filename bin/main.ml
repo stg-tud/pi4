@@ -104,11 +104,6 @@ let p4_check filename includes _maxlen verbose =
         let%map instantiated_controls =
           Frontend.instantiated_controls header_table constants decls
         in
-        Log.debug (fun m ->
-            m "Instantiated controls: %s"
-              (Sexplib.Sexp.to_string_hum
-                 ([%sexp_of: Syntax.Command.t String.Map.t]
-                    instantiated_controls)));
         let annotations = Frontend.collect_annotations header_table p4prog in
         List.iter annotations ~f:(fun annot ->
             match annot with
@@ -197,7 +192,6 @@ let command =
           Logs.set_level @@ Some Logs.Debug;
           (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug; *)
           Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Info;
-          Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;
           Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Info;
           Logs.Src.set_level Pi4.Logging.prover_profile_src @@ Some Logs.Info;
           Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;

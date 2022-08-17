@@ -45,7 +45,7 @@
 // #ifdef WITH_INT
 // #include "include/int/int_main.p4"
 // #endif // WITH_INT
-@pi4("FabricIngress as (x:{y:⊤ | y.meta.valid ∧ y.standard_metadata.valid}) -> ⊤")
+@pi4("(FabricParser;FabricIngress;FabricDeparser) as (x:{y:⊤ | y.meta.valid ∧ y.standard_metadata.valid}) -> ⊤")
 control FabricIngress (inout headers hdr,
                        inout metadata meta,
                        inout standard_metadata_t standard_metadata) {
