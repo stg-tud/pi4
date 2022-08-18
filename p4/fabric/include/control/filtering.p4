@@ -127,7 +127,7 @@ control Filtering (inout headers hdr,
             // meta.mpls_ttl set to the packet's MPLS ttl value (see
             // parser). In any case, if we are forwarding via MPLS, ttl will be
             // decremented in egress.
-            meta.mpls_ttl = DEFAULT_MPLS_TTL + 1;
+            meta.mpls_ttl = 65;
         }
 
         ingress_port_vlan.apply();

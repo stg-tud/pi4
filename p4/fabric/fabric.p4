@@ -19,7 +19,7 @@
 
 #include "include/size.p4"
 #include "include/control/filtering.p4"
-// #include "include/control/forwarding.p4"
+#include "include/control/forwarding.p4"
 // #include "include/control/pre_next.p4"
 // #include "include/control/acl.p4"
 // #include "include/control/next.p4"
@@ -45,7 +45,8 @@
 // #ifdef WITH_INT
 // #include "include/int/int_main.p4"
 // #endif // WITH_INT
-@pi4("(FabricParser;FabricIngress;FabricDeparser) as (x:{y:⊤ | y.meta.valid ∧ y.standard_metadata.valid}) -> ⊤")
+// @pi4("(FabricParser) as (x:{y:ε | y.meta.valid ∧ y.standard_metadata.valid}) -> ⊤")
+@pi4("(FabricParser;FabricIngress;FabricDeparser) as (x:{y:ε | y.meta.valid ∧ y.standard_metadata.valid}) -> ⊤")
 control FabricIngress (inout headers hdr,
                        inout metadata meta,
                        inout standard_metadata_t standard_metadata) {
@@ -53,7 +54,7 @@ control FabricIngress (inout headers hdr,
 //     LookupMdInit() lkp_md_init;
 //     PacketIoIngress() pkt_io_ingress;
     Filtering() filtering;
-//     Forwarding() forwarding;
+    Forwarding() forwarding;
 //     PreNext() pre_next;
 //     Acl() acl;
 //     Next() next;
@@ -67,7 +68,7 @@ control FabricIngress (inout headers hdr,
 // #endif // WITH_SPGW
 
     apply {
-//         _PRE_INGRESS
+        // _PRE_INGRESS
 //         lkp_md_init.apply(hdr, fabric_metadata.lkp);
 //         pkt_io_ingress.apply(hdr, fabric_metadata, standard_metadata);
 //         slice_tc_classifier.apply(hdr, fabric_metadata, standard_metadata);
@@ -77,9 +78,9 @@ control FabricIngress (inout headers hdr,
 //             spgw.apply(hdr, fabric_metadata, standard_metadata);
 //         }
 // #endif // WITH_SPGW
-//         if (fabric_metadata.skip_forwarding == _FALSE) {
-//             forwarding.apply(hdr, fabric_metadata, standard_metadata);
-//         }
+        if (meta.skip_forwarding == _FALSE) {
+            forwarding.apply(hdr, meta, standard_metadata);
+        }
 //         if (fabric_metadata.skip_next == _FALSE) {
 //             pre_next.apply(hdr, fabric_metadata);
 //         }

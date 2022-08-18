@@ -35,3 +35,19 @@ let bin_of_int (d : int) =
 let min_bit_width n =
   let open Owl_base in
   int_of_float (Maths.log2 (float_of_int n) +. 1.)
+
+let count_commands command =
+  let open Syntax.Command in
+  let rec count_aux command acc =
+    match command with
+    | Extract _
+    | Assign (_, _, _, _)
+    | Remit _ | Remove _ | Reset | Skip | Add _ ->
+      acc + 1
+    | If (_, c1, c2)
+    | Seq (c1, c2) ->
+      let n1 = count_aux c1 acc in
+      (count_aux c2 n1) + 1
+    | Ascription (c, _, _, _) -> (count_aux c acc) + 1
+  in
+  count_aux command 0

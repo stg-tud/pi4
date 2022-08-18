@@ -67,7 +67,7 @@ parser Parser(packet_in packet,
 control MyChecksum(inout headers hdr, inout metadata meta) {
     apply { }
 }
-// @pi4("(x:{y:ε|y.pkt_in.length > 304}) -> ⊤")
+
 control Ingress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
@@ -96,4 +96,11 @@ control Deparser(packet_out packet, in headers hdr) {
     }
 }
 
-V1Switch(MyParser(), MyChecksum(), MyIngress(), MyEgress(), MyChecksum(), MyDeparser()) main;
+V1Switch(
+    MyParser(), 
+    MyChecksum(), 
+    MyIngress(), 
+    MyEgress(), 
+    MyChecksum(), 
+    MyDeparser()
+) main;

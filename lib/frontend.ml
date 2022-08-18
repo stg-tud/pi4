@@ -346,6 +346,12 @@ let is_header_field_access (name : string) (expr : Petr4.Types.Expression.t) =
     String.(member_name.string = name)
   | _ -> false
 
+let is_meta_access (meta_name : string) (expr : Petr4.Types.Expression.t) =
+  match expr with
+  | ExpressionMember { expr = Name { name = BareName { name; _ }; _ }; _ } ->
+    String.(name.string = meta_name)
+  | _ -> false
+
 let is_standard_metadata_access (expr : Petr4.Types.Expression.t) =
   match expr with
   | ExpressionMember { expr = Name { name = BareName { name; _ }; _ }; _ } ->
@@ -358,6 +364,7 @@ let rec petr4_expr_to_expr (ctx : Syntax.Expression.bv String.Map.t)
   let open Syntax.Expression in
   match expr with
   | True _ -> return (BvExpr (Syntax.bv_s "1"))
+  | False _ -> return (BvExpr (Syntax.bv_s "0"))
   | Int { x = { value; _ }; _ } ->
     let%map bv = bigint_to_bv value size in
     BvExpr bv
@@ -507,7 +514,11 @@ let rec petr4_expr_to_formula ctx (headers_param : string)
         "Not implemented (Frontend.expr_to_formula - UnaryOp)")
   | BinaryOp { op = Eq _; args = e1, e2; _ } ->
     let%bind size =
-      if is_header_field_access "hdr" e1 then sizeof header_table e1
+      if
+        is_header_field_access "hdr" e1
+        || is_standard_metadata_access e1
+        || is_meta_access "meta" e1
+      then sizeof header_table e1
       else return 0
     in
     let%bind t1 = petr4_expr_to_expr ctx header_table constants 0 e1 in
@@ -515,8 +526,11 @@ let rec petr4_expr_to_formula ctx (headers_param : string)
     Syntax.Formula.Eq (t1, t2)
   | BinaryOp { op = Gt _; args = e1, e2; _ } ->
     let%bind size =
-      if is_header_field_access "hdr" e1 || is_standard_metadata_access e1 then
-        sizeof header_table e1
+      if
+        is_header_field_access "hdr" e1
+        || is_standard_metadata_access e1
+        || is_meta_access "meta" e1
+      then sizeof header_table e1
       else return 0
     in
     let%bind t1 = petr4_expr_to_expr ctx header_table constants size e1 in
@@ -524,8 +538,11 @@ let rec petr4_expr_to_formula ctx (headers_param : string)
     Syntax.(Formula.Gt (t1, t2))
   | BinaryOp { op = Ge _; args = e1, e2; _ } ->
     let%bind size =
-      if is_header_field_access "hdr" e1 || is_standard_metadata_access e1 then
-        sizeof header_table e1
+      if
+        is_header_field_access "hdr" e1
+        || is_standard_metadata_access e1
+        || is_meta_access "meta" e1
+      then sizeof header_table e1
       else return 0
     in
     let%bind t1 = petr4_expr_to_expr ctx header_table constants size e1 in
@@ -887,7 +904,9 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
                     let%bind act_data =
                       String.Map.find act_data action_name
                       |> Result.of_option
-                           ~error:(`FrontendError "Could not lookup action")
+                           ~error:
+                             (`FrontendError
+                               (Fmt.str "Could not lookup action %s" action_name))
                     in
                     let%bind param_lookup =
                       List.fold act_data.params ~init:(Ok String.Map.empty)
@@ -956,7 +975,6 @@ and control_to_command (header_table : Syntax.HeaderTable.t)
                 ( Add table_inst,
                   Syntax.Command.(If (match_key_form, actions_cmd, Skip)) ))
           in
-
           tcmds_result >>| fun tcmds ->
           Map.set tcmds ~key:table_name.string ~data:table_cmd
         | _ -> tcmds_result)
@@ -1442,7 +1460,7 @@ module Parser = struct
 
   let handle_result result =
     match result with Ok r -> r | _ -> failwith "An error occurred"
-    
+
   let parser_cfg_to_command (cfg : ParserCfg.CfgNode.t String.Map.t) =
     let%bind stage1 =
       Map.fold ~init:(Ok String.Map.empty) cfg

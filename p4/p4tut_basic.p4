@@ -3,10 +3,6 @@
 
 const bit<16> TYPE_IPV4 = 0x800;
 
-/*************************************************************************
-*********************** H E A D E R S  ***********************************
-*************************************************************************/
-
 typedef bit<9>  egressSpec_t;
 typedef bit<48> macAddr_t;
 typedef bit<32> ip4Addr_t;
@@ -32,18 +28,13 @@ header ipv4_t {
     ip4Addr_t dstAddr;
 }
 
-struct metadata {
-    /* empty */
-}
+struct metadata { }
 
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
 }
 
-/*************************************************************************
-*********************** P A R S E R  ***********************************
-*************************************************************************/
 @pi4("(MyParser;MyIngress;MyDeparser) as (x:{y:standard_metadata|y.pkt_in.length > 272}) -> ethernet~")
 parser MyParser(packet_in packet,
                 out headers hdr,
@@ -69,18 +60,9 @@ parser MyParser(packet_in packet,
 
 }
 
-/*************************************************************************
-************   C H E C K S U M    V E R I F I C A T I O N   *************
-*************************************************************************/
-
 control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
     apply {  }
 }
-
-
-/*************************************************************************
-**************  I N G R E S S   P R O C E S S I N G   *******************
-*************************************************************************/
 
 control MyIngress(inout headers hdr,
                   inout metadata meta,
@@ -118,19 +100,11 @@ control MyIngress(inout headers hdr,
     }
 }
 
-/*************************************************************************
-****************  E G R E S S   P R O C E S S I N G   *******************
-*************************************************************************/
-
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
     apply {  }
 }
-
-/*************************************************************************
-*************   C H E C K S U M    C O M P U T A T I O N   **************
-*************************************************************************/
 
 control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
      apply {
@@ -152,20 +126,12 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
     }
 }
 
-/*************************************************************************
-***********************  D E P A R S E R  *******************************
-*************************************************************************/
-
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
     }
 }
-
-/*************************************************************************
-***********************  S W I T C H  *******************************
-*************************************************************************/
 
 V1Switch(
 MyParser(),

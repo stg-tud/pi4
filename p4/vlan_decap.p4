@@ -110,4 +110,10 @@ control MyDeparser(packet_out packet, in headers hdr) {
     }
 }
 
-V1Switch(MyParser(), MyChecksum(), MyIngress(), MyEgress(), MyChecksum(), MyDeparser()) main;
+V1Switch(
+  MyParser(), 
+  MyChecksum(), 
+  MyIngress(), 
+  MyEgress(), 
+  MyChecksum(), 
+  MyDeparser()) main;

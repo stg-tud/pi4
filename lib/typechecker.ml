@@ -964,9 +964,10 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       if not expr_typechecks then
         Error
           (`TypeError
-            (Printf.sprintf
-               "Assigned expression must have the same shape as the header \
-                field."))
+            (Fmt.str
+               "Assigned expression %a must have the same shape as the header \
+                field %s[%d:%d]."
+               Pretty.pp_expr_raw tm inst.name left right))
       else
         let%bind incl = includes header_table ctx hty_arg inst in
         if not incl then

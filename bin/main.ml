@@ -110,8 +110,8 @@ let p4_check filename includes _maxlen verbose =
             | TypeAnnotation (body, typ) -> (
               let result =
                 let%map prog =
-                  Frontend.annotation_to_command header_table constants instantiated_controls decls
-                    annot
+                  Frontend.annotation_to_command header_table constants
+                    instantiated_controls decls annot
                 in
                 Log.debug (fun m -> m "Program: %a" Pretty.pp_command prog);
                 T.check_type prog typ header_table
@@ -191,11 +191,11 @@ let command =
         if verbose then (
           Logs.set_level @@ Some Logs.Debug;
           (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug; *)
-          Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Info;
+          Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
           Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Info;
           Logs.Src.set_level Pi4.Logging.prover_profile_src @@ Some Logs.Info;
           Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;
-          Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Debug)
+          Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Info)
         else Logs.set_level @@ Some Logs.Info;
         if ir then
           match typ with
