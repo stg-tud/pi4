@@ -128,6 +128,7 @@ let other_instances (header_table : HeaderTable.t) (inst : Instance.t) =
 module type S = sig
   val check_type :
     ?enable_includes_cache:bool ->
+    ?enable_substitution_inlining:bool ->
     Command.t ->
     pi_type ->
     HeaderTable.t ->
@@ -138,6 +139,7 @@ module type Checker = sig
   val init : unit -> unit
 
   val compute_type :
+    ?enable_substitution_inlining:bool ->
     Command.t ->
     string * HeapType.t ->
     Env.context ->
@@ -365,9 +367,9 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
 
   let init () = ()
 
-  let rec compute_type (cmd : Command.t)
-      ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
-      (header_table : HeaderTable.t) =
+  let rec compute_type ?(enable_substitution_inlining : bool = true)
+      (cmd : Command.t) ((hty_var, hty_arg) : string * HeapType.t)
+      (ctx : Env.context) (header_table : HeaderTable.t) =
     let open HeapType in
     match cmd with
     | Add inst ->
@@ -425,7 +427,8 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
       in
       if input_is_subtype then (
         let%bind chty_out =
-          compute_type cmd (x, ascb_hty_in) ctx header_table
+          compute_type ~enable_substitution_inlining cmd (x, ascb_hty_in) ctx
+            header_table
         in
         Log.debug (fun m ->
             m
@@ -554,11 +557,12 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
           Simplify.fold_refinements (Refinement (x, hty_arg, e))
         in
         let%bind tyc1 =
-          compute_type c1 (hty_var, hty_in_then) ctx header_table
+          compute_type ~enable_substitution_inlining c1 (hty_var, hty_in_then)
+            ctx header_table
         in
         Log.debug (fun m -> m "@[<v>Typechecking 'else' branch...@]");
         let%bind tyc2 =
-          compute_type c2
+          compute_type ~enable_substitution_inlining c2
             (hty_var, Refinement (x, hty_arg, Neg e))
             ctx header_table
         in
@@ -716,7 +720,10 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
       Log.debug (fun m ->
           m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
-      let%bind tyc1 = compute_type c1 (hty_var, hty_arg) ctx header_table in
+      let%bind tyc1 =
+        compute_type ~enable_substitution_inlining c1 (hty_var, hty_arg) ctx
+          header_table
+      in
 
       let ctx' =
         if Types.contains_free_vars tyc1 then
@@ -734,7 +741,10 @@ module CompleteChecker (C : Encoding.Config) : Checker = struct
           m "@[<v>Context used for output type of c1:@ %a@]" Pretty.pp_context
             ctx');
       let y = Env.pick_fresh_name ctx' "y" in
-      let%bind tyc2 = compute_type c2 (y, tyc1) ctx' header_table in
+      let%bind tyc2 =
+        compute_type ~enable_substitution_inlining c2 (y, tyc1) ctx'
+          header_table
+      in
       let ctx'' =
         match c2 with
         | Ascription (_, var, ascb_hty_in, _) ->
@@ -775,9 +785,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
     Cache.enabled := true;
     Cache.clear
 
-  let rec compute_type (cmd : Command.t)
-      ((hty_var, hty_arg) : string * HeapType.t) (ctx : Env.context)
-      (header_table : HeaderTable.t) =
+  let rec compute_type ?(enable_substitution_inlining : bool = true)
+      (cmd : Command.t) ((hty_var, hty_arg) : string * HeapType.t)
+      (ctx : Env.context) (header_table : HeaderTable.t) =
     let open HeapType in
     match cmd with
     | Add inst ->
@@ -828,7 +838,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
       in
       if input_is_subtype then (
         let%bind chty_out =
-          compute_type cmd (x, ascb_hty_in) ctx header_table
+          compute_type ~enable_substitution_inlining cmd (x, ascb_hty_in) ctx
+            header_table
         in
         Log.debug (fun m ->
             m
@@ -915,7 +926,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           Simplify.fold_refinements (Refinement (x, hty_arg, e))
         in
         let%bind tyc1 =
-          compute_type c1 (hty_var, hty_in_then) ctx header_table
+          compute_type ~enable_substitution_inlining c1 (hty_var, hty_in_then)
+            ctx header_table
         in
         let ctx_then = Env.add_binding ctx hty_var (Env.VarBind hty_in_then) in
         Log.debug (fun m ->
@@ -929,7 +941,8 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         let cache_then = !Cache.data in
         let _ = if !Cache.enabled then Cache.data := cache_snapshot else () in
         let%bind tyc2 =
-          compute_type c2 (hty_var, hty_in_else) ctx header_table
+          compute_type ~enable_substitution_inlining c2 (hty_var, hty_in_else)
+            ctx header_table
         in
         let ctx_else = Env.add_binding ctx hty_var (Env.VarBind hty_in_else) in
         Log.debug (fun m ->
@@ -1097,14 +1110,17 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
         in
         let _ = if !Cache.enabled then Cache.update inst false else () in
         return (Refinement (y, Top, pred))
-    | Seq (c1, c2) -> (
+    | Seq (c1, c2) ->
       Log.debug (fun m ->
           m "@[<v>Typechecking sequence:@ c1:@[<v>@ %a @]@ c2:@[<v>@ %a@]@]"
             Pretty.pp_command c1 Pretty.pp_command c2);
       Log.debug (fun m ->
           m "@[<v>Input type:@ %a@]" (Pretty.pp_header_type ctx) hty_arg);
       Log.debug (fun m -> m "@[<v>Input context:@ %a@]" Pretty.pp_context ctx);
-      let%bind tyc1 = compute_type c1 (hty_var, hty_arg) ctx header_table in
+      let%bind tyc1 =
+        compute_type ~enable_substitution_inlining c1 (hty_var, hty_arg) ctx
+          header_table
+      in
 
       let ctx' =
         if Types.contains_free_vars tyc1 then
@@ -1122,7 +1138,10 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
           m "@[<v>Context used for output type of c1:@ %a@]" Pretty.pp_context
             ctx');
       let y = Env.pick_fresh_name ctx' "y" in
-      let%bind tyc2 = compute_type c2 (y, tyc1) ctx' header_table in
+      let%bind tyc2 =
+        compute_type ~enable_substitution_inlining c2 (y, tyc1) ctx'
+          header_table
+      in
       let ctx'' =
         match c2 with
         | Ascription (_, var, ascb_hty_in, _) ->
@@ -1144,15 +1163,17 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             hty_subst);
       Log.debug (fun m ->
           m "Context for substitution type:@ %a" Pretty.pp_context ctx');
-      match (c1, c2) with
-      | Ascription _, _ | _, Ascription _ -> return hty_subst
-      | _ ->
-        let hty_subst = Substitution.simplify hty_subst C.maxlen in
-        Log.debug (fun m ->
-            m "Inlined substitution type:@ %a"
-              (Pretty.pp_header_type ctx')
-              hty_subst);
-        return hty_subst)
+      if enable_substitution_inlining then (
+        match (c1, c2) with
+        | Ascription _, _ | _, Ascription _ -> return hty_subst
+        | _ ->
+          let hty_subst = Substitution.simplify hty_subst C.maxlen in
+          Log.debug (fun m ->
+              m "Inlined substitution type:@ %a"
+                (Pretty.pp_header_type ctx')
+                hty_subst);
+          return hty_subst)
+      else return hty_subst
     | Skip ->
       Log.debug (fun m -> m "@[<v>Typechecking skip...@]");
       Log.debug (fun m ->
@@ -1164,14 +1185,18 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
 end
 
 module Make (C : Checker) : S = struct
-  let check_type ?(enable_includes_cache = true) (cmd : Command.t)
-      (ty : pi_type) (header_table : HeaderTable.t) =
+  let check_type ?(enable_includes_cache = true)
+      ?(enable_substitution_inlining = true) (cmd : Command.t) (ty : pi_type)
+      (header_table : HeaderTable.t) =
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
       let _ = if enable_includes_cache then C.init () else () in
       let annot_tyin = Simplify.fold_refinements annot_tyin in
       let result =
-        let%bind tycout = C.compute_type cmd (x, annot_tyin) [] header_table in
+        let%bind tycout =
+          C.compute_type ~enable_substitution_inlining cmd (x, annot_tyin) []
+            header_table
+        in
         let ctx = [ (x, Env.VarBind annot_tyin) ] in
         Log.debug (fun m ->
             m

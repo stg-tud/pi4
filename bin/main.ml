@@ -85,7 +85,7 @@ let pi4_check program_filename type_filename maxlen : unit =
   |> to_result ~success:"passed typechecker"
   |> union |> print_endline
 
-let p4_check filename includes _maxlen verbose =
+let p4_check filename includes _maxlen verbose enable_cache enable_inlining =
   match P4Parse.parse_file includes filename verbose with
   | `Ok p4prog -> (
     Prover.make_prover "z3";
@@ -114,7 +114,9 @@ let p4_check filename includes _maxlen verbose =
                     instantiated_controls decls annot
                 in
                 Log.info (fun m -> m "Program: %a" Pretty.pp_command prog);
-                T.check_type prog typ header_table
+                T.check_type ~enable_includes_cache:enable_cache
+                  ~enable_substitution_inlining:enable_inlining prog typ
+                  header_table
               in
               match result with
               | Ok tc_result ->
@@ -184,7 +186,8 @@ let command =
         flag "-typ" (optional string)
           ~doc:
             "pass types to check IR programs files [unused if -ir is not set]"
-      in
+      and cache = flag "-disable-cache" no_arg ~doc:"disable includes cache"
+      and inline = flag "-disable-inlining" no_arg ~doc:"disable substitution inlining" in
       fun () ->
         Fmt_tty.setup_std_outputs ();
         Logs.set_reporter @@ Logs_fmt.reporter ();
@@ -201,6 +204,6 @@ let command =
           match typ with
           | Some typfile -> pi4_check filename typfile maxlen
           | None -> failwith "Error. expected type file for Π4 IR mode."
-        else p4_check filename includes maxlen verbose)
+        else p4_check filename includes maxlen verbose (not cache) (not inline))
 
 let () = Command_unix.run ~version:"0.1" command

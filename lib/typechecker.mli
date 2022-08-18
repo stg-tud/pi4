@@ -13,6 +13,7 @@ end
 module type S = sig
   val check_type :
     ?enable_includes_cache:bool ->
+    ?enable_substitution_inlining:bool ->
     Command.t ->
     pi_type ->
     HeaderTable.t ->
@@ -23,6 +24,7 @@ module type Checker = sig
   val init : unit -> unit
 
   val compute_type :
+    ?enable_substitution_inlining:bool ->
     Command.t ->
     string * HeapType.t ->
     Env.context ->
