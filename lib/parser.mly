@@ -315,11 +315,18 @@ hty:
 | EMPTY { fun ht ctx -> 
     let x = Env.pick_fresh_name ctx "x" in
     Syntax.HeapType.empty ht x }
-| inst_str=ID { 
-    fun ht ctx -> 
-      let inst = Syntax.HeaderTable.lookup_instance_exn inst_str ht in
-      let x = Env.pick_fresh_name ctx "x" in
-      HeapType.instance inst ht x }
+// | inst_str=ID { 
+//     fun ht ctx -> 
+//       let inst = Syntax.HeaderTable.lookup_instance_exn inst_str ht in
+//       let x = Env.pick_fresh_name ctx "x" in
+//       HeapType.instance inst ht x }
+| insts=separated_nonempty_list(DOT, ID) {
+  let open Core in 
+  fun ht ctx -> 
+    let valids = List.map insts ~f:(fun inst -> Syntax.HeaderTable.lookup_instance_exn inst ht) in
+    let x = Env.pick_fresh_name ctx "x" in
+    HeapType.instances valids ht x
+}
 | inst_str=ID TILDE {
   fun ht ctx -> 
     let inst = Syntax.HeaderTable.lookup_instance_exn inst_str ht in

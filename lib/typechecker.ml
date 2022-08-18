@@ -1169,6 +1169,7 @@ module Make (C : Checker) : S = struct
     match ty with
     | Pi (x, annot_tyin, annot_tyout) -> (
       let _ = if enable_includes_cache then C.init () else () in
+      let annot_tyin = Simplify.fold_refinements annot_tyin in
       let result =
         let%bind tycout = C.compute_type cmd (x, annot_tyin) [] header_table in
         let ctx = [ (x, Env.VarBind annot_tyin) ] in

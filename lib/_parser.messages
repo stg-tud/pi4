@@ -37,7 +37,7 @@ annotation: LPAREN LPAREN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN VBAR
+annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN VBAR
 ##
 ## Ends in an error in state: 5.
 ##
@@ -50,7 +50,7 @@ annotation: LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: ID AS LPAREN ID COLON ID RPAREN ARROW ID SEMI VBAR
+annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI VBAR
 ##
 ## Ends in an error in state: 6.
 ##
@@ -63,7 +63,7 @@ annotation: ID AS LPAREN ID COLON ID RPAREN ARROW ID SEMI VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: ID AS LPAREN ID COLON ID RPAREN ARROW ID SEMI ID AS LPAREN ID COLON ID RPAREN ARROW ID EOF
+annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
 ##
 ## Ends in an error in state: 7.
 ##
@@ -78,15 +78,13 @@ annotation: ID AS LPAREN ID COLON ID RPAREN ARROW ID SEMI ID AS LPAREN ID COLON 
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 27, spurious reduction of production separated_nonempty_list(DOT,ID) -> ID
-## In state 33, spurious reduction of production hty -> separated_nonempty_list(DOT,ID)
-## In state 140, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
-## In state 141, spurious reduction of production typed_annotation_body -> annotation_body AS pi
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 135, spurious reduction of production typed_annotation_body -> annotation_body AS pi
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: ID AS LPAREN ID COLON ID RPAREN ARROW ID SEMI ID VBAR
+annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI ID VBAR
 ##
 ## Ends in an error in state: 8.
 ##
@@ -114,7 +112,7 @@ annotation: ID SEMI VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: ID SEMI ID AS LPAREN ID COLON ID RPAREN ARROW ID EOF
+annotation: ID SEMI ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
 ##
 ## Ends in an error in state: 10.
 ##
@@ -129,10 +127,8 @@ annotation: ID SEMI ID AS LPAREN ID COLON ID RPAREN ARROW ID EOF
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 27, spurious reduction of production separated_nonempty_list(DOT,ID) -> ID
-## In state 33, spurious reduction of production hty -> separated_nonempty_list(DOT,ID)
-## In state 140, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
-## In state 141, spurious reduction of production typed_annotation_body -> annotation_body AS pi
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 135, spurious reduction of production typed_annotation_body -> annotation_body AS pi
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -300,9 +296,8 @@ heap_type: ID VALID
 ##
 ## Ends in an error in state: 27.
 ##
+## hty -> ID . [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ## hty -> ID . TILDE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
-## separated_nonempty_list(DOT,ID) -> ID . [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
-## separated_nonempty_list(DOT,ID) -> ID . DOT separated_nonempty_list(DOT,ID) [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID
@@ -310,34 +305,9 @@ heap_type: ID VALID
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: ID DOT VBAR
-##
-## Ends in an error in state: 29.
-##
-## separated_nonempty_list(DOT,ID) -> ID DOT . separated_nonempty_list(DOT,ID) [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
-##
-## The known suffix of the stack is as follows:
-## ID DOT
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: ID DOT ID VALID
+heap_type: LBRACE ID COLON EMPTY VALID
 ##
 ## Ends in an error in state: 30.
-##
-## separated_nonempty_list(DOT,ID) -> ID . [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
-## separated_nonempty_list(DOT,ID) -> ID . DOT separated_nonempty_list(DOT,ID) [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
-##
-## The known suffix of the stack is as follows:
-## ID
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON EMPTY DOT
-##
-## Ends in an error in state: 34.
 ##
 ## hty -> hty . PLUS hty [ VBAR PLUS LSQUARE ]
 ## hty -> LBRACE ID COLON hty . VBAR expr RBRACE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
@@ -349,9 +319,9 @@ heap_type: LBRACE ID COLON EMPTY DOT
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR VBAR
 ##
-## Ends in an error in state: 35.
+## Ends in an error in state: 31.
 ##
 ## hty -> LBRACE ID COLON hty VBAR . expr RBRACE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ##
@@ -361,9 +331,9 @@ heap_type: LBRACE ID COLON ID VBAR VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR NEG VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR NEG VBAR
 ##
-## Ends in an error in state: 37.
+## Ends in an error in state: 33.
 ##
 ## expr -> NEG . expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -373,11 +343,11 @@ heap_type: LBRACE ID COLON ID VBAR NEG VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR LT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR LT VBAR
 ##
-## Ends in an error in state: 38.
+## Ends in an error in state: 34.
 ##
-## bv_expr -> LT . GT [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
+## bv_expr -> LT . GT [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## LT
@@ -385,12 +355,12 @@ heap_type: LBRACE ID COLON ID VBAR LT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR LPAREN VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR LPAREN VBAR
 ##
-## Ends in an error in state: 40.
+## Ends in an error in state: 36.
 ##
 ## arith_expr -> LPAREN . arith_expr RPAREN [ RPAREN PLUS GT EQ BANG ]
-## bv_expr -> LPAREN . bv_expr RPAREN [ RPAREN MINUS GT EQ BANG AT ]
+## bv_expr -> LPAREN . bv_expr RPAREN [ RPAREN GT EQ BANG AT ]
 ## expr -> LPAREN . expr RPAREN [ RPAREN RBRACE OR DARROW AND ]
 ##
 ## The known suffix of the stack is as follows:
@@ -399,16 +369,16 @@ heap_type: LBRACE ID COLON ID VBAR LPAREN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID VBAR
 ##
-## Ends in an error in state: 42.
+## Ends in an error in state: 38.
 ##
 ## arith_expr -> ID . DOT packet DOT LENGTH [ RPAREN PLUS GT EQ BANG ]
-## bv_expr -> ID . DOT packet LSQUARE INT COLON INT RSQUARE [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID . DOT ID LSQUARE INT COLON INT RSQUARE [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID . DOT ID DOT ID [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID . DOT packet [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID . DOT ID [ RPAREN MINUS GT EQ BANG AT ]
+## bv_expr -> ID . DOT packet LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID . DOT ID LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID . DOT ID DOT ID [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID . DOT packet [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID . DOT ID [ RPAREN GT EQ BANG AT ]
 ## expr -> ID . DOT ID DOT VALID [ RPAREN RBRACE OR DARROW AND ]
 ## expr -> ID . EQ EQ EQ ID [ RPAREN RBRACE OR DARROW AND ]
 ## expr -> ID . INST_EQ ID [ RPAREN RBRACE OR DARROW AND ]
@@ -419,9 +389,9 @@ heap_type: LBRACE ID COLON ID VBAR ID VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID INST_EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID INST_EQ VBAR
 ##
-## Ends in an error in state: 43.
+## Ends in an error in state: 39.
 ##
 ## expr -> ID INST_EQ . ID [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -431,9 +401,9 @@ heap_type: LBRACE ID COLON ID VBAR ID INST_EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID EQ VBAR
 ##
-## Ends in an error in state: 45.
+## Ends in an error in state: 41.
 ##
 ## expr -> ID EQ . EQ EQ ID [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -443,9 +413,9 @@ heap_type: LBRACE ID COLON ID VBAR ID EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID EQ EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID EQ EQ VBAR
 ##
-## Ends in an error in state: 46.
+## Ends in an error in state: 42.
 ##
 ## expr -> ID EQ EQ . EQ ID [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -455,9 +425,9 @@ heap_type: LBRACE ID COLON ID VBAR ID EQ EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID EQ EQ EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID EQ EQ EQ VBAR
 ##
-## Ends in an error in state: 47.
+## Ends in an error in state: 43.
 ##
 ## expr -> ID EQ EQ EQ . ID [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -467,16 +437,16 @@ heap_type: LBRACE ID COLON ID VBAR ID EQ EQ EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT VBAR
 ##
-## Ends in an error in state: 49.
+## Ends in an error in state: 45.
 ##
 ## arith_expr -> ID DOT . packet DOT LENGTH [ RPAREN PLUS GT EQ BANG ]
-## bv_expr -> ID DOT . packet LSQUARE INT COLON INT RSQUARE [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID DOT . ID LSQUARE INT COLON INT RSQUARE [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID DOT . ID DOT ID [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID DOT . packet [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID DOT . ID [ RPAREN MINUS GT EQ BANG AT ]
+## bv_expr -> ID DOT . packet LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT . ID LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT . ID DOT ID [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT . packet [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT . ID [ RPAREN GT EQ BANG AT ]
 ## expr -> ID DOT . ID DOT VALID [ RPAREN RBRACE OR DARROW AND ]
 ##
 ## The known suffix of the stack is as follows:
@@ -485,13 +455,13 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT ID VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID VBAR
 ##
-## Ends in an error in state: 52.
+## Ends in an error in state: 48.
 ##
-## bv_expr -> ID DOT ID . LSQUARE INT COLON INT RSQUARE [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID DOT ID . DOT ID [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID DOT ID . [ RPAREN MINUS GT EQ BANG AT ]
+## bv_expr -> ID DOT ID . LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT ID . DOT ID [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT ID . [ RPAREN GT EQ BANG AT ]
 ## expr -> ID DOT ID . DOT VALID [ RPAREN RBRACE OR DARROW AND ]
 ##
 ## The known suffix of the stack is as follows:
@@ -500,11 +470,11 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT ID VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT ID LSQUARE VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID LSQUARE VBAR
 ##
-## Ends in an error in state: 53.
+## Ends in an error in state: 49.
 ##
-## bv_expr -> ID DOT ID LSQUARE . INT COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT ID LSQUARE . INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT ID LSQUARE
@@ -512,11 +482,11 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT ID LSQUARE VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT ID LSQUARE INT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID LSQUARE INT VBAR
 ##
-## Ends in an error in state: 54.
+## Ends in an error in state: 50.
 ##
-## bv_expr -> ID DOT ID LSQUARE INT . COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT ID LSQUARE INT . COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT ID LSQUARE INT
@@ -524,11 +494,11 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT ID LSQUARE INT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT ID LSQUARE INT COLON VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID LSQUARE INT COLON VBAR
 ##
-## Ends in an error in state: 55.
+## Ends in an error in state: 51.
 ##
-## bv_expr -> ID DOT ID LSQUARE INT COLON . INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT ID LSQUARE INT COLON . INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT ID LSQUARE INT COLON
@@ -536,11 +506,11 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT ID LSQUARE INT COLON VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT ID LSQUARE INT COLON INT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID LSQUARE INT COLON INT VBAR
 ##
-## Ends in an error in state: 56.
+## Ends in an error in state: 52.
 ##
-## bv_expr -> ID DOT ID LSQUARE INT COLON INT . RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT ID LSQUARE INT COLON INT . RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT ID LSQUARE INT COLON INT
@@ -548,11 +518,11 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT ID LSQUARE INT COLON INT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT ID DOT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT ID DOT VBAR
 ##
-## Ends in an error in state: 58.
+## Ends in an error in state: 54.
 ##
-## bv_expr -> ID DOT ID DOT . ID [ RPAREN MINUS GT EQ BANG AT ]
+## bv_expr -> ID DOT ID DOT . ID [ RPAREN GT EQ BANG AT ]
 ## expr -> ID DOT ID DOT . VALID [ RPAREN RBRACE OR DARROW AND ]
 ##
 ## The known suffix of the stack is as follows:
@@ -561,13 +531,13 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT ID DOT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN VBAR
 ##
-## Ends in an error in state: 61.
+## Ends in an error in state: 57.
 ##
 ## arith_expr -> ID DOT packet . DOT LENGTH [ RPAREN PLUS GT EQ BANG ]
-## bv_expr -> ID DOT packet . LSQUARE INT COLON INT RSQUARE [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> ID DOT packet . [ RPAREN MINUS GT EQ BANG AT ]
+## bv_expr -> ID DOT packet . LSQUARE INT COLON INT RSQUARE [ RPAREN GT EQ BANG AT ]
+## bv_expr -> ID DOT packet . [ RPAREN GT EQ BANG AT ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT packet
@@ -575,11 +545,11 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN LSQUARE VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN LSQUARE VBAR
 ##
-## Ends in an error in state: 62.
+## Ends in an error in state: 58.
 ##
-## bv_expr -> ID DOT packet LSQUARE . INT COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT packet LSQUARE . INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT packet LSQUARE
@@ -587,11 +557,11 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN LSQUARE VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN LSQUARE INT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN LSQUARE INT VBAR
 ##
-## Ends in an error in state: 63.
+## Ends in an error in state: 59.
 ##
-## bv_expr -> ID DOT packet LSQUARE INT . COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT packet LSQUARE INT . COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT packet LSQUARE INT
@@ -599,11 +569,11 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN LSQUARE INT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN LSQUARE INT COLON VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN LSQUARE INT COLON VBAR
 ##
-## Ends in an error in state: 64.
+## Ends in an error in state: 60.
 ##
-## bv_expr -> ID DOT packet LSQUARE INT COLON . INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT packet LSQUARE INT COLON . INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT packet LSQUARE INT COLON
@@ -611,11 +581,11 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN LSQUARE INT COLON VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN LSQUARE INT COLON INT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN LSQUARE INT COLON INT VBAR
 ##
-## Ends in an error in state: 65.
+## Ends in an error in state: 61.
 ##
-## bv_expr -> ID DOT packet LSQUARE INT COLON INT . RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT packet LSQUARE INT COLON INT . RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT packet LSQUARE INT COLON INT
@@ -623,9 +593,9 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN LSQUARE INT COLON INT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN DOT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR ID DOT PKTIN DOT VBAR
 ##
-## Ends in an error in state: 67.
+## Ends in an error in state: 63.
 ##
 ## arith_expr -> ID DOT packet DOT . LENGTH [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
 ##
@@ -635,9 +605,9 @@ heap_type: LBRACE ID COLON ID VBAR ID DOT PKTIN DOT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BANG VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BANG VBAR
 ##
-## Ends in an error in state: 72.
+## Ends in an error in state: 68.
 ##
 ## expr -> BANG . expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -647,9 +617,9 @@ heap_type: LBRACE ID COLON ID VBAR BANG VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BANG FALSE VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BANG FALSE VBAR
 ##
-## Ends in an error in state: 73.
+## Ends in an error in state: 69.
 ##
 ## expr -> expr . AND expr [ RPAREN RBRACE OR DARROW AND ]
 ## expr -> expr . OR expr [ RPAREN RBRACE OR DARROW AND ]
@@ -662,9 +632,9 @@ heap_type: LBRACE ID COLON ID VBAR BANG FALSE VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR FALSE OR VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE OR VBAR
 ##
-## Ends in an error in state: 74.
+## Ends in an error in state: 70.
 ##
 ## expr -> expr OR . expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -674,12 +644,11 @@ heap_type: LBRACE ID COLON ID VBAR FALSE OR VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BITSTRING VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING VBAR
 ##
-## Ends in an error in state: 76.
+## Ends in an error in state: 72.
 ##
-## bv_expr -> bv_expr . MINUS bv_expr [ MINUS GT EQ BANG AT ]
-## bv_expr -> bv_expr . AT bv_expr [ MINUS GT EQ BANG AT ]
+## bv_expr -> bv_expr . AT bv_expr [ GT EQ BANG AT ]
 ## expr -> bv_expr . EQ EQ bv_expr [ RPAREN RBRACE OR DARROW AND ]
 ## expr -> bv_expr . BANG EQ bv_expr [ RPAREN RBRACE OR DARROW AND ]
 ## expr -> bv_expr . GT bv_expr [ RPAREN RBRACE OR DARROW AND ]
@@ -690,144 +659,9 @@ heap_type: LBRACE ID COLON ID VBAR BITSTRING VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BITSTRING MINUS VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING GT VBAR
 ##
-## Ends in an error in state: 77.
-##
-## bv_expr -> bv_expr MINUS . bv_expr [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-##
-## The known suffix of the stack is as follows:
-## bv_expr MINUS
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING GT LPAREN VBAR
-##
-## Ends in an error in state: 78.
-##
-## bv_expr -> LPAREN . bv_expr RPAREN [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-##
-## The known suffix of the stack is as follows:
-## LPAREN
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING GT ID VBAR
-##
-## Ends in an error in state: 79.
-##
-## bv_expr -> ID . DOT packet LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID . DOT ID LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID . DOT ID DOT ID [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID . DOT packet [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID . DOT ID [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-##
-## The known suffix of the stack is as follows:
-## ID
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING GT ID DOT VBAR
-##
-## Ends in an error in state: 80.
-##
-## bv_expr -> ID DOT . packet LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID DOT . ID LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID DOT . ID DOT ID [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID DOT . packet [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID DOT . ID [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-##
-## The known suffix of the stack is as follows:
-## ID DOT
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING GT ID DOT ID VBAR
-##
-## Ends in an error in state: 81.
-##
-## bv_expr -> ID DOT ID . LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID DOT ID . DOT ID [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID DOT ID . [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-##
-## The known suffix of the stack is as follows:
-## ID DOT ID
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING GT ID DOT ID DOT VBAR
-##
-## Ends in an error in state: 82.
-##
-## bv_expr -> ID DOT ID DOT . ID [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-##
-## The known suffix of the stack is as follows:
-## ID DOT ID DOT
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING GT ID DOT PKTIN VBAR
-##
-## Ends in an error in state: 83.
-##
-## bv_expr -> ID DOT packet . LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> ID DOT packet . [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-##
-## The known suffix of the stack is as follows:
-## ID DOT packet
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING GT LPAREN BITSTRING VBAR
-##
-## Ends in an error in state: 84.
-##
-## bv_expr -> LPAREN bv_expr . RPAREN [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> bv_expr . MINUS bv_expr [ RPAREN MINUS AT ]
-## bv_expr -> bv_expr . AT bv_expr [ RPAREN MINUS AT ]
-##
-## The known suffix of the stack is as follows:
-## LPAREN bv_expr
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING AT VBAR
-##
-## Ends in an error in state: 86.
-##
-## bv_expr -> bv_expr AT . bv_expr [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-##
-## The known suffix of the stack is as follows:
-## bv_expr AT
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING MINUS BITSTRING VBAR
-##
-## Ends in an error in state: 88.
-##
-## bv_expr -> bv_expr . MINUS bv_expr [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> bv_expr MINUS bv_expr . [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR MINUS GT EQ DARROW BANG AT AND ]
-##
-## The known suffix of the stack is as follows:
-## bv_expr MINUS bv_expr
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-heap_type: LBRACE ID COLON ID VBAR BITSTRING GT VBAR
-##
-## Ends in an error in state: 89.
+## Ends in an error in state: 73.
 ##
 ## expr -> bv_expr GT . bv_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -837,12 +671,119 @@ heap_type: LBRACE ID COLON ID VBAR BITSTRING GT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BITSTRING GT BITSTRING VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT LPAREN VBAR
 ##
-## Ends in an error in state: 90.
+## Ends in an error in state: 74.
 ##
-## bv_expr -> bv_expr . MINUS bv_expr [ RPAREN RBRACE OR MINUS DARROW AT AND ]
-## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR MINUS DARROW AT AND ]
+## bv_expr -> LPAREN . bv_expr RPAREN [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID VBAR
+##
+## Ends in an error in state: 75.
+##
+## bv_expr -> ID . DOT packet LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID . DOT ID LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID . DOT ID DOT ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID . DOT packet [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID . DOT ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID DOT VBAR
+##
+## Ends in an error in state: 76.
+##
+## bv_expr -> ID DOT . packet LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT . ID LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT . ID DOT ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT . packet [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT . ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID DOT ID VBAR
+##
+## Ends in an error in state: 77.
+##
+## bv_expr -> ID DOT ID . LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT ID . DOT ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT ID . [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID DOT ID DOT VBAR
+##
+## Ends in an error in state: 78.
+##
+## bv_expr -> ID DOT ID DOT . ID [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT ID DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT ID DOT PKTIN VBAR
+##
+## Ends in an error in state: 79.
+##
+## bv_expr -> ID DOT packet . LSQUARE INT COLON INT RSQUARE [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> ID DOT packet . [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## ID DOT packet
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT LPAREN BITSTRING VBAR
+##
+## Ends in an error in state: 80.
+##
+## bv_expr -> LPAREN bv_expr . RPAREN [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN AT ]
+##
+## The known suffix of the stack is as follows:
+## LPAREN bv_expr
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING AT VBAR
+##
+## Ends in an error in state: 82.
+##
+## bv_expr -> bv_expr AT . bv_expr [ RPAREN RBRACE OR GT EQ DARROW BANG AT AND ]
+##
+## The known suffix of the stack is as follows:
+## bv_expr AT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING GT BITSTRING VBAR
+##
+## Ends in an error in state: 84.
+##
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR DARROW AT AND ]
 ## expr -> bv_expr GT bv_expr . [ RPAREN RBRACE OR DARROW AND ]
 ##
 ## The known suffix of the stack is as follows:
@@ -851,9 +792,9 @@ heap_type: LBRACE ID COLON ID VBAR BITSTRING GT BITSTRING VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BITSTRING EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING EQ VBAR
 ##
-## Ends in an error in state: 91.
+## Ends in an error in state: 85.
 ##
 ## expr -> bv_expr EQ . EQ bv_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -863,9 +804,9 @@ heap_type: LBRACE ID COLON ID VBAR BITSTRING EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BITSTRING EQ EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING EQ EQ VBAR
 ##
-## Ends in an error in state: 92.
+## Ends in an error in state: 86.
 ##
 ## expr -> bv_expr EQ EQ . bv_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -875,12 +816,11 @@ heap_type: LBRACE ID COLON ID VBAR BITSTRING EQ EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BITSTRING EQ EQ BITSTRING VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING EQ EQ BITSTRING VBAR
 ##
-## Ends in an error in state: 93.
+## Ends in an error in state: 87.
 ##
-## bv_expr -> bv_expr . MINUS bv_expr [ RPAREN RBRACE OR MINUS DARROW AT AND ]
-## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR MINUS DARROW AT AND ]
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR DARROW AT AND ]
 ## expr -> bv_expr EQ EQ bv_expr . [ RPAREN RBRACE OR DARROW AND ]
 ##
 ## The known suffix of the stack is as follows:
@@ -889,9 +829,9 @@ heap_type: LBRACE ID COLON ID VBAR BITSTRING EQ EQ BITSTRING VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BITSTRING BANG VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING BANG VBAR
 ##
-## Ends in an error in state: 94.
+## Ends in an error in state: 88.
 ##
 ## expr -> bv_expr BANG . EQ bv_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -901,9 +841,9 @@ heap_type: LBRACE ID COLON ID VBAR BITSTRING BANG VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BITSTRING BANG EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING BANG EQ VBAR
 ##
-## Ends in an error in state: 95.
+## Ends in an error in state: 89.
 ##
 ## expr -> bv_expr BANG EQ . bv_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -913,12 +853,11 @@ heap_type: LBRACE ID COLON ID VBAR BITSTRING BANG EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR BITSTRING BANG EQ BITSTRING VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR BITSTRING BANG EQ BITSTRING VBAR
 ##
-## Ends in an error in state: 96.
+## Ends in an error in state: 90.
 ##
-## bv_expr -> bv_expr . MINUS bv_expr [ RPAREN RBRACE OR MINUS DARROW AT AND ]
-## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR MINUS DARROW AT AND ]
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN RBRACE OR DARROW AT AND ]
 ## expr -> bv_expr BANG EQ bv_expr . [ RPAREN RBRACE OR DARROW AND ]
 ##
 ## The known suffix of the stack is as follows:
@@ -927,9 +866,9 @@ heap_type: LBRACE ID COLON ID VBAR BITSTRING BANG EQ BITSTRING VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT RPAREN
+heap_type: LBRACE ID COLON EMPTY VBAR INT RPAREN
 ##
-## Ends in an error in state: 97.
+## Ends in an error in state: 91.
 ##
 ## arith_expr -> arith_expr . PLUS arith_expr [ PLUS GT EQ BANG ]
 ## expr -> arith_expr . EQ EQ arith_expr [ RPAREN RBRACE OR DARROW AND ]
@@ -942,9 +881,9 @@ heap_type: LBRACE ID COLON ID VBAR INT RPAREN
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT PLUS VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT PLUS VBAR
 ##
-## Ends in an error in state: 98.
+## Ends in an error in state: 92.
 ##
 ## arith_expr -> arith_expr PLUS . arith_expr [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
 ##
@@ -954,9 +893,9 @@ heap_type: LBRACE ID COLON ID VBAR INT PLUS VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT GT LPAREN VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT LPAREN VBAR
 ##
-## Ends in an error in state: 99.
+## Ends in an error in state: 93.
 ##
 ## arith_expr -> LPAREN . arith_expr RPAREN [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
 ##
@@ -966,9 +905,9 @@ heap_type: LBRACE ID COLON ID VBAR INT GT LPAREN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT GT ID VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT ID VBAR
 ##
-## Ends in an error in state: 100.
+## Ends in an error in state: 94.
 ##
 ## arith_expr -> ID . DOT packet DOT LENGTH [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
 ##
@@ -978,9 +917,9 @@ heap_type: LBRACE ID COLON ID VBAR INT GT ID VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT GT ID DOT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT ID DOT VBAR
 ##
-## Ends in an error in state: 101.
+## Ends in an error in state: 95.
 ##
 ## arith_expr -> ID DOT . packet DOT LENGTH [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
 ##
@@ -990,9 +929,9 @@ heap_type: LBRACE ID COLON ID VBAR INT GT ID DOT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT GT ID DOT PKTIN VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT ID DOT PKTIN VBAR
 ##
-## Ends in an error in state: 102.
+## Ends in an error in state: 96.
 ##
 ## arith_expr -> ID DOT packet . DOT LENGTH [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
 ##
@@ -1002,9 +941,9 @@ heap_type: LBRACE ID COLON ID VBAR INT GT ID DOT PKTIN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT GT LPAREN INT RBRACE
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT LPAREN INT RBRACE
 ##
-## Ends in an error in state: 103.
+## Ends in an error in state: 97.
 ##
 ## arith_expr -> LPAREN arith_expr . RPAREN [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
 ## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN PLUS ]
@@ -1015,9 +954,9 @@ heap_type: LBRACE ID COLON ID VBAR INT GT LPAREN INT RBRACE
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT PLUS INT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT PLUS INT VBAR
 ##
-## Ends in an error in state: 105.
+## Ends in an error in state: 99.
 ##
 ## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
 ## arith_expr -> arith_expr PLUS arith_expr . [ RPAREN RBRACE PLUS OR GT EQ DARROW BANG AND ]
@@ -1028,9 +967,9 @@ heap_type: LBRACE ID COLON ID VBAR INT PLUS INT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT GT VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT VBAR
 ##
-## Ends in an error in state: 106.
+## Ends in an error in state: 100.
 ##
 ## expr -> arith_expr GT . arith_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -1040,9 +979,9 @@ heap_type: LBRACE ID COLON ID VBAR INT GT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT GT INT GT
+heap_type: LBRACE ID COLON EMPTY VBAR INT GT INT GT
 ##
-## Ends in an error in state: 107.
+## Ends in an error in state: 101.
 ##
 ## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN RBRACE PLUS OR DARROW AND ]
 ## expr -> arith_expr GT arith_expr . [ RPAREN RBRACE OR DARROW AND ]
@@ -1053,9 +992,9 @@ heap_type: LBRACE ID COLON ID VBAR INT GT INT GT
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT EQ VBAR
 ##
-## Ends in an error in state: 108.
+## Ends in an error in state: 102.
 ##
 ## expr -> arith_expr EQ . EQ arith_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -1065,9 +1004,9 @@ heap_type: LBRACE ID COLON ID VBAR INT EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT EQ EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT EQ EQ VBAR
 ##
-## Ends in an error in state: 109.
+## Ends in an error in state: 103.
 ##
 ## expr -> arith_expr EQ EQ . arith_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -1077,9 +1016,9 @@ heap_type: LBRACE ID COLON ID VBAR INT EQ EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT EQ EQ INT GT
+heap_type: LBRACE ID COLON EMPTY VBAR INT EQ EQ INT GT
 ##
-## Ends in an error in state: 110.
+## Ends in an error in state: 104.
 ##
 ## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN RBRACE PLUS OR DARROW AND ]
 ## expr -> arith_expr EQ EQ arith_expr . [ RPAREN RBRACE OR DARROW AND ]
@@ -1090,9 +1029,9 @@ heap_type: LBRACE ID COLON ID VBAR INT EQ EQ INT GT
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT BANG VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT BANG VBAR
 ##
-## Ends in an error in state: 111.
+## Ends in an error in state: 105.
 ##
 ## expr -> arith_expr BANG . EQ arith_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -1102,9 +1041,9 @@ heap_type: LBRACE ID COLON ID VBAR INT BANG VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT BANG EQ VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR INT BANG EQ VBAR
 ##
-## Ends in an error in state: 112.
+## Ends in an error in state: 106.
 ##
 ## expr -> arith_expr BANG EQ . arith_expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -1114,9 +1053,9 @@ heap_type: LBRACE ID COLON ID VBAR INT BANG EQ VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR INT BANG EQ INT GT
+heap_type: LBRACE ID COLON EMPTY VBAR INT BANG EQ INT GT
 ##
-## Ends in an error in state: 113.
+## Ends in an error in state: 107.
 ##
 ## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN RBRACE PLUS OR DARROW AND ]
 ## expr -> arith_expr BANG EQ arith_expr . [ RPAREN RBRACE OR DARROW AND ]
@@ -1127,9 +1066,9 @@ heap_type: LBRACE ID COLON ID VBAR INT BANG EQ INT GT
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR FALSE DARROW VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE DARROW VBAR
 ##
-## Ends in an error in state: 114.
+## Ends in an error in state: 108.
 ##
 ## expr -> expr DARROW . expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -1139,9 +1078,9 @@ heap_type: LBRACE ID COLON ID VBAR FALSE DARROW VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR LPAREN FALSE VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR LPAREN FALSE VBAR
 ##
-## Ends in an error in state: 116.
+## Ends in an error in state: 110.
 ##
 ## expr -> LPAREN expr . RPAREN [ RPAREN RBRACE OR DARROW AND ]
 ## expr -> expr . AND expr [ RPAREN OR DARROW AND ]
@@ -1154,9 +1093,9 @@ heap_type: LBRACE ID COLON ID VBAR LPAREN FALSE VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR FALSE AND VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE AND VBAR
 ##
-## Ends in an error in state: 118.
+## Ends in an error in state: 112.
 ##
 ## expr -> expr AND . expr [ RPAREN RBRACE OR DARROW AND ]
 ##
@@ -1166,9 +1105,9 @@ heap_type: LBRACE ID COLON ID VBAR FALSE AND VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR FALSE AND FALSE VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE AND FALSE VBAR
 ##
-## Ends in an error in state: 119.
+## Ends in an error in state: 113.
 ##
 ## expr -> expr . AND expr [ RPAREN RBRACE OR DARROW AND ]
 ## expr -> expr AND expr . [ RPAREN RBRACE OR DARROW AND ]
@@ -1181,13 +1120,12 @@ heap_type: LBRACE ID COLON ID VBAR FALSE AND FALSE VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR LPAREN BITSTRING VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR LPAREN BITSTRING VBAR
 ##
-## Ends in an error in state: 120.
+## Ends in an error in state: 114.
 ##
-## bv_expr -> LPAREN bv_expr . RPAREN [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> bv_expr . MINUS bv_expr [ RPAREN MINUS GT EQ BANG AT ]
-## bv_expr -> bv_expr . AT bv_expr [ RPAREN MINUS GT EQ BANG AT ]
+## bv_expr -> LPAREN bv_expr . RPAREN [ RPAREN GT EQ BANG AT ]
+## bv_expr -> bv_expr . AT bv_expr [ RPAREN GT EQ BANG AT ]
 ## expr -> bv_expr . EQ EQ bv_expr [ RPAREN OR DARROW AND ]
 ## expr -> bv_expr . BANG EQ bv_expr [ RPAREN OR DARROW AND ]
 ## expr -> bv_expr . GT bv_expr [ RPAREN OR DARROW AND ]
@@ -1198,9 +1136,9 @@ heap_type: LBRACE ID COLON ID VBAR LPAREN BITSTRING VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR LPAREN INT RBRACE
+heap_type: LBRACE ID COLON EMPTY VBAR LPAREN INT RBRACE
 ##
-## Ends in an error in state: 121.
+## Ends in an error in state: 115.
 ##
 ## arith_expr -> LPAREN arith_expr . RPAREN [ RPAREN PLUS GT EQ BANG ]
 ## arith_expr -> arith_expr . PLUS arith_expr [ RPAREN PLUS GT EQ BANG ]
@@ -1214,9 +1152,9 @@ heap_type: LBRACE ID COLON ID VBAR LPAREN INT RBRACE
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR NEG FALSE VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR NEG FALSE VBAR
 ##
-## Ends in an error in state: 122.
+## Ends in an error in state: 116.
 ##
 ## expr -> expr . AND expr [ RPAREN RBRACE OR DARROW AND ]
 ## expr -> expr . OR expr [ RPAREN RBRACE OR DARROW AND ]
@@ -1229,9 +1167,9 @@ heap_type: LBRACE ID COLON ID VBAR NEG FALSE VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LBRACE ID COLON ID VBAR FALSE VBAR
+heap_type: LBRACE ID COLON EMPTY VBAR FALSE VBAR
 ##
-## Ends in an error in state: 123.
+## Ends in an error in state: 117.
 ##
 ## expr -> expr . AND expr [ RBRACE OR DARROW AND ]
 ## expr -> expr . OR expr [ RBRACE OR DARROW AND ]
@@ -1244,9 +1182,9 @@ heap_type: LBRACE ID COLON ID VBAR FALSE VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: ID PLUS VBAR
+heap_type: EMPTY PLUS VBAR
 ##
-## Ends in an error in state: 125.
+## Ends in an error in state: 119.
 ##
 ## hty -> hty PLUS . hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ##
@@ -1256,9 +1194,9 @@ heap_type: ID PLUS VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: ID PLUS EMPTY VALID
+heap_type: EMPTY PLUS EMPTY VALID
 ##
-## Ends in an error in state: 126.
+## Ends in an error in state: 120.
 ##
 ## hty -> hty . PLUS hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ## hty -> hty PLUS hty . [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
@@ -1270,9 +1208,9 @@ heap_type: ID PLUS EMPTY VALID
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: ID LSQUARE VBAR
+heap_type: EMPTY LSQUARE VBAR
 ##
-## Ends in an error in state: 127.
+## Ends in an error in state: 121.
 ##
 ## hty -> hty LSQUARE . ID ARROW hty RSQUARE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ##
@@ -1282,9 +1220,9 @@ heap_type: ID LSQUARE VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: ID LSQUARE ID VBAR
+heap_type: EMPTY LSQUARE ID VBAR
 ##
-## Ends in an error in state: 128.
+## Ends in an error in state: 122.
 ##
 ## hty -> hty LSQUARE ID . ARROW hty RSQUARE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ##
@@ -1294,9 +1232,9 @@ heap_type: ID LSQUARE ID VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: ID LSQUARE ID ARROW VBAR
+heap_type: EMPTY LSQUARE ID ARROW VBAR
 ##
-## Ends in an error in state: 129.
+## Ends in an error in state: 123.
 ##
 ## hty -> hty LSQUARE ID ARROW . hty RSQUARE [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ##
@@ -1306,9 +1244,9 @@ heap_type: ID LSQUARE ID ARROW VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: ID LSQUARE ID ARROW EMPTY DOT
+heap_type: EMPTY LSQUARE ID ARROW EMPTY VALID
 ##
-## Ends in an error in state: 130.
+## Ends in an error in state: 124.
 ##
 ## hty -> hty . PLUS hty [ RSQUARE PLUS LSQUARE ]
 ## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ RSQUARE PLUS LSQUARE ]
@@ -1320,9 +1258,9 @@ heap_type: ID LSQUARE ID ARROW EMPTY DOT
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: LPAREN EMPTY DOT
+heap_type: LPAREN EMPTY VALID
 ##
-## Ends in an error in state: 132.
+## Ends in an error in state: 126.
 ##
 ## hty -> LPAREN hty . RPAREN [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ## hty -> hty . PLUS hty [ RPAREN PLUS LSQUARE ]
@@ -1336,7 +1274,7 @@ heap_type: LPAREN EMPTY DOT
 
 heap_type: SIGMA ID COLON EMPTY VALID
 ##
-## Ends in an error in state: 134.
+## Ends in an error in state: 128.
 ##
 ## hty -> SIGMA ID COLON hty . DOT hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ## hty -> hty . PLUS hty [ PLUS LSQUARE DOT ]
@@ -1350,7 +1288,7 @@ heap_type: SIGMA ID COLON EMPTY VALID
 
 heap_type: SIGMA ID COLON EMPTY DOT VBAR
 ##
-## Ends in an error in state: 135.
+## Ends in an error in state: 129.
 ##
 ## hty -> SIGMA ID COLON hty DOT . hty [ VBAR SEMI RSQUARE RPAREN RBRACE PLUS LSQUARE EOF DOT AS ]
 ##
@@ -1360,9 +1298,9 @@ heap_type: SIGMA ID COLON EMPTY DOT VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-pi_type: LPAREN ID COLON EMPTY DOT
+pi_type: LPAREN ID COLON EMPTY VALID
 ##
-## Ends in an error in state: 137.
+## Ends in an error in state: 131.
 ##
 ## hty -> hty . PLUS hty [ RPAREN PLUS LSQUARE ]
 ## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ RPAREN PLUS LSQUARE ]
@@ -1374,9 +1312,9 @@ pi_type: LPAREN ID COLON EMPTY DOT
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-pi_type: LPAREN ID COLON ID RPAREN VBAR
+pi_type: LPAREN ID COLON EMPTY RPAREN VBAR
 ##
-## Ends in an error in state: 138.
+## Ends in an error in state: 132.
 ##
 ## pi -> LPAREN ID COLON hty RPAREN . ARROW hty [ SEMI RPAREN EOF AS ]
 ##
@@ -1386,9 +1324,9 @@ pi_type: LPAREN ID COLON ID RPAREN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-pi_type: LPAREN ID COLON ID RPAREN ARROW VBAR
+pi_type: LPAREN ID COLON EMPTY RPAREN ARROW VBAR
 ##
-## Ends in an error in state: 139.
+## Ends in an error in state: 133.
 ##
 ## pi -> LPAREN ID COLON hty RPAREN ARROW . hty [ SEMI RPAREN EOF AS ]
 ##
@@ -1398,9 +1336,9 @@ pi_type: LPAREN ID COLON ID RPAREN ARROW VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-pi_type: LPAREN ID COLON ID RPAREN ARROW EMPTY DOT
+pi_type: LPAREN ID COLON EMPTY RPAREN ARROW EMPTY VALID
 ##
-## Ends in an error in state: 140.
+## Ends in an error in state: 134.
 ##
 ## hty -> hty . PLUS hty [ SEMI RPAREN PLUS LSQUARE EOF AS ]
 ## hty -> hty . LSQUARE ID ARROW hty RSQUARE [ SEMI RPAREN PLUS LSQUARE EOF AS ]
@@ -1414,7 +1352,7 @@ pi_type: LPAREN ID COLON ID RPAREN ARROW EMPTY DOT
 
 annotation: LPAREN LPAREN ID VBAR
 ##
-## Ends in an error in state: 142.
+## Ends in an error in state: 136.
 ##
 ## annotation_body -> LPAREN annotation_body . RPAREN [ SEMI RPAREN AS ]
 ## annotation_body -> annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
@@ -1430,7 +1368,7 @@ annotation: LPAREN LPAREN ID VBAR
 
 annotation: LPAREN LPAREN ID AS VBAR
 ##
-## Ends in an error in state: 144.
+## Ends in an error in state: 138.
 ##
 ## typed_annotation_body -> LPAREN annotation_body AS . pi RPAREN [ SEMI RPAREN AS ]
 ## typed_annotation_body -> annotation_body AS . pi [ SEMI ]
@@ -1441,9 +1379,9 @@ annotation: LPAREN LPAREN ID AS VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID EOF
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
 ##
-## Ends in an error in state: 145.
+## Ends in an error in state: 139.
 ##
 ## typed_annotation_body -> LPAREN annotation_body AS pi . RPAREN [ SEMI RPAREN AS ]
 ## typed_annotation_body -> annotation_body AS pi . [ SEMI ]
@@ -1455,16 +1393,14 @@ annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID EOF
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 27, spurious reduction of production separated_nonempty_list(DOT,ID) -> ID
-## In state 33, spurious reduction of production hty -> separated_nonempty_list(DOT,ID)
-## In state 140, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN VBAR
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN VBAR
 ##
-## Ends in an error in state: 147.
+## Ends in an error in state: 141.
 ##
 ## annotation -> LPAREN typed_annotation_body . RPAREN AS pi EOF [ # ]
 ## annotation_body -> typed_annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
@@ -1476,9 +1412,9 @@ annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN RPAREN VBAR
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN RPAREN VBAR
 ##
-## Ends in an error in state: 148.
+## Ends in an error in state: 142.
 ##
 ## annotation -> LPAREN typed_annotation_body RPAREN . AS pi EOF [ # ]
 ##
@@ -1488,9 +1424,9 @@ annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN RPAREN
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN RPAREN AS VBAR
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN RPAREN AS VBAR
 ##
-## Ends in an error in state: 149.
+## Ends in an error in state: 143.
 ##
 ## annotation -> LPAREN typed_annotation_body RPAREN AS . pi EOF [ # ]
 ##
@@ -1500,9 +1436,9 @@ annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN RPAREN
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN RPAREN AS LPAREN ID COLON ID RPAREN ARROW ID SEMI
+annotation: LPAREN LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN RPAREN AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI
 ##
-## Ends in an error in state: 150.
+## Ends in an error in state: 144.
 ##
 ## annotation -> LPAREN typed_annotation_body RPAREN AS pi . EOF [ # ]
 ##
@@ -1513,16 +1449,14 @@ annotation: LPAREN LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN RPAREN
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 27, spurious reduction of production separated_nonempty_list(DOT,ID) -> ID
-## In state 33, spurious reduction of production hty -> separated_nonempty_list(DOT,ID)
-## In state 140, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 annotation: LPAREN ID VBAR
 ##
-## Ends in an error in state: 152.
+## Ends in an error in state: 146.
 ##
 ## annotation_body -> LPAREN annotation_body . RPAREN [ SEMI AS ]
 ## annotation_body -> annotation_body . SEMI annotation_body [ SEMI RPAREN AS ]
@@ -1538,7 +1472,7 @@ annotation: LPAREN ID VBAR
 
 annotation: LPAREN ID AS VBAR
 ##
-## Ends in an error in state: 153.
+## Ends in an error in state: 147.
 ##
 ## typed_annotation_body -> LPAREN annotation_body AS . pi RPAREN [ SEMI ]
 ## typed_annotation_body -> annotation_body AS . pi [ SEMI RPAREN ]
@@ -1549,9 +1483,9 @@ annotation: LPAREN ID AS VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID EOF
+annotation: LPAREN ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY EOF
 ##
-## Ends in an error in state: 154.
+## Ends in an error in state: 148.
 ##
 ## typed_annotation_body -> LPAREN annotation_body AS pi . RPAREN [ SEMI ]
 ## typed_annotation_body -> annotation_body AS pi . [ SEMI RPAREN ]
@@ -1563,16 +1497,14 @@ annotation: LPAREN ID AS LPAREN ID COLON ID RPAREN ARROW ID EOF
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 27, spurious reduction of production separated_nonempty_list(DOT,ID) -> ID
-## In state 33, spurious reduction of production hty -> separated_nonempty_list(DOT,ID)
-## In state 140, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 annotation: ID RPAREN
 ##
-## Ends in an error in state: 155.
+## Ends in an error in state: 149.
 ##
 ## annotation -> annotation_body . AS pi EOF [ # ]
 ## annotation_body -> annotation_body . SEMI annotation_body [ SEMI AS ]
@@ -1587,7 +1519,7 @@ annotation: ID RPAREN
 
 annotation: ID AS VBAR
 ##
-## Ends in an error in state: 156.
+## Ends in an error in state: 150.
 ##
 ## annotation -> annotation_body AS . pi EOF [ # ]
 ## typed_annotation_body -> annotation_body AS . pi [ SEMI ]
@@ -1598,9 +1530,9 @@ annotation: ID AS VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-annotation: ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN
+annotation: ID AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY RPAREN
 ##
-## Ends in an error in state: 157.
+## Ends in an error in state: 151.
 ##
 ## annotation -> annotation_body AS pi . EOF [ # ]
 ## typed_annotation_body -> annotation_body AS pi . [ SEMI ]
@@ -1612,16 +1544,14 @@ annotation: ID AS LPAREN ID COLON ID RPAREN ARROW ID RPAREN
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 27, spurious reduction of production separated_nonempty_list(DOT,ID) -> ID
-## In state 33, spurious reduction of production hty -> separated_nonempty_list(DOT,ID)
-## In state 140, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 command: VBAR
 ##
-## Ends in an error in state: 160.
+## Ends in an error in state: 154.
 ##
 ## command' -> . command [ # ]
 ##
@@ -1631,45 +1561,9 @@ command: VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-command: REMOVE VBAR
-##
-## Ends in an error in state: 163.
-##
-## cmd -> REMOVE . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
-##
-## The known suffix of the stack is as follows:
-## REMOVE
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-command: REMOVE LPAREN VBAR
-##
-## Ends in an error in state: 164.
-##
-## cmd -> REMOVE LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
-##
-## The known suffix of the stack is as follows:
-## REMOVE LPAREN
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-command: REMOVE LPAREN ID VBAR
-##
-## Ends in an error in state: 165.
-##
-## cmd -> REMOVE LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
-##
-## The known suffix of the stack is as follows:
-## REMOVE LPAREN ID
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 command: REMIT VBAR
 ##
-## Ends in an error in state: 167.
+## Ends in an error in state: 157.
 ##
 ## cmd -> REMIT . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -1681,7 +1575,7 @@ command: REMIT VBAR
 
 command: REMIT LPAREN VBAR
 ##
-## Ends in an error in state: 168.
+## Ends in an error in state: 158.
 ##
 ## cmd -> REMIT LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -1693,7 +1587,7 @@ command: REMIT LPAREN VBAR
 
 command: REMIT LPAREN ID VBAR
 ##
-## Ends in an error in state: 169.
+## Ends in an error in state: 159.
 ##
 ## cmd -> REMIT LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -1705,7 +1599,7 @@ command: REMIT LPAREN ID VBAR
 
 command: LPAREN VBAR
 ##
-## Ends in an error in state: 171.
+## Ends in an error in state: 161.
 ##
 ## cmd -> LPAREN . cmd RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -1717,7 +1611,7 @@ command: LPAREN VBAR
 
 command: IF VBAR
 ##
-## Ends in an error in state: 172.
+## Ends in an error in state: 162.
 ##
 ## cmd -> IF . cexpr LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> IF . cexpr LBRACE cmd RBRACE ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
@@ -1730,7 +1624,7 @@ command: IF VBAR
 
 command: IF NEG VBAR
 ##
-## Ends in an error in state: 174.
+## Ends in an error in state: 164.
 ##
 ## cexpr -> NEG . cexpr [ RPAREN OR LBRACE AND ]
 ##
@@ -1742,7 +1636,7 @@ command: IF NEG VBAR
 
 command: IF LPAREN VBAR
 ##
-## Ends in an error in state: 175.
+## Ends in an error in state: 165.
 ##
 ## cexpr -> LPAREN . cexpr RPAREN [ RPAREN OR LBRACE AND ]
 ## cterm -> LPAREN . cterm RPAREN [ RPAREN GT EQ BANG ]
@@ -1755,11 +1649,11 @@ command: IF LPAREN VBAR
 
 command: IF ID VBAR
 ##
-## Ends in an error in state: 176.
+## Ends in an error in state: 166.
 ##
 ## cexpr -> ID . DOT VALID [ RPAREN OR LBRACE AND ]
-## cterm_bv -> ID . DOT ID [ RPAREN MINUS GT EQ BANG AT ]
-## cterm_bv -> ID . LSQUARE INT COLON INT RSQUARE [ RPAREN MINUS GT EQ BANG AT ]
+## cterm_bv -> ID . DOT ID [ RPAREN MINUS GT EQ BANG ]
+## cterm_bv -> ID . LSQUARE INT COLON INT RSQUARE [ RPAREN MINUS GT EQ BANG ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID
@@ -1769,9 +1663,9 @@ command: IF ID VBAR
 
 command: IF ID LSQUARE VBAR
 ##
-## Ends in an error in state: 177.
+## Ends in an error in state: 167.
 ##
-## cterm_bv -> ID LSQUARE . INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> ID LSQUARE . INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID LSQUARE
@@ -1781,9 +1675,9 @@ command: IF ID LSQUARE VBAR
 
 command: IF ID LSQUARE INT VBAR
 ##
-## Ends in an error in state: 178.
+## Ends in an error in state: 168.
 ##
-## cterm_bv -> ID LSQUARE INT . COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> ID LSQUARE INT . COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID LSQUARE INT
@@ -1793,9 +1687,9 @@ command: IF ID LSQUARE INT VBAR
 
 command: IF ID LSQUARE INT COLON VBAR
 ##
-## Ends in an error in state: 179.
+## Ends in an error in state: 169.
 ##
-## cterm_bv -> ID LSQUARE INT COLON . INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> ID LSQUARE INT COLON . INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID LSQUARE INT COLON
@@ -1805,9 +1699,9 @@ command: IF ID LSQUARE INT COLON VBAR
 
 command: IF ID LSQUARE INT COLON INT VBAR
 ##
-## Ends in an error in state: 180.
+## Ends in an error in state: 170.
 ##
-## cterm_bv -> ID LSQUARE INT COLON INT . RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> ID LSQUARE INT COLON INT . RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID LSQUARE INT COLON INT
@@ -1817,10 +1711,10 @@ command: IF ID LSQUARE INT COLON INT VBAR
 
 command: IF ID DOT VBAR
 ##
-## Ends in an error in state: 182.
+## Ends in an error in state: 172.
 ##
 ## cexpr -> ID DOT . VALID [ RPAREN OR LBRACE AND ]
-## cterm_bv -> ID DOT . ID [ RPAREN MINUS GT EQ BANG AT ]
+## cterm_bv -> ID DOT . ID [ RPAREN MINUS GT EQ BANG ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT
@@ -1830,7 +1724,7 @@ command: IF ID DOT VBAR
 
 command: IF BANG VBAR
 ##
-## Ends in an error in state: 188.
+## Ends in an error in state: 178.
 ##
 ## cexpr -> BANG . cexpr [ RPAREN OR LBRACE AND ]
 ##
@@ -1842,9 +1736,9 @@ command: IF BANG VBAR
 
 command: IF PKTIN VBAR
 ##
-## Ends in an error in state: 189.
+## Ends in an error in state: 179.
 ##
-## cterm_bv -> packet . LSQUARE INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> packet . LSQUARE INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## packet
@@ -1854,9 +1748,9 @@ command: IF PKTIN VBAR
 
 command: IF PKTIN LSQUARE VBAR
 ##
-## Ends in an error in state: 190.
+## Ends in an error in state: 180.
 ##
-## cterm_bv -> packet LSQUARE . INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> packet LSQUARE . INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## packet LSQUARE
@@ -1866,9 +1760,9 @@ command: IF PKTIN LSQUARE VBAR
 
 command: IF PKTIN LSQUARE INT VBAR
 ##
-## Ends in an error in state: 191.
+## Ends in an error in state: 181.
 ##
-## cterm_bv -> packet LSQUARE INT . COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> packet LSQUARE INT . COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## packet LSQUARE INT
@@ -1878,9 +1772,9 @@ command: IF PKTIN LSQUARE INT VBAR
 
 command: IF PKTIN LSQUARE INT COLON VBAR
 ##
-## Ends in an error in state: 192.
+## Ends in an error in state: 182.
 ##
-## cterm_bv -> packet LSQUARE INT COLON . INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> packet LSQUARE INT COLON . INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## packet LSQUARE INT COLON
@@ -1890,9 +1784,9 @@ command: IF PKTIN LSQUARE INT COLON VBAR
 
 command: IF PKTIN LSQUARE INT COLON INT VBAR
 ##
-## Ends in an error in state: 193.
+## Ends in an error in state: 183.
 ##
-## cterm_bv -> packet LSQUARE INT COLON INT . RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> packet LSQUARE INT COLON INT . RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## packet LSQUARE INT COLON INT
@@ -1902,11 +1796,10 @@ command: IF PKTIN LSQUARE INT COLON INT VBAR
 
 command: IF BITSTRING VBAR
 ##
-## Ends in an error in state: 195.
+## Ends in an error in state: 185.
 ##
 ## cterm -> cterm_bv . [ SEMI RPAREN RBRACE OR LBRACE GT EQ EOF BANG AS AND ]
-## cterm_bv -> cterm_bv . MINUS cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
-## cterm_bv -> cterm_bv . AT cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> cterm_bv . MINUS cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## cterm_bv
@@ -1916,9 +1809,9 @@ command: IF BITSTRING VBAR
 
 command: IF BITSTRING MINUS VBAR
 ##
-## Ends in an error in state: 196.
+## Ends in an error in state: 186.
 ##
-## cterm_bv -> cterm_bv MINUS . cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> cterm_bv MINUS . cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## cterm_bv MINUS
@@ -1928,10 +1821,10 @@ command: IF BITSTRING MINUS VBAR
 
 command: IF BITSTRING GT ID VBAR
 ##
-## Ends in an error in state: 197.
+## Ends in an error in state: 187.
 ##
-## cterm_bv -> ID . DOT ID [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
-## cterm_bv -> ID . LSQUARE INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> ID . DOT ID [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+## cterm_bv -> ID . LSQUARE INT COLON INT RSQUARE [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID
@@ -1941,9 +1834,9 @@ command: IF BITSTRING GT ID VBAR
 
 command: IF BITSTRING GT ID DOT VBAR
 ##
-## Ends in an error in state: 198.
+## Ends in an error in state: 188.
 ##
-## cterm_bv -> ID DOT . ID [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> ID DOT . ID [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## ID DOT
@@ -1953,11 +1846,10 @@ command: IF BITSTRING GT ID DOT VBAR
 
 command: IF BITSTRING MINUS BITSTRING VBAR
 ##
-## Ends in an error in state: 199.
+## Ends in an error in state: 189.
 ##
-## cterm_bv -> cterm_bv . MINUS cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
-## cterm_bv -> cterm_bv MINUS cterm_bv . [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
-## cterm_bv -> cterm_bv . AT cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
+## cterm_bv -> cterm_bv . MINUS cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
+## cterm_bv -> cterm_bv MINUS cterm_bv . [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AS AND ]
 ##
 ## The known suffix of the stack is as follows:
 ## cterm_bv MINUS cterm_bv
@@ -1965,21 +1857,9 @@ command: IF BITSTRING MINUS BITSTRING VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-command: IF BITSTRING AT VBAR
-##
-## Ends in an error in state: 200.
-##
-## cterm_bv -> cterm_bv AT . cterm_bv [ SEMI RPAREN RBRACE OR MINUS LBRACE GT EQ EOF BANG AT AS AND ]
-##
-## The known suffix of the stack is as follows:
-## cterm_bv AT
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 command: IF BITSTRING SEMI
 ##
-## Ends in an error in state: 202.
+## Ends in an error in state: 190.
 ##
 ## cexpr -> cterm . EQ EQ cterm [ RPAREN OR LBRACE AND ]
 ## cexpr -> cterm . BANG EQ cterm [ RPAREN OR LBRACE AND ]
@@ -1992,14 +1872,14 @@ command: IF BITSTRING SEMI
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 195, spurious reduction of production cterm -> cterm_bv
+## In state 185, spurious reduction of production cterm -> cterm_bv
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 command: IF BITSTRING GT VBAR
 ##
-## Ends in an error in state: 203.
+## Ends in an error in state: 191.
 ##
 ## cexpr -> cterm GT . cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -2011,7 +1891,7 @@ command: IF BITSTRING GT VBAR
 
 command: IF BITSTRING GT LPAREN VBAR
 ##
-## Ends in an error in state: 204.
+## Ends in an error in state: 192.
 ##
 ## cterm -> LPAREN . cterm RPAREN [ SEMI RPAREN RBRACE OR LBRACE EOF AS AND ]
 ##
@@ -2023,7 +1903,7 @@ command: IF BITSTRING GT LPAREN VBAR
 
 command: IF BITSTRING GT LPAREN BITSTRING SEMI
 ##
-## Ends in an error in state: 205.
+## Ends in an error in state: 193.
 ##
 ## cterm -> LPAREN cterm . RPAREN [ SEMI RPAREN RBRACE OR LBRACE EOF AS AND ]
 ##
@@ -2034,14 +1914,14 @@ command: IF BITSTRING GT LPAREN BITSTRING SEMI
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 195, spurious reduction of production cterm -> cterm_bv
+## In state 185, spurious reduction of production cterm -> cterm_bv
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 command: IF BITSTRING EQ VBAR
 ##
-## Ends in an error in state: 208.
+## Ends in an error in state: 196.
 ##
 ## cexpr -> cterm EQ . EQ cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -2053,7 +1933,7 @@ command: IF BITSTRING EQ VBAR
 
 command: IF BITSTRING EQ EQ VBAR
 ##
-## Ends in an error in state: 209.
+## Ends in an error in state: 197.
 ##
 ## cexpr -> cterm EQ EQ . cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -2065,7 +1945,7 @@ command: IF BITSTRING EQ EQ VBAR
 
 command: IF BITSTRING BANG VBAR
 ##
-## Ends in an error in state: 211.
+## Ends in an error in state: 199.
 ##
 ## cexpr -> cterm BANG . EQ cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -2077,7 +1957,7 @@ command: IF BITSTRING BANG VBAR
 
 command: IF BITSTRING BANG EQ VBAR
 ##
-## Ends in an error in state: 212.
+## Ends in an error in state: 200.
 ##
 ## cexpr -> cterm BANG EQ . cterm [ RPAREN OR LBRACE AND ]
 ##
@@ -2089,7 +1969,7 @@ command: IF BITSTRING BANG EQ VBAR
 
 command: IF BANG FALSE VBAR
 ##
-## Ends in an error in state: 214.
+## Ends in an error in state: 202.
 ##
 ## cexpr -> cexpr . AND cexpr [ RPAREN OR LBRACE AND ]
 ## cexpr -> cexpr . OR cexpr [ RPAREN OR LBRACE AND ]
@@ -2103,7 +1983,7 @@ command: IF BANG FALSE VBAR
 
 command: IF FALSE OR VBAR
 ##
-## Ends in an error in state: 215.
+## Ends in an error in state: 203.
 ##
 ## cexpr -> cexpr OR . cexpr [ RPAREN OR LBRACE AND ]
 ##
@@ -2115,7 +1995,7 @@ command: IF FALSE OR VBAR
 
 command: IF LPAREN BITSTRING SEMI
 ##
-## Ends in an error in state: 217.
+## Ends in an error in state: 205.
 ##
 ## cexpr -> cterm . EQ EQ cterm [ RPAREN OR AND ]
 ## cexpr -> cterm . BANG EQ cterm [ RPAREN OR AND ]
@@ -2129,14 +2009,14 @@ command: IF LPAREN BITSTRING SEMI
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 195, spurious reduction of production cterm -> cterm_bv
+## In state 185, spurious reduction of production cterm -> cterm_bv
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 command: IF LPAREN FALSE VBAR
 ##
-## Ends in an error in state: 218.
+## Ends in an error in state: 206.
 ##
 ## cexpr -> LPAREN cexpr . RPAREN [ RPAREN OR LBRACE AND ]
 ## cexpr -> cexpr . AND cexpr [ RPAREN OR AND ]
@@ -2150,7 +2030,7 @@ command: IF LPAREN FALSE VBAR
 
 command: IF FALSE AND VBAR
 ##
-## Ends in an error in state: 220.
+## Ends in an error in state: 208.
 ##
 ## cexpr -> cexpr AND . cexpr [ RPAREN OR LBRACE AND ]
 ##
@@ -2162,7 +2042,7 @@ command: IF FALSE AND VBAR
 
 command: IF FALSE AND FALSE VBAR
 ##
-## Ends in an error in state: 221.
+## Ends in an error in state: 209.
 ##
 ## cexpr -> cexpr . AND cexpr [ RPAREN OR LBRACE AND ]
 ## cexpr -> cexpr AND cexpr . [ RPAREN OR LBRACE AND ]
@@ -2176,7 +2056,7 @@ command: IF FALSE AND FALSE VBAR
 
 command: IF NEG FALSE VBAR
 ##
-## Ends in an error in state: 222.
+## Ends in an error in state: 210.
 ##
 ## cexpr -> cexpr . AND cexpr [ RPAREN OR LBRACE AND ]
 ## cexpr -> cexpr . OR cexpr [ RPAREN OR LBRACE AND ]
@@ -2190,7 +2070,7 @@ command: IF NEG FALSE VBAR
 
 command: IF FALSE VBAR
 ##
-## Ends in an error in state: 223.
+## Ends in an error in state: 211.
 ##
 ## cexpr -> cexpr . AND cexpr [ OR LBRACE AND ]
 ## cexpr -> cexpr . OR cexpr [ OR LBRACE AND ]
@@ -2205,7 +2085,7 @@ command: IF FALSE VBAR
 
 command: IF FALSE LBRACE VBAR
 ##
-## Ends in an error in state: 224.
+## Ends in an error in state: 212.
 ##
 ## cmd -> IF cexpr LBRACE . cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> IF cexpr LBRACE . cmd RBRACE ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
@@ -2218,7 +2098,7 @@ command: IF FALSE LBRACE VBAR
 
 command: ID VBAR
 ##
-## Ends in an error in state: 225.
+## Ends in an error in state: 213.
 ##
 ## cmd -> ID . DOT ID COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> ID . LSQUARE INT COLON INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
@@ -2231,7 +2111,7 @@ command: ID VBAR
 
 command: ID LSQUARE VBAR
 ##
-## Ends in an error in state: 226.
+## Ends in an error in state: 214.
 ##
 ## cmd -> ID LSQUARE . INT COLON INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2243,7 +2123,7 @@ command: ID LSQUARE VBAR
 
 command: ID LSQUARE INT VBAR
 ##
-## Ends in an error in state: 227.
+## Ends in an error in state: 215.
 ##
 ## cmd -> ID LSQUARE INT . COLON INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2255,7 +2135,7 @@ command: ID LSQUARE INT VBAR
 
 command: ID LSQUARE INT COLON VBAR
 ##
-## Ends in an error in state: 228.
+## Ends in an error in state: 216.
 ##
 ## cmd -> ID LSQUARE INT COLON . INT RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2267,7 +2147,7 @@ command: ID LSQUARE INT COLON VBAR
 
 command: ID LSQUARE INT COLON INT VBAR
 ##
-## Ends in an error in state: 229.
+## Ends in an error in state: 217.
 ##
 ## cmd -> ID LSQUARE INT COLON INT . RSQUARE COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2279,7 +2159,7 @@ command: ID LSQUARE INT COLON INT VBAR
 
 command: ID LSQUARE INT COLON INT RSQUARE VBAR
 ##
-## Ends in an error in state: 230.
+## Ends in an error in state: 218.
 ##
 ## cmd -> ID LSQUARE INT COLON INT RSQUARE . COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2291,7 +2171,7 @@ command: ID LSQUARE INT COLON INT RSQUARE VBAR
 
 command: ID LSQUARE INT COLON INT RSQUARE COLON VBAR
 ##
-## Ends in an error in state: 231.
+## Ends in an error in state: 219.
 ##
 ## cmd -> ID LSQUARE INT COLON INT RSQUARE COLON . EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2303,7 +2183,7 @@ command: ID LSQUARE INT COLON INT RSQUARE COLON VBAR
 
 command: ID LSQUARE INT COLON INT RSQUARE COLON EQ VBAR
 ##
-## Ends in an error in state: 232.
+## Ends in an error in state: 220.
 ##
 ## cmd -> ID LSQUARE INT COLON INT RSQUARE COLON EQ . cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2315,7 +2195,7 @@ command: ID LSQUARE INT COLON INT RSQUARE COLON EQ VBAR
 
 command: ID DOT VBAR
 ##
-## Ends in an error in state: 234.
+## Ends in an error in state: 222.
 ##
 ## cmd -> ID DOT . ID COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2327,7 +2207,7 @@ command: ID DOT VBAR
 
 command: ID DOT ID VBAR
 ##
-## Ends in an error in state: 235.
+## Ends in an error in state: 223.
 ##
 ## cmd -> ID DOT ID . COLON EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2339,7 +2219,7 @@ command: ID DOT ID VBAR
 
 command: ID DOT ID COLON VBAR
 ##
-## Ends in an error in state: 236.
+## Ends in an error in state: 224.
 ##
 ## cmd -> ID DOT ID COLON . EQ cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2351,7 +2231,7 @@ command: ID DOT ID COLON VBAR
 
 command: ID DOT ID COLON EQ VBAR
 ##
-## Ends in an error in state: 237.
+## Ends in an error in state: 225.
 ##
 ## cmd -> ID DOT ID COLON EQ . cterm [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2363,7 +2243,7 @@ command: ID DOT ID COLON EQ VBAR
 
 command: EXTRACT VBAR
 ##
-## Ends in an error in state: 239.
+## Ends in an error in state: 227.
 ##
 ## cmd -> EXTRACT . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2375,7 +2255,7 @@ command: EXTRACT VBAR
 
 command: EXTRACT LPAREN VBAR
 ##
-## Ends in an error in state: 240.
+## Ends in an error in state: 228.
 ##
 ## cmd -> EXTRACT LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2387,7 +2267,7 @@ command: EXTRACT LPAREN VBAR
 
 command: EXTRACT LPAREN ID VBAR
 ##
-## Ends in an error in state: 241.
+## Ends in an error in state: 229.
 ##
 ## cmd -> EXTRACT LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2399,7 +2279,7 @@ command: EXTRACT LPAREN ID VBAR
 
 command: ADD VBAR
 ##
-## Ends in an error in state: 243.
+## Ends in an error in state: 231.
 ##
 ## cmd -> ADD . LPAREN ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2411,7 +2291,7 @@ command: ADD VBAR
 
 command: ADD LPAREN VBAR
 ##
-## Ends in an error in state: 244.
+## Ends in an error in state: 232.
 ##
 ## cmd -> ADD LPAREN . ID RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2423,7 +2303,7 @@ command: ADD LPAREN VBAR
 
 command: ADD LPAREN ID VBAR
 ##
-## Ends in an error in state: 245.
+## Ends in an error in state: 233.
 ##
 ## cmd -> ADD LPAREN ID . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2435,7 +2315,7 @@ command: ADD LPAREN ID VBAR
 
 command: IF FALSE LBRACE RESET VBAR
 ##
-## Ends in an error in state: 247.
+## Ends in an error in state: 235.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RBRACE AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI RBRACE AS ]
@@ -2450,7 +2330,7 @@ command: IF FALSE LBRACE RESET VBAR
 
 command: RESET SEMI VBAR
 ##
-## Ends in an error in state: 248.
+## Ends in an error in state: 236.
 ##
 ## cmd -> cmd SEMI . cmd [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2462,7 +2342,7 @@ command: RESET SEMI VBAR
 
 command: RESET SEMI RESET VBAR
 ##
-## Ends in an error in state: 249.
+## Ends in an error in state: 237.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI RPAREN RBRACE EOF AS ]
@@ -2476,7 +2356,7 @@ command: RESET SEMI RESET VBAR
 
 command: RESET AS VBAR
 ##
-## Ends in an error in state: 250.
+## Ends in an error in state: 238.
 ##
 ## cmd -> cmd AS . LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2488,7 +2368,7 @@ command: RESET AS VBAR
 
 command: RESET AS LPAREN VBAR
 ##
-## Ends in an error in state: 251.
+## Ends in an error in state: 239.
 ##
 ## cmd -> cmd AS LPAREN . ID COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2500,7 +2380,7 @@ command: RESET AS LPAREN VBAR
 
 command: RESET AS LPAREN ID VBAR
 ##
-## Ends in an error in state: 252.
+## Ends in an error in state: 240.
 ##
 ## cmd -> cmd AS LPAREN ID . COLON hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2512,7 +2392,7 @@ command: RESET AS LPAREN ID VBAR
 
 command: RESET AS LPAREN ID COLON VBAR
 ##
-## Ends in an error in state: 253.
+## Ends in an error in state: 241.
 ##
 ## cmd -> cmd AS LPAREN ID COLON . hty RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2522,9 +2402,9 @@ command: RESET AS LPAREN ID COLON VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-command: RESET AS LPAREN ID COLON EMPTY DOT
+command: RESET AS LPAREN ID COLON EMPTY VALID
 ##
-## Ends in an error in state: 254.
+## Ends in an error in state: 242.
 ##
 ## cmd -> cmd AS LPAREN ID COLON hty . RPAREN ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ## hty -> hty . PLUS hty [ RPAREN PLUS LSQUARE ]
@@ -2536,9 +2416,9 @@ command: RESET AS LPAREN ID COLON EMPTY DOT
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-command: RESET AS LPAREN ID COLON ID RPAREN VBAR
+command: RESET AS LPAREN ID COLON EMPTY RPAREN VBAR
 ##
-## Ends in an error in state: 255.
+## Ends in an error in state: 243.
 ##
 ## cmd -> cmd AS LPAREN ID COLON hty RPAREN . ARROW hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2548,9 +2428,9 @@ command: RESET AS LPAREN ID COLON ID RPAREN VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-command: RESET AS LPAREN ID COLON ID RPAREN ARROW VBAR
+command: RESET AS LPAREN ID COLON EMPTY RPAREN ARROW VBAR
 ##
-## Ends in an error in state: 256.
+## Ends in an error in state: 244.
 ##
 ## cmd -> cmd AS LPAREN ID COLON hty RPAREN ARROW . hty [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2560,9 +2440,9 @@ command: RESET AS LPAREN ID COLON ID RPAREN ARROW VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-command: RESET AS LPAREN ID COLON ID RPAREN ARROW EMPTY DOT
+command: RESET AS LPAREN ID COLON EMPTY RPAREN ARROW EMPTY VALID
 ##
-## Ends in an error in state: 257.
+## Ends in an error in state: 245.
 ##
 ## cmd -> cmd AS LPAREN ID COLON hty RPAREN ARROW hty . [ SEMI RPAREN RBRACE EOF AS ]
 ## hty -> hty . PLUS hty [ SEMI RPAREN RBRACE PLUS LSQUARE EOF AS ]
@@ -2576,7 +2456,7 @@ command: RESET AS LPAREN ID COLON ID RPAREN ARROW EMPTY DOT
 
 command: IF FALSE LBRACE RESET RBRACE VBAR
 ##
-## Ends in an error in state: 258.
+## Ends in an error in state: 246.
 ##
 ## cmd -> IF cexpr LBRACE cmd RBRACE . [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> IF cexpr LBRACE cmd RBRACE . ELSE LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
@@ -2589,7 +2469,7 @@ command: IF FALSE LBRACE RESET RBRACE VBAR
 
 command: IF FALSE LBRACE RESET RBRACE ELSE VBAR
 ##
-## Ends in an error in state: 259.
+## Ends in an error in state: 247.
 ##
 ## cmd -> IF cexpr LBRACE cmd RBRACE ELSE . LBRACE cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2601,7 +2481,7 @@ command: IF FALSE LBRACE RESET RBRACE ELSE VBAR
 
 command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE VBAR
 ##
-## Ends in an error in state: 260.
+## Ends in an error in state: 248.
 ##
 ## cmd -> IF cexpr LBRACE cmd RBRACE ELSE LBRACE . cmd RBRACE [ SEMI RPAREN RBRACE EOF AS ]
 ##
@@ -2613,7 +2493,7 @@ command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE VBAR
 
 command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE RESET VBAR
 ##
-## Ends in an error in state: 261.
+## Ends in an error in state: 249.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RBRACE AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI RBRACE AS ]
@@ -2627,7 +2507,7 @@ command: IF FALSE LBRACE RESET RBRACE ELSE LBRACE RESET VBAR
 
 command: LPAREN RESET VBAR
 ##
-## Ends in an error in state: 263.
+## Ends in an error in state: 251.
 ##
 ## cmd -> LPAREN cmd . RPAREN [ SEMI RPAREN RBRACE EOF AS ]
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI RPAREN AS ]
@@ -2641,7 +2521,7 @@ command: LPAREN RESET VBAR
 
 command: RESET VBAR
 ##
-## Ends in an error in state: 266.
+## Ends in an error in state: 254.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI EOF AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI EOF AS ]
@@ -2655,7 +2535,7 @@ command: RESET VBAR
 
 heap_type: VBAR
 ##
-## Ends in an error in state: 268.
+## Ends in an error in state: 256.
 ##
 ## heap_type' -> . heap_type [ # ]
 ##
@@ -2665,9 +2545,9 @@ heap_type: VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-heap_type: EMPTY DOT
+heap_type: EMPTY VALID
 ##
-## Ends in an error in state: 269.
+## Ends in an error in state: 257.
 ##
 ## heap_type -> hty . EOF [ # ]
 ## hty -> hty . PLUS hty [ PLUS LSQUARE EOF ]
@@ -2681,7 +2561,7 @@ heap_type: EMPTY DOT
 
 instance: VBAR
 ##
-## Ends in an error in state: 272.
+## Ends in an error in state: 260.
 ##
 ## instance' -> . instance [ # ]
 ##
@@ -2689,11 +2569,12 @@ instance: VBAR
 ##
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Instance declarations must start with the instance name.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID VBAR
 ##
-## Ends in an error in state: 273.
+## Ends in an error in state: 261.
 ##
 ## instance -> ID . LBRACE nonempty_list(terminated(header_field,SEMI)) RBRACE [ # ]
 ##
@@ -2701,11 +2582,12 @@ instance: ID VBAR
 ## ID
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Field declarations are missing.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE VBAR
 ##
-## Ends in an error in state: 274.
+## Ends in an error in state: 262.
 ##
 ## instance -> ID LBRACE . nonempty_list(terminated(header_field,SEMI)) RBRACE [ # ]
 ##
@@ -2713,11 +2595,12 @@ instance: ID LBRACE VBAR
 ## ID LBRACE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Field declarations are missing.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE ID VBAR
 ##
-## Ends in an error in state: 275.
+## Ends in an error in state: 263.
 ##
 ## header_field -> ID . COLON INT [ SEMI RBRACE ID ]
 ##
@@ -2725,11 +2608,12 @@ instance: ID LBRACE ID VBAR
 ## ID
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Not a valid field identifier.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE ID COLON VBAR
 ##
-## Ends in an error in state: 276.
+## Ends in an error in state: 264.
 ##
 ## header_field -> ID COLON . INT [ SEMI RBRACE ID ]
 ##
@@ -2737,11 +2621,12 @@ instance: ID LBRACE ID COLON VBAR
 ## ID COLON
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Bit size missing for field.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE ID COLON INT VBAR
 ##
-## Ends in an error in state: 280.
+## Ends in an error in state: 268.
 ##
 ## nonempty_list(terminated(header_field,SEMI)) -> header_field . SEMI [ RBRACE ]
 ## nonempty_list(terminated(header_field,SEMI)) -> header_field . SEMI nonempty_list(terminated(header_field,SEMI)) [ RBRACE ]
@@ -2750,11 +2635,12 @@ instance: ID LBRACE ID COLON INT VBAR
 ## header_field
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Field declaration expects trailing ';'.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 instance: ID LBRACE ID COLON INT SEMI VBAR
 ##
-## Ends in an error in state: 281.
+## Ends in an error in state: 269.
 ##
 ## nonempty_list(terminated(header_field,SEMI)) -> header_field SEMI . [ RBRACE ]
 ## nonempty_list(terminated(header_field,SEMI)) -> header_field SEMI . nonempty_list(terminated(header_field,SEMI)) [ RBRACE ]
@@ -2763,11 +2649,12 @@ instance: ID LBRACE ID COLON INT SEMI VBAR
 ## header_field SEMI
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected closing '}'.
+Example of a valid instance declaration: inst { f: 4; g: 8; }
 
 pi_type: VBAR
 ##
-## Ends in an error in state: 284.
+## Ends in an error in state: 272.
 ##
 ## pi_type' -> . pi_type [ # ]
 ##
@@ -2777,9 +2664,9 @@ pi_type: VBAR
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-pi_type: LPAREN ID COLON ID RPAREN ARROW ID SEMI
+pi_type: LPAREN ID COLON EMPTY RPAREN ARROW EMPTY SEMI
 ##
-## Ends in an error in state: 286.
+## Ends in an error in state: 274.
 ##
 ## pi_type -> pi . EOF [ # ]
 ##
@@ -2790,16 +2677,14 @@ pi_type: LPAREN ID COLON ID RPAREN ARROW ID SEMI
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 27, spurious reduction of production separated_nonempty_list(DOT,ID) -> ID
-## In state 33, spurious reduction of production hty -> separated_nonempty_list(DOT,ID)
-## In state 140, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
+## In state 134, spurious reduction of production pi -> LPAREN ID COLON hty RPAREN ARROW hty
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 program: VBAR
 ##
-## Ends in an error in state: 288.
+## Ends in an error in state: 276.
 ##
 ## program' -> . program [ # ]
 ##
@@ -2811,9 +2696,9 @@ program: VBAR
 
 program: HEADERTYPE VBAR
 ##
-## Ends in an error in state: 289.
+## Ends in an error in state: 277.
 ##
-## declaration -> HEADERTYPE . ID LBRACE nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMOVE REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+## declaration -> HEADERTYPE . ID LBRACE nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
 ## The known suffix of the stack is as follows:
 ## HEADERTYPE
@@ -2823,9 +2708,9 @@ program: HEADERTYPE VBAR
 
 program: HEADERTYPE ID VBAR
 ##
-## Ends in an error in state: 290.
+## Ends in an error in state: 278.
 ##
-## declaration -> HEADERTYPE ID . LBRACE nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMOVE REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+## declaration -> HEADERTYPE ID . LBRACE nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
 ## The known suffix of the stack is as follows:
 ## HEADERTYPE ID
@@ -2835,9 +2720,9 @@ program: HEADERTYPE ID VBAR
 
 program: HEADERTYPE ID LBRACE VBAR
 ##
-## Ends in an error in state: 291.
+## Ends in an error in state: 279.
 ##
-## declaration -> HEADERTYPE ID LBRACE . nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMOVE REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+## declaration -> HEADERTYPE ID LBRACE . nonempty_list(terminated(header_field,opt_semi)) RBRACE [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
 ## The known suffix of the stack is as follows:
 ## HEADERTYPE ID LBRACE
@@ -2847,7 +2732,7 @@ program: HEADERTYPE ID LBRACE VBAR
 
 program: HEADERTYPE ID LBRACE ID COLON INT VBAR
 ##
-## Ends in an error in state: 294.
+## Ends in an error in state: 282.
 ##
 ## nonempty_list(terminated(header_field,opt_semi)) -> header_field . opt_semi [ RBRACE ]
 ## nonempty_list(terminated(header_field,opt_semi)) -> header_field . opt_semi nonempty_list(terminated(header_field,opt_semi)) [ RBRACE ]
@@ -2860,7 +2745,7 @@ program: HEADERTYPE ID LBRACE ID COLON INT VBAR
 
 program: HEADERTYPE ID LBRACE ID COLON INT SEMI VBAR
 ##
-## Ends in an error in state: 296.
+## Ends in an error in state: 284.
 ##
 ## nonempty_list(terminated(header_field,opt_semi)) -> header_field opt_semi . [ RBRACE ]
 ## nonempty_list(terminated(header_field,opt_semi)) -> header_field opt_semi . nonempty_list(terminated(header_field,opt_semi)) [ RBRACE ]
@@ -2873,9 +2758,9 @@ program: HEADERTYPE ID LBRACE ID COLON INT SEMI VBAR
 
 program: HEADER VBAR
 ##
-## Ends in an error in state: 298.
+## Ends in an error in state: 286.
 ##
-## declaration -> HEADER . ID COLON ID [ SKIP RESET REMOVE REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+## declaration -> HEADER . ID COLON ID [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
 ## The known suffix of the stack is as follows:
 ## HEADER
@@ -2885,9 +2770,9 @@ program: HEADER VBAR
 
 program: HEADER ID VBAR
 ##
-## Ends in an error in state: 299.
+## Ends in an error in state: 287.
 ##
-## declaration -> HEADER ID . COLON ID [ SKIP RESET REMOVE REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+## declaration -> HEADER ID . COLON ID [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
 ## The known suffix of the stack is as follows:
 ## HEADER ID
@@ -2897,9 +2782,9 @@ program: HEADER ID VBAR
 
 program: HEADER ID COLON VBAR
 ##
-## Ends in an error in state: 300.
+## Ends in an error in state: 288.
 ##
-## declaration -> HEADER ID COLON . ID [ SKIP RESET REMOVE REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
+## declaration -> HEADER ID COLON . ID [ SKIP RESET REMIT LPAREN IF ID HEADERTYPE HEADER EXTRACT ADD ]
 ##
 ## The known suffix of the stack is as follows:
 ## HEADER ID COLON
@@ -2909,7 +2794,7 @@ program: HEADER ID COLON VBAR
 
 program: RESET VBAR
 ##
-## Ends in an error in state: 304.
+## Ends in an error in state: 292.
 ##
 ## cmd -> cmd . AS LPAREN ID COLON hty RPAREN ARROW hty [ SEMI EOF AS ]
 ## cmd -> cmd . SEMI cmd [ SEMI EOF AS ]
@@ -2923,9 +2808,9 @@ program: RESET VBAR
 
 program: HEADER ID COLON ID VBAR
 ##
-## Ends in an error in state: 306.
+## Ends in an error in state: 294.
 ##
-## list(declaration) -> declaration . list(declaration) [ SKIP RESET REMOVE REMIT LPAREN IF ID EXTRACT ADD ]
+## list(declaration) -> declaration . list(declaration) [ SKIP RESET REMIT LPAREN IF ID EXTRACT ADD ]
 ##
 ## The known suffix of the stack is as follows:
 ## declaration
@@ -2935,7 +2820,7 @@ program: HEADER ID COLON ID VBAR
 
 smt_tactic: VBAR
 ##
-## Ends in an error in state: 308.
+## Ends in an error in state: 296.
 ##
 ## smt_tactic' -> . smt_tactic [ # ]
 ##
@@ -2947,7 +2832,7 @@ smt_tactic: VBAR
 
 smt_tactic: LPAREN VBAR
 ##
-## Ends in an error in state: 314.
+## Ends in an error in state: 302.
 ##
 ## smt_tactic -> LPAREN . PAR_OR smt_tactic smt_tactic RPAREN [ # ]
 ## smt_tactic -> LPAREN . THEN list(smt_tactic) RPAREN [ # ]
@@ -2960,7 +2845,7 @@ smt_tactic: LPAREN VBAR
 
 smt_tactic: LPAREN THEN VBAR
 ##
-## Ends in an error in state: 315.
+## Ends in an error in state: 303.
 ##
 ## smt_tactic -> LPAREN THEN . list(smt_tactic) RPAREN [ # ]
 ##
@@ -2972,7 +2857,7 @@ smt_tactic: LPAREN THEN VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN VBAR
 ##
-## Ends in an error in state: 321.
+## Ends in an error in state: 309.
 ##
 ## smt_tactic -> LPAREN . PAR_OR smt_tactic smt_tactic RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ## smt_tactic -> LPAREN . THEN list(smt_tactic) RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
@@ -2985,7 +2870,7 @@ smt_tactic: LPAREN PAR_OR LPAREN VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN THEN VBAR
 ##
-## Ends in an error in state: 322.
+## Ends in an error in state: 310.
 ##
 ## smt_tactic -> LPAREN THEN . list(smt_tactic) RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ##
@@ -2997,7 +2882,7 @@ smt_tactic: LPAREN PAR_OR LPAREN THEN VBAR
 
 smt_tactic: LPAREN THEN AIG VBAR
 ##
-## Ends in an error in state: 325.
+## Ends in an error in state: 313.
 ##
 ## list(smt_tactic) -> smt_tactic . list(smt_tactic) [ RPAREN ]
 ##
@@ -3009,7 +2894,7 @@ smt_tactic: LPAREN THEN AIG VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN PAR_OR VBAR
 ##
-## Ends in an error in state: 329.
+## Ends in an error in state: 317.
 ##
 ## smt_tactic -> LPAREN PAR_OR . smt_tactic smt_tactic RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ##
@@ -3021,7 +2906,7 @@ smt_tactic: LPAREN PAR_OR LPAREN PAR_OR VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG VBAR
 ##
-## Ends in an error in state: 330.
+## Ends in an error in state: 318.
 ##
 ## smt_tactic -> LPAREN PAR_OR smt_tactic . smt_tactic RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ##
@@ -3033,7 +2918,7 @@ smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG VBAR
 
 smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG AIG VBAR
 ##
-## Ends in an error in state: 331.
+## Ends in an error in state: 319.
 ##
 ## smt_tactic -> LPAREN PAR_OR smt_tactic smt_tactic . RPAREN [ UFBV SOLVE_EQS SIMPLIFY RPAREN QFBV QE LPAREN BITBLAST AIG ]
 ##
@@ -3045,7 +2930,7 @@ smt_tactic: LPAREN PAR_OR LPAREN PAR_OR AIG AIG VBAR
 
 smt_tactic: LPAREN PAR_OR VBAR
 ##
-## Ends in an error in state: 335.
+## Ends in an error in state: 323.
 ##
 ## smt_tactic -> LPAREN PAR_OR . smt_tactic smt_tactic RPAREN [ # ]
 ##
@@ -3057,7 +2942,7 @@ smt_tactic: LPAREN PAR_OR VBAR
 
 smt_tactic: LPAREN PAR_OR AIG VBAR
 ##
-## Ends in an error in state: 336.
+## Ends in an error in state: 324.
 ##
 ## smt_tactic -> LPAREN PAR_OR smt_tactic . smt_tactic RPAREN [ # ]
 ##
@@ -3069,7 +2954,7 @@ smt_tactic: LPAREN PAR_OR AIG VBAR
 
 smt_tactic: LPAREN PAR_OR AIG AIG VBAR
 ##
-## Ends in an error in state: 337.
+## Ends in an error in state: 325.
 ##
 ## smt_tactic -> LPAREN PAR_OR smt_tactic smt_tactic . RPAREN [ # ]
 ##

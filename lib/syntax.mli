@@ -166,6 +166,7 @@ module HeapType : sig
 
   val empty : HeaderTable.t -> string -> t
   val instance : Instance.t -> HeaderTable.t -> string -> t
+  val instances : Instance.t list -> HeaderTable.t -> string -> t
   val weak_instance : Instance.t -> string -> t
   val pair : Instance.t -> Instance.t -> string -> HeaderTable.t -> t
 end

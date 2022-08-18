@@ -297,6 +297,27 @@ module HeapType = struct
     in
     Refinement (x, Top, pred)
 
+  let instances (insts : Instance.t list) (header_table : HeaderTable.t)
+      (x : string) =
+    let open Formula in
+    let pred =
+      let valid, invalid =
+        List.partition_tf (HeaderTable.to_list header_table) ~f:(fun ht_inst ->
+            List.find insts ~f:(fun inst -> String.(ht_inst.name = inst.name))
+            |> Option.is_some)
+      in
+      let valids =
+        List.fold valid ~init:True ~f:(fun acc inst ->
+            And (IsValid (0, inst), acc))
+      in
+      let invalids =
+        List.fold invalid ~init:True ~f:(fun acc inst ->
+            And (Neg (IsValid (0, inst)), acc))
+      in
+      And (valids, invalids)
+    in
+    Refinement (x, Top, pred)
+
   let weak_instance (inst : Instance.t) (x : string) =
     let open Formula in
     Refinement (x, Top, IsValid (0, inst))
