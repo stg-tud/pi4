@@ -197,8 +197,8 @@ module Make (Enc : Encoding.S) : S = struct
 
       declare_constants smt_consts;
       List.iter smt_terms ~f:(fun term -> assert__ term);
-      Smtlib.(
-        apply (get prover) (Then [ Simplify; SolveEQs ]));
+      (* Smtlib.(
+        apply (get prover) (Then [ Simplify; SolveEQs ])); *)
       let time = Time_ns.now () in
       let result = check_unsat_and_reset Smtlib.BV in
       let time_diff = Time_ns.abs_diff (Time_ns.now ()) time in

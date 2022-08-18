@@ -113,7 +113,7 @@ let p4_check filename includes _maxlen verbose =
                   Frontend.annotation_to_command header_table constants
                     instantiated_controls decls annot
                 in
-                Log.debug (fun m -> m "Program: %a" Pretty.pp_command prog);
+                Log.info (fun m -> m "Program: %a" Pretty.pp_command prog);
                 T.check_type prog typ header_table
               in
               match result with
