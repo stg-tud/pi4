@@ -73,6 +73,7 @@ let union r =
 
 let pi4_check program_filename type_filename maxlen : unit =
   let program = Parsing.parse_program_from_file program_filename in
+  Log.info (fun m -> m "Number of commands: %d" (Utils.count_commands program.command));
   Prover.make_prover "z3";
   let module Config = struct
     let maxlen = maxlen
@@ -114,6 +115,7 @@ let p4_check filename includes _maxlen verbose enable_cache enable_inlining =
                     instantiated_controls decls annot
                 in
                 Log.info (fun m -> m "Program: %a" Pretty.pp_command prog);
+                Log.info (fun m -> m "Number of commands: %d" (Utils.count_commands prog));
                 T.check_type ~enable_includes_cache:enable_cache
                   ~enable_substitution_inlining:enable_inlining prog typ
                   header_table
@@ -198,7 +200,7 @@ let command =
           Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Info;
           Logs.Src.set_level Pi4.Logging.prover_profile_src @@ Some Logs.Info;
           Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;
-          Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Info)
+          Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Debug)
         else Logs.set_level @@ Some Logs.Info;
         if ir then
           match typ with

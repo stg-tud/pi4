@@ -781,7 +781,10 @@ let rec petr4_statement_to_command ctx tables actions
     Error
       (`NotImplementedError
         "Not implemented (Frontend.petr4_statement_to_command - Switch)")
-  | DeclarationStatement _ ->
+  | DeclarationStatement _ as ds ->
+    Log.debug (fun m ->
+        m "Declaration statement: %s"
+          (Sexplib.Sexp.to_string_hum (Petr4.Types.Statement.sexp_of_t ds)));
     Error
       (`NotImplementedError
         "Not implemented (Frontend.petr4_statement_to_command - \
@@ -1251,6 +1254,9 @@ module Parser = struct
                      } ->
                    let%map array_idx = bigint_to_int x.value in
                    Fmt.str "%s_%d" inst_name.string array_idx
+                 | Name { name = BareName { name; _ }; _ }
+                   when String.(name.string = "standard_metadata") ->
+                   return name.string
                  | e ->
                    Error
                      (`NotImplementedError

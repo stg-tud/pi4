@@ -184,15 +184,11 @@ if(standard_metadata.ingress_port == 0b011111111) {
           } else {
             if(icmpv6.type == 0b10000111) {
               extract(ndp)
-            } else {
-              skip
-              }
             }
-        } else {
-          skip
           }
         }
       }
+    }
   } else {
     if(ethernet.ether_type == 0b0000100000000000) {
       extract(ipv4);
@@ -210,15 +206,11 @@ if(standard_metadata.ingress_port == 0b011111111) {
           if(ipv4.protocol == 0b00000001) {
             extract(icmp);
             meta.icmp_type := icmp.type
-          } else {
-            skip
-            }
           }
         }
-    } else {
-      skip
       }
     }
+  }
 } else {
   extract(ethernet);
   if(ethernet.ether_type == 0b1000011011011101) {
@@ -242,15 +234,11 @@ if(standard_metadata.ingress_port == 0b011111111) {
           } else {
             if(icmpv6.type == 0b10000111) {
               extract(ndp)
-            } else {
-              skip
-              }
             }
-        } else {
-          skip
           }
         }
       }
+    }
   } else {
     if(ethernet.ether_type == 0b0000100000000000) {
       extract(ipv4);
@@ -268,19 +256,15 @@ if(standard_metadata.ingress_port == 0b011111111) {
           if(ipv4.protocol == 0b00000001) {
             extract(icmp);
             meta.icmp_type := icmp.type
-          } else {
-            skip
-            }
           }
         }
-    } else {
-      skip
       }
     }
-  };
+  }
+};
 
 if(cpu_out.valid) {
-  standard_metadata.egress_spec := cpu_out.egress_spec;
+  standard_metadata.egress_spec := cpu_out.egress_port;
   remove(cpu_out)
 } else {
   if(icmpv6.valid) {
@@ -296,19 +280,15 @@ if(cpu_out.valid) {
           icmpv6.type := 0x88;
           ndp.flags := 0xA0000000;
           ndp.type := 0x02;
-          ndp.length := 0x01;
+          ndp.len := 0x01;
           ndp.target_mac_addr := IngressPipeImpl_ndp_reply_table_table.ndp_ns_to_na_target_mac;
           standard_metadata.egress_spec := standard_metadata.ingress_port
-        } else {
-          skip
-          }
+        }
       } else {
         if(ipv6.valid) {
           add(IngressPipeImpl_my_station_table_table);
           if(IngressPipeImpl_my_station_table_table.ethernet_dst_addr_key == ethernet.dst_addr) {
             if(IngressPipeImpl_my_station_table_table.act == 0b0) {
-              skip
-            } else {
               skip
             };
             add(IngressPipeImpl_routing_v6_table_table);
@@ -317,24 +297,16 @@ if(cpu_out.valid) {
                 IngressPipeImpl_routing_v6_table_table.ipv6_src_addr_selector == ipv6.src_addr ∧
                 IngressPipeImpl_routing_v6_table_table.ipv6_flow_label_selector == ipv6.flow_label ∧
                 IngressPipeImpl_routing_v6_table_table.ipv6_next_hdr_selector == ipv6.next_hdr) {
-              if(.IngressPipeImpl_routing_v6_table_table.act == 0b0) {
+              if(IngressPipeImpl_routing_v6_table_table.act == 0b0) {
                 ethernet.src_addr := ethernet.dst_addr;
                 ethernet.dst_addr := IngressPipeImpl_routing_v6_table_table.set_next_hop_dmac;
                 ipv6.hop_limit := (ipv6.hop_limit - 0x01)
-              } else {
-              skip
               }
-            } else {
-              skip
-              };
-              if(ipv6.hop_limit == 0x00) {
-                standard_metadata.egress_spec := 0b111111111;
-              }
-          } else {
-            skip
-          };
-        } else {
-          skip
+            };
+            if(ipv6.hop_limit == 0x00) {
+              standard_metadata.egress_spec := 0b111111111
+            }
+          }
         };
         add(IngressPipeImpl_l2_exact_table_table);
         if(IngressPipeImpl_l2_exact_table_table.ethernet_dst_addr_key == ethernet.dst_addr) {
@@ -352,11 +324,9 @@ if(cpu_out.valid) {
             } else {
               standard_metadata.egress_spec := 0b111111111
             }
-          } else {
-            skip
           }
         }
-      };
+      }
     }
   };
   add(IngressPipeImpl_acl_table_table);
@@ -371,14 +341,19 @@ if(cpu_out.valid) {
     if(IngressPipeImpl_acl_table_table.act == 0b0) {
       standard_metadata.egress_spec := 0b011111111
     } else {
-      if(IngressPipeImpl_acl_table_table.ac == 0b1) {
+      if(IngressPipeImpl_acl_table_table.act == 0b1) {
         standard_metadata.egress_spec := 0b111111111
-      } else {
-        skip
       }
     }
-  } else {
-    skip
+  }
+};
+
+if(standard_metadata.egress_port == 0b011111111) {
+  add(cpu_in);
+  cpu_in.ingress_port := standard_metadata.ingress_port
+} else {
+  if(meta.is_multicast == 0b1 && standard_metadata.ingress_port == standard_metadata.egress_port) {
+    standard_metadata.egress_spec := 0b111111111
   }
 };
 

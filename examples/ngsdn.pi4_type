@@ -1,1 +1,1 @@
-(x:{y:⊤ | y.pkt_in.length > 300}) -> ⊤
+(x:{y: standard_metadata . meta | y.pkt_in.length > 703}) -> ⊤
