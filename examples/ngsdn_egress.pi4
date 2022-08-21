@@ -1,0 +1,171 @@
+header_type IngressPipeImpl_acl_table_table_t {
+  act: 1;
+  meta_l4_dst_port_key: 16;
+  meta_l4_src_port_key: 16;
+  meta_icmp_type_key: 8;
+  meta_ip_proto_key: 8;
+  ethernet_ether_type_key: 16;
+  ethernet_src_addr_key: 48;
+  ethernet_dst_addr_key: 48;
+  standard_metadata_ingress_port_key: 9;
+}
+header_type IngressPipeImpl_l2_exact_table_table_t {
+  act: 1;
+  set_egress_port_port_num: 9;
+  ethernet_dst_addr_key: 48;
+}
+header_type IngressPipeImpl_l2_ternary_table_table_t {
+  act: 1;
+  set_multicast_group_gid: 16;
+  ethernet_dst_addr_key: 48;
+}
+header_type IngressPipeImpl_my_station_table_table_t {
+  act: 1;
+  ethernet_dst_addr_key: 48;
+}
+header_type IngressPipeImpl_ndp_reply_table_table_t {
+  act: 1;
+  ndp_ns_to_na_target_mac: 48;
+  ndp_target_ipv6_addr_key: 128;
+}
+header_type IngressPipeImpl_routing_v6_table_table_t {
+  act: 1;
+  set_next_hop_dmac: 48;
+  meta_l4_dst_port_selector: 16;
+  meta_l4_src_port_selector: 16;
+  ipv6_next_hdr_selector: 8;
+  ipv6_flow_label_selector: 20;
+  ipv6_src_addr_selector: 128;
+  ipv6_dst_addr_selector: 128;
+  ipv6_dst_addr_key: 128;
+}
+header_type cpu_in_t {
+  ingress_port: 9;
+  pad: 7;
+}
+header_type cpu_out_t {
+  egress_port: 9;
+  pad: 7;
+}
+header_type ethernet_t {
+  dst_addr: 48;
+  src_addr: 48;
+  ether_type: 16;
+}
+header_type icmp_t {
+  type: 8;
+  icmp_code: 8;
+  checksum: 16;
+  identifier: 16;
+  sequence_number: 16;
+  timestamp: 64;
+}
+header_type icmpv6_t {
+  type: 8;
+  code: 8;
+  checksum: 16;
+}
+header_type ipv4_t {
+  version: 4;
+  ihl: 4;
+  dscp: 6;
+  ecn: 2;
+  total_len: 16;
+  identification: 16;
+  flags: 3;
+  frag_offset: 13;
+  ttl: 8;
+  protocol: 8;
+  hdr_checksum: 16;
+  src_addr: 32;
+  dst_addr: 32;
+}
+header_type ipv6_t {
+  version: 4;
+  traffic_class: 8;
+  flow_label: 20;
+  payload_len: 16;
+  next_hdr: 8;
+  hop_limit: 8;
+  src_addr: 128;
+  dst_addr: 128;
+}
+header_type meta_t {
+  l4_src_port: 16;
+  l4_dst_port: 16;
+  is_multicast: 1;
+  ip_proto: 8;
+  icmp_type: 8;
+}
+header_type ndp_t {
+  flags: 32;
+  target_ipv6_addr: 128;
+  type: 8;
+  len: 8;
+  target_mac_addr: 48;
+}
+header_type standard_metadata_t {
+  ingress_port: 9;
+  egress_spec: 9;
+  egress_port: 9;
+  instance_type: 32;
+  packet_length: 32;
+  enq_timestamp: 32;
+  enq_qdepth: 19;
+  deq_timedelta: 32;
+  deq_qdepth: 19;
+  ingress_global_timestamp: 48;
+  egress_global_timestamp: 48;
+  mcast_grp: 16;
+  egress_rid: 16;
+  checksum_error: 1;
+  priority: 3;
+}
+header_type tcp_t {
+  src_port: 16;
+  dst_port: 16;
+  seq_no: 32;
+  ack_no: 32;
+  data_offset: 4;
+  res: 3;
+  ecn: 3;
+  ctrl: 6;
+  window: 16;
+  checksum: 16;
+  urgent_ptr: 16;
+}
+header_type udp_t {
+  src_port: 16;
+  dst_port: 16;
+  len: 16;
+  checksum: 16;
+}
+
+header IngressPipeImpl_acl_table_table : IngressPipeImpl_acl_table_table_t
+header IngressPipeImpl_l2_exact_table_table : IngressPipeImpl_l2_exact_table_table_t
+header IngressPipeImpl_l2_ternary_table_table : IngressPipeImpl_l2_ternary_table_table_t
+header IngressPipeImpl_my_station_table_table : IngressPipeImpl_my_station_table_table_t
+header IngressPipeImpl_ndp_reply_table_table : IngressPipeImpl_ndp_reply_table_table_t
+header IngressPipeImpl_routing_v6_table_table : IngressPipeImpl_routing_v6_table_table_t
+header cpu_in : cpu_in_t
+header cpu_out : cpu_out_t
+header ethernet : ethernet_t
+header icmp : icmp_t
+header icmpv6 : icmpv6_t
+header ipv4 : ipv4_t
+header ipv6 : ipv6_t
+header meta : meta_t
+header ndp : ndp_t
+header standard_metadata : standard_metadata_t
+header tcp : tcp_t
+header udp : udp_t
+
+if(standard_metadata.egress_port == 0b011111111) {
+  add(cpu_in);
+  cpu_in.ingress_port := standard_metadata.ingress_port
+} else {
+  if(meta.is_multicast == 0b1 && standard_metadata.ingress_port == standard_metadata.egress_port) {
+    standard_metadata.egress_spec := 0b111111111
+  }
+}
+
