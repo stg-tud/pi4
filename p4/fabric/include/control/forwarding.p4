@@ -112,7 +112,7 @@ control Forwarding (inout headers hdr,
         else if (meta.fwd_type == FWD_MPLS) mpls.apply();
         else if (meta.fwd_type == FWD_IPV4_UNICAST) routing_v4.apply();
 #ifdef WITH_IPV6
-        else if (meta.fwd_type == FWD_IPV6_UNICAST) routing_v6.apply();
+        else if (meta.fwd_type == FWD_IPV6_UNICAST && hdr.ipv6.isValid()) routing_v6.apply();
 #endif // WITH_IPV6
     }
 }

@@ -61,6 +61,9 @@ hyperfine \
   'dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -m {maxlen} ./evaluation/p4/01/fabric/fabric.p4'
 ```
 ### 3. Modular Verification
+
+#### 3.1 NG-SDN
+
 ```
 hyperfine \
   --export-json ./evaluation/03/ngsdn_parser.json \
@@ -94,6 +97,54 @@ hyperfine \
   --export-json ./evaluation/03/ngsdn_ascribed.json \
   --runs 2\
   'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/ngsdn.pi4_type ./examples/ngsdn_ascribed.pi4'
+```
+
+```
+hyperfine \
+  --export-json ./evaluation/03/ngsdn.json \
+  --runs 5\
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/ngsdn_parser.pi4_type ./examples/ngsdn_parser.pi4' \
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/ngsdn_ingress.pi4_type ./examples/ngsdn_ingress.pi4' \
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/ngsdn_egress.pi4_type ./examples/ngsdn_egress.pi4' \
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/ngsdn.pi4_type ./examples/ngsdn_deparser.pi4' \
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/ngsdn.pi4_type ./examples/ngsdn_ascribed.pi4'
+```
+
+#### 3.2 Fabric
+
+```
+hyperfine \
+  --export-json ./evaluation/03/fabric_parser.json \
+  --runs 5\
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/fabric_parser.pi4_type ./examples/fabric_parser.pi4'
+```
+
+```
+hyperfine \
+  --export-json ./evaluation/03/fabric_ingress.json \
+  --runs 5\
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/fabric_ingress.pi4_type ./examples/fabric_ingress.pi4'
+```
+
+```
+hyperfine \
+  --export-json ./evaluation/03/fabric_ingress_filtering.json \
+  --runs 5\
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/fabric_ingress_filtering.pi4_type ./examples/fabric_ingress_filtering.pi4'
+```
+
+```
+hyperfine \
+  --export-json ./evaluation/03/fabric_deparser.json \
+  --runs 1\
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/fabric_deparser.pi4_type ./examples/fabric_deparser.pi4'
+```
+
+```
+hyperfine \
+  --export-json ./evaluation/03/fabric_complete.json \
+  --runs 1\
+  'dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/fabric.pi4_type ./examples/fabric.pi4'
 ```
 
 <!-- ### 3. Full pipeline of fabric.p4

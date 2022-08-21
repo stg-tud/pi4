@@ -1,0 +1,28 @@
+{
+  "results": [
+    {
+      "command": "dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/fabric_ingress.pi4_type ./examples/fabric_ingress.pi4",
+      "mean": 21.81171808332,
+      "stddev": 0.9563991037623193,
+      "median": 22.04486548012,
+      "user": 5.17494066,
+      "system": 0.6831321600000001,
+      "min": 20.34464159112,
+      "max": 22.75918276612,
+      "times": [
+        22.04486548012,
+        22.75918276612,
+        22.46160874712,
+        21.44829183212,
+        20.34464159112
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

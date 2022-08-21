@@ -1,0 +1,76 @@
+{
+  "results": [
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 50.19186700412,
+      "stddev": 0.47519904410498265,
+      "median": 50.19186700412,
+      "user": 1.1796590999999998,
+      "system": 0.34554209999999996,
+      "min": 49.85585053762,
+      "max": 50.52788347062,
+      "times": [
+        49.85585053762,
+        50.52788347062
+      ],
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -disable-cache ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 320.27300851411997,
+      "stddev": 6.9379434351737075,
+      "median": 320.27300851411997,
+      "user": 5.776053600000001,
+      "system": 2.3016916,
+      "min": 315.36714166362,
+      "max": 325.17887536462,
+      "times": [
+        325.17887536462,
+        315.36714166362
+      ],
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -disable-inlining ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 1875.79145185762,
+      "stddev": 14.018849692497694,
+      "median": 1875.79145185762,
+      "user": 1.8613936,
+      "system": 0.9757125999999999,
+      "min": 1865.87862817562,
+      "max": 1885.70427553962,
+      "times": [
+        1865.87862817562,
+        1885.70427553962
+      ],
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -disable-cache -disable-inlining ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 6741.213099569621,
+      "stddev": 340.5377398657324,
+      "median": 6741.213099569621,
+      "user": 11.626385599999999,
+      "system": 6.5773411,
+      "min": 6500.41655446062,
+      "max": 6982.00964467862,
+      "times": [
+        6982.00964467862,
+        6500.41655446062
+      ],
+      "exit_codes": [
+        0,
+        0
+      ]
+    }
+  ]
+}

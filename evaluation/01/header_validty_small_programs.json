@@ -1,0 +1,676 @@
+{
+  "results": [
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes ./evaluation/p4/01/p4tut_basic_tunnel.p4",
+      "mean": 1.37664354044,
+      "stddev": 0.14646765701526598,
+      "median": 1.37664354044,
+      "user": 0.37655548,
+      "system": 0.04273238,
+      "min": 1.27307526694,
+      "max": 1.48021181394,
+      "times": [
+        1.48021181394,
+        1.27307526694
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_basic_tunnel"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache ./evaluation/p4/01/p4tut_basic_tunnel.p4",
+      "mean": 2.04161243594,
+      "stddev": 0.005167314325381904,
+      "median": 2.04161243594,
+      "user": 0.39722747999999997,
+      "system": 0.07681237999999999,
+      "min": 2.03795859294,
+      "max": 2.04526627894,
+      "times": [
+        2.04526627894,
+        2.03795859294
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_basic_tunnel"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-inlining ./evaluation/p4/01/p4tut_basic_tunnel.p4",
+      "mean": 1.49905491244,
+      "stddev": 0.031083880235340935,
+      "median": 1.49905491244,
+      "user": 0.18251247999999998,
+      "system": 0.052226879999999996,
+      "min": 1.47707528994,
+      "max": 1.52103453494,
+      "times": [
+        1.52103453494,
+        1.47707528994
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_basic_tunnel"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache -disable-inlining ./evaluation/p4/01/p4tut_basic_tunnel.p4",
+      "mean": 2.7598712474399996,
+      "stddev": 0.03681856572823858,
+      "median": 2.7598712474399996,
+      "user": 0.23708298,
+      "system": 0.08494488,
+      "min": 2.7338365899399997,
+      "max": 2.78590590494,
+      "times": [
+        2.7338365899399997,
+        2.78590590494
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_basic_tunnel"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes ./evaluation/p4/01/p4tut_basic.p4",
+      "mean": 0.50438448394,
+      "stddev": 0.004850142992894363,
+      "median": 0.50438448394,
+      "user": 0.14176348,
+      "system": 0.046035379999999994,
+      "min": 0.50095491494,
+      "max": 0.50781405294,
+      "times": [
+        0.50781405294,
+        0.50095491494
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_basic"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache ./evaluation/p4/01/p4tut_basic.p4",
+      "mean": 0.9092428354400001,
+      "stddev": 0.0010505110681494358,
+      "median": 0.9092428354400001,
+      "user": 0.16513748,
+      "system": 0.043947379999999994,
+      "min": 0.9085000119400001,
+      "max": 0.90998565894,
+      "times": [
+        0.90998565894,
+        0.9085000119400001
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_basic"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-inlining ./evaluation/p4/01/p4tut_basic.p4",
+      "mean": 0.60774200844,
+      "stddev": 0.01596202695307252,
+      "median": 0.60774200844,
+      "user": 0.14535248,
+      "system": 0.03667488,
+      "min": 0.59645515094,
+      "max": 0.6190288659400001,
+      "times": [
+        0.6190288659400001,
+        0.59645515094
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_basic"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache -disable-inlining ./evaluation/p4/01/p4tut_basic.p4",
+      "mean": 1.14910253544,
+      "stddev": 0.0172628630141501,
+      "median": 1.14910253544,
+      "user": 0.16149848,
+      "system": 0.05109237999999999,
+      "min": 1.13689584794,
+      "max": 1.16130922294,
+      "times": [
+        1.13689584794,
+        1.16130922294
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_basic"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes ./evaluation/p4/01/p4tut_ecn.p4",
+      "mean": 0.36322943894000004,
+      "stddev": 0.0019608396311422316,
+      "median": 0.36322943894000004,
+      "user": 0.13021448,
+      "system": 0.04237238,
+      "min": 0.36184291594,
+      "max": 0.36461596194,
+      "times": [
+        0.36461596194,
+        0.36184291594
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_ecn"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache ./evaluation/p4/01/p4tut_ecn.p4",
+      "mean": 0.83549093894,
+      "stddev": 0.06139576674282629,
+      "median": 0.83549093894,
+      "user": 0.15440147999999998,
+      "system": 0.03738287999999999,
+      "min": 0.7920775759400001,
+      "max": 0.87890430194,
+      "times": [
+        0.7920775759400001,
+        0.87890430194
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_ecn"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-inlining ./evaluation/p4/01/p4tut_ecn.p4",
+      "mean": 0.4429200804400001,
+      "stddev": 0.001293728930819945,
+      "median": 0.4429200804400001,
+      "user": 0.14262098,
+      "system": 0.03259387999999999,
+      "min": 0.44200527594000005,
+      "max": 0.44383488494000006,
+      "times": [
+        0.44200527594000005,
+        0.44383488494000006
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_ecn"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache -disable-inlining ./evaluation/p4/01/p4tut_ecn.p4",
+      "mean": 1.0858830024400001,
+      "stddev": 0.026247882206497285,
+      "median": 1.0858830024400001,
+      "user": 0.17502447999999998,
+      "system": 0.03856638,
+      "min": 1.06732294694,
+      "max": 1.10444305794,
+      "times": [
+        1.06732294694,
+        1.10444305794
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_ecn"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes ./evaluation/p4/01/p4tut_load_balance.p4",
+      "mean": 1.5571425009400002,
+      "stddev": 0.05511399131911118,
+      "median": 1.5571425009400002,
+      "user": 0.28858997999999997,
+      "system": 0.07323737999999999,
+      "min": 1.5181710239400001,
+      "max": 1.5961139779400002,
+      "times": [
+        1.5181710239400001,
+        1.5961139779400002
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_load_balance"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache ./evaluation/p4/01/p4tut_load_balance.p4",
+      "mean": 1.9985116669399998,
+      "stddev": 0.06730884254869487,
+      "median": 1.9985116669399998,
+      "user": 0.35378047999999995,
+      "system": 0.09580037999999999,
+      "min": 1.9509171279400002,
+      "max": 2.0461062059399997,
+      "times": [
+        1.9509171279400002,
+        2.0461062059399997
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_load_balance"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-inlining ./evaluation/p4/01/p4tut_load_balance.p4",
+      "mean": 2.01093023944,
+      "stddev": 0.06122449345960744,
+      "median": 2.01093023944,
+      "user": 0.17355098,
+      "system": 0.05954237999999999,
+      "min": 1.96763798494,
+      "max": 2.05422249394,
+      "times": [
+        2.05422249394,
+        1.96763798494
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_load_balance"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache -disable-inlining ./evaluation/p4/01/p4tut_load_balance.p4",
+      "mean": 2.63858996844,
+      "stddev": 0.0493371516554529,
+      "median": 2.63858996844,
+      "user": 0.22006798,
+      "system": 0.09156238,
+      "min": 2.60370333394,
+      "max": 2.6734766029399997,
+      "times": [
+        2.60370333394,
+        2.6734766029399997
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_load_balance"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes ./evaluation/p4/01/p4tut_multicast.p4",
+      "mean": 0.42681442144000004,
+      "stddev": 0.0003934900744879078,
+      "median": 0.42681442144000004,
+      "user": 0.15625748,
+      "system": 0.029921379999999997,
+      "min": 0.42653618194000004,
+      "max": 0.42709266094000004,
+      "times": [
+        0.42653618194000004,
+        0.42709266094000004
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_multicast"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache ./evaluation/p4/01/p4tut_multicast.p4",
+      "mean": 0.6590130709400001,
+      "stddev": 0.031687974993537364,
+      "median": 0.6590130709400001,
+      "user": 0.16131948,
+      "system": 0.03178438,
+      "min": 0.63660628894,
+      "max": 0.6814198529400001,
+      "times": [
+        0.6814198529400001,
+        0.63660628894
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_multicast"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-inlining ./evaluation/p4/01/p4tut_multicast.p4",
+      "mean": 0.40553705744,
+      "stddev": 0.0014250966428423213,
+      "median": 0.40553705744,
+      "user": 0.15185298,
+      "system": 0.02667538,
+      "min": 0.40452936194000005,
+      "max": 0.40654475294000003,
+      "times": [
+        0.40654475294000003,
+        0.40452936194000005
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_multicast"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache -disable-inlining ./evaluation/p4/01/p4tut_multicast.p4",
+      "mean": 0.6356894549400001,
+      "stddev": 0.0036566994813161894,
+      "median": 0.6356894549400001,
+      "user": 0.14354448,
+      "system": 0.045634379999999995,
+      "min": 0.6331037779400001,
+      "max": 0.6382751319400001,
+      "times": [
+        0.6331037779400001,
+        0.6382751319400001
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_multicast"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes ./evaluation/p4/01/p4tut_qos.p4",
+      "mean": 0.5509064394400001,
+      "stddev": 0.006413575177980895,
+      "median": 0.5509064394400001,
+      "user": 0.18250948,
+      "system": 0.039479379999999994,
+      "min": 0.54637135694,
+      "max": 0.5554415219400001,
+      "times": [
+        0.54637135694,
+        0.5554415219400001
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_qos"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache ./evaluation/p4/01/p4tut_qos.p4",
+      "mean": 0.99922847344,
+      "stddev": 0.08924949693467961,
+      "median": 0.99922847344,
+      "user": 0.19398948,
+      "system": 0.07118988,
+      "min": 0.93611954894,
+      "max": 1.06233739794,
+      "times": [
+        0.93611954894,
+        1.06233739794
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_qos"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-inlining ./evaluation/p4/01/p4tut_qos.p4",
+      "mean": 0.8152923134400001,
+      "stddev": 0.06539410981522024,
+      "median": 0.8152923134400001,
+      "user": 0.15515498,
+      "system": 0.04881388,
+      "min": 0.76905169494,
+      "max": 0.86153293194,
+      "times": [
+        0.76905169494,
+        0.86153293194
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_qos"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache -disable-inlining ./evaluation/p4/01/p4tut_qos.p4",
+      "mean": 1.36762982444,
+      "stddev": 0.138555938235519,
+      "median": 1.36762982444,
+      "user": 0.18946848,
+      "system": 0.06128787999999999,
+      "min": 1.26965598094,
+      "max": 1.46560366794,
+      "times": [
+        1.46560366794,
+        1.26965598094
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "p4tut_qos"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes ./evaluation/p4/01/roundtripping-safe.p4",
+      "mean": 2.57051671294,
+      "stddev": 0.03979543931509316,
+      "median": 2.57051671294,
+      "user": 0.16402847999999998,
+      "system": 0.05648188,
+      "min": 2.54237708794,
+      "max": 2.59865633794,
+      "times": [
+        2.54237708794,
+        2.59865633794
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "roundtripping-safe"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache ./evaluation/p4/01/roundtripping-safe.p4",
+      "mean": 4.39362558344,
+      "stddev": 0.1857809852700918,
+      "median": 4.39362558344,
+      "user": 0.21220647999999998,
+      "system": 0.05234688,
+      "min": 4.26225858894,
+      "max": 4.52499257794,
+      "times": [
+        4.52499257794,
+        4.26225858894
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "roundtripping-safe"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-inlining ./evaluation/p4/01/roundtripping-safe.p4",
+      "mean": 3.5102286289399998,
+      "stddev": 0.03691401029445622,
+      "median": 3.5102286289399998,
+      "user": 0.17724997999999997,
+      "system": 0.04284787999999999,
+      "min": 3.4841264819399997,
+      "max": 3.53633077594,
+      "times": [
+        3.53633077594,
+        3.4841264819399997
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "roundtripping-safe"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache -disable-inlining ./evaluation/p4/01/roundtripping-safe.p4",
+      "mean": 5.81142023694,
+      "stddev": 0.1549558424770551,
+      "median": 5.81142023694,
+      "user": 0.21619597999999998,
+      "system": 0.054937879999999994,
+      "min": 5.70184990994,
+      "max": 5.92099056394,
+      "times": [
+        5.92099056394,
+        5.70184990994
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "roundtripping-safe"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes ./evaluation/p4/01/vlan_decap.p4",
+      "mean": 0.61319354094,
+      "stddev": 0.05075477700804545,
+      "median": 0.61319354094,
+      "user": 0.19904348,
+      "system": 0.04277387999999999,
+      "min": 0.57730449394,
+      "max": 0.6490825879400001,
+      "times": [
+        0.57730449394,
+        0.6490825879400001
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "vlan_decap"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache ./evaluation/p4/01/vlan_decap.p4",
+      "mean": 1.05350019294,
+      "stddev": 0.04971894052692593,
+      "median": 1.05350019294,
+      "user": 0.21079098,
+      "system": 0.05816038,
+      "min": 1.01834359294,
+      "max": 1.08865679294,
+      "times": [
+        1.08865679294,
+        1.01834359294
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "vlan_decap"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-inlining ./evaluation/p4/01/vlan_decap.p4",
+      "mean": 0.96826572594,
+      "stddev": 0.0006549109870264789,
+      "median": 0.96826572594,
+      "user": 0.14600448,
+      "system": 0.050838879999999996,
+      "min": 0.9678026339400001,
+      "max": 0.9687288179400001,
+      "times": [
+        0.9687288179400001,
+        0.9678026339400001
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "vlan_decap"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -disable-cache -disable-inlining ./evaluation/p4/01/vlan_decap.p4",
+      "mean": 2.12297147344,
+      "stddev": 0.11970144786048963,
+      "median": 2.12297147344,
+      "user": 0.20666798,
+      "system": 0.07194187999999999,
+      "min": 2.0383297679399996,
+      "max": 2.20761317894,
+      "times": [
+        2.20761317894,
+        2.0383297679399996
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "program": "vlan_decap"
+      }
+    }
+  ]
+}

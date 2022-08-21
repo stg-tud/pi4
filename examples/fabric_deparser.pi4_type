@@ -1,0 +1,13 @@
+(x:{y:⊤ | y.standard_metadata.valid ∧ 
+          y.meta.valid ∧ 
+          y.ethernet.valid ∧ 
+          y.eth_type.valid ∧
+          ¬y.inner_ipv4.valid ∧
+          ¬y.inner_udp.valid ∧
+          ¬y.inner_tcp.valid ∧
+          ¬y.inner_icmp.valid ∧
+          ¬y.packet_in.valid ∧
+          ¬y.packet_out.valid ∧
+          ¬y.mpls.valid ∧
+          (y.pkt_in.length > 0 || y.pkt_in.length == 0) ∧
+          y.pkt_out.length == 0}) -> {y:⊤|y.pkt_out.length > 111}
