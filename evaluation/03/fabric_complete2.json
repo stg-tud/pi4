@@ -1,0 +1,20 @@
+{
+  "results": [
+    {
+      "command": "dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/fabric.pi4_type ./examples/fabric.pi4",
+      "mean": 383.95573501498,
+      "stddev": null,
+      "median": 383.95573501498,
+      "user": 80.97004912,
+      "system": 8.1841662,
+      "min": 383.95573501498,
+      "max": 383.95573501498,
+      "times": [
+        383.95573501498
+      ],
+      "exit_codes": [
+        0
+      ]
+    }
+  ]
+}

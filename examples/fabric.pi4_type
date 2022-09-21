@@ -1,0 +1,2 @@
+(x:{y: standard_metadata . meta | y.pkt_in.length > 687 ∧ y.pkt_out.length == 0}) -> 
+  ⊤

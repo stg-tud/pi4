@@ -1,0 +1,363 @@
+header_type Filtering_fwd_classifier_table_t {
+  act: 1;
+  set_forwarding_type_fwd_type: 3;
+  meta_ip_eth_type_key: 16;
+  eth_type_value_key: 16;
+  ethernet_dst_addr_key: 48;
+  standard_metadata_ingress_port_key: 9;
+}
+header_type Filtering_ingress_port_vlan_table_t {
+  act: 2;
+  permit_with_internal_vlan_port_type: 2;
+  permit_with_internal_vlan_vlan_id: 12;
+  permit_port_type: 2;
+  vlan_tag_vlan_id_key: 12;
+  standard_metadata_ingress_port_key: 9;
+}
+header_type Forwarding_bridging_table_t {
+  act: 2;
+  set_next_id_bridging_next_id: 32;
+  ethernet_dst_addr_key: 48;
+  meta_vlan_id_key: 12;
+}
+header_type Forwarding_mpls_table_t {
+  act: 2;
+  pop_mpls_and_next_next_id: 32;
+  meta_mpls_label_key: 20;
+}
+header_type Forwarding_routing_v4_table_t {
+  act: 2;
+  set_next_id_routing_v4_next_id: 32;
+  meta_ipv4_dst_addr_key: 32;
+}
+header_type Forwarding_routing_v6_table_t {
+  act: 2;
+  set_next_id_routing_v6_next_id: 32;
+  ipv6_dst_addr_key: 128;
+}
+header_type eth_type_t {
+  value: 16;
+}
+header_type ethernet_t {
+  dst_addr: 48;
+  src_addr: 48;
+}
+header_type icmp_t {
+  icmp_type: 8;
+  icmp_code: 8;
+  checksum: 16;
+  identifier: 16;
+  sequence_number: 16;
+  timestamp: 64;
+}
+header_type inner_icmp_t {
+  icmp_type: 8;
+  icmp_code: 8;
+  checksum: 16;
+  identifier: 16;
+  sequence_number: 16;
+  timestamp: 64;
+}
+header_type inner_ipv4_t {
+  version: 4;
+  ihl: 4;
+  dscp: 6;
+  ecn: 2;
+  total_len: 16;
+  identification: 16;
+  flags: 3;
+  frag_offset: 13;
+  ttl: 8;
+  protocol: 8;
+  hdr_checksum: 16;
+  src_addr: 32;
+  dst_addr: 32;
+}
+header_type inner_tcp_t {
+  sport: 16;
+  dport: 16;
+  seq_no: 32;
+  ack_no: 32;
+  data_offset: 4;
+  res: 3;
+  ecn: 3;
+  ctrl: 6;
+  window: 16;
+  checksum: 16;
+  urgent_ptr: 16;
+}
+header_type inner_udp_t {
+  sport: 16;
+  dport: 16;
+  len: 16;
+  checksum: 16;
+}
+header_type inner_vlan_tag_t {
+  eth_type: 16;
+  pri: 3;
+  cfi: 1;
+  vlan_id: 12;
+}
+header_type ipv4_t {
+  version: 4;
+  ihl: 4;
+  dscp: 6;
+  ecn: 2;
+  total_len: 16;
+  identification: 16;
+  flags: 3;
+  frag_offset: 13;
+  ttl: 8;
+  protocol: 8;
+  hdr_checksum: 16;
+  src_addr: 32;
+  dst_addr: 32;
+}
+header_type ipv6_t {
+  version: 4;
+  traffic_class: 8;
+  flow_label: 20;
+  payload_len: 16;
+  next_hdr: 8;
+  hop_limit: 8;
+  src_addr: 128;
+  dst_addr: 128;
+}
+header_type meta_t {
+  ip_eth_type: 16;
+  vlan_id: 12;
+  vlan_pri: 3;
+  vlan_cfi: 1;
+  mpls_label: 20;
+  mpls_ttl: 8;
+  skip_forwarding: 1;
+  skip_next: 1;
+  fwd_type: 3;
+  next_id: 32;
+  is_multicast: 1;
+  is_controller_packet_out: 1;
+  ip_proto: 8;
+  l4_sport: 16;
+  l4_dport: 16;
+  ipv4_src_addr: 32;
+  ipv4_dst_addr: 32;
+  slice_id: 4;
+  packet_color: 2;
+  tc: 2;
+  dscp: 6;
+  port_type: 2;
+}
+header_type mpls_t {
+  label: 20;
+  tc: 3;
+  bos: 1;
+  ttl: 8;
+}
+header_type packet_in_t {
+  ingress_port: 9;
+  pad: 7;
+}
+header_type packet_out_t {
+  egress_port: 9;
+  do_forwarding: 1;
+  pad: 6;
+}
+header_type standard_metadata_t {
+  ingress_port: 9;
+  egress_spec: 9;
+  egress_port: 9;
+  instance_type: 32;
+  packet_length: 32;
+  enq_timestamp: 32;
+  enq_qdepth: 19;
+  deq_timedelta: 32;
+  deq_qdepth: 19;
+  ingress_global_timestamp: 48;
+  egress_global_timestamp: 48;
+  mcast_grp: 16;
+  egress_rid: 16;
+  checksum_error: 1;
+  priority: 3;
+}
+header_type tcp_t {
+  sport: 16;
+  dport: 16;
+  seq_no: 32;
+  ack_no: 32;
+  data_offset: 4;
+  res: 3;
+  ecn: 3;
+  ctrl: 6;
+  window: 16;
+  checksum: 16;
+  urgent_ptr: 16;
+}
+header_type udp_t {
+  sport: 16;
+  dport: 16;
+  len: 16;
+  checksum: 16;
+}
+header_type vlan_tag_t {
+  eth_type: 16;
+  pri: 3;
+  cfi: 1;
+  vlan_id: 12;
+}
+
+header Filtering_fwd_classifier_table : Filtering_fwd_classifier_table_t
+header Filtering_ingress_port_vlan_table : Filtering_ingress_port_vlan_table_t
+header Forwarding_bridging_table : Forwarding_bridging_table_t
+header Forwarding_mpls_table : Forwarding_mpls_table_t
+header Forwarding_routing_v4_table : Forwarding_routing_v4_table_t
+header Forwarding_routing_v6_table : Forwarding_routing_v6_table_t
+header eth_type : eth_type_t
+header ethernet : ethernet_t
+header icmp : icmp_t
+header inner_icmp : inner_icmp_t
+header inner_ipv4 : inner_ipv4_t
+header inner_tcp : inner_tcp_t
+header inner_udp : inner_udp_t
+header inner_vlan_tag : inner_vlan_tag_t
+header ipv4 : ipv4_t
+header ipv6 : ipv6_t
+header meta : meta_t
+header mpls : mpls_t
+header packet_in : packet_in_t
+header packet_out : packet_out_t
+header standard_metadata : standard_metadata_t
+header tcp : tcp_t
+header udp : udp_t
+header vlan_tag : vlan_tag_t
+
+if(vlan_tag.valid) {
+  meta[16:28] := vlan_tag[20:32];
+  meta[28:31] := vlan_tag[16:19];
+  meta[31:32] := vlan_tag[19:20]
+} else {
+  skip
+  };
+if(¬(mpls.valid)) {
+  meta[52:60] := 0b01000001
+} else {
+skip
+};
+if(vlan_tag.valid) {
+  add(Filtering_ingress_port_vlan_table);
+  if((true ∧
+      Filtering_ingress_port_vlan_table[18:30] == vlan_tag[20:32])) {
+    if(Filtering_ingress_port_vlan_table[0:2] == 0b10) {
+      meta[16:28] := Filtering_ingress_port_vlan_table[4:16];
+      meta[217:219] := Filtering_ingress_port_vlan_table[2:4]
+    } else {
+      if(Filtering_ingress_port_vlan_table[0:2] == 0b01) {
+        meta[217:219] := Filtering_ingress_port_vlan_table[16:18]
+      } else {
+        if(Filtering_ingress_port_vlan_table[0:2] == 0b00) {
+          meta[60:61] := 0b1;
+          meta[61:62] := 0b1;
+          meta[217:219] := 0b00
+        } else {
+          meta[60:61] := 0b1;
+          meta[61:62] := 0b1;
+          meta[217:219] := 0b00
+          }
+        }
+      }
+  } else {
+    skip
+    }
+} else {
+skip
+};
+add(Filtering_fwd_classifier_table);
+if(((true ∧
+    Filtering_fwd_classifier_table[36:84] == ethernet[0:48]) ∧
+    Filtering_fwd_classifier_table[20:36] == eth_type[0:16])) {
+  if(Filtering_fwd_classifier_table[0:1] == 0b0) {
+    meta[62:65] := Filtering_fwd_classifier_table[1:4]
+  } else {
+    meta[62:65] := Filtering_fwd_classifier_table[1:4]
+    }
+} else {
+  skip
+  };
+if(meta[60:61] == 0b0) {
+  if(meta[62:65] == 0b000) {
+    add(Forwarding_bridging_table);
+    if((true ∧
+        Forwarding_bridging_table[34:82] == ethernet[0:48])) {
+      if(Forwarding_bridging_table[0:2] == 0b00) {
+        meta[65:97] := Forwarding_bridging_table[2:34]
+      } else {
+        if(Forwarding_bridging_table[0:2] == 0b01) {
+          skip
+        } else {
+          skip
+          }
+        }
+    } else {
+      skip
+      }
+  } else {
+    if(meta[62:65] == 0b001) {
+      add(Forwarding_mpls_table);
+      if(true) {
+        if(Forwarding_mpls_table[0:2] == 0b00) {
+          meta[32:52] := 0b00000000000000000000;
+          meta[65:97] := Forwarding_mpls_table[2:34]
+        } else {
+          if(Forwarding_mpls_table[0:2] == 0b01) {
+            skip
+          } else {
+            skip
+            }
+          }
+      } else {
+        skip
+        }
+    } else {
+      if(meta[62:65] == 0b010) {
+        add(Forwarding_routing_v4_table);
+        if(true) {
+          if(Forwarding_routing_v4_table[0:2] == 0b00) {
+            meta[65:97] := Forwarding_routing_v4_table[2:34]
+          } else {
+            if(Forwarding_routing_v4_table[0:2] == 0b01) {
+              skip
+            } else {
+              if(Forwarding_routing_v4_table[0:2] == 0b10) {
+                skip
+              } else {
+                skip
+                }
+              }
+            }
+        } else {
+          skip
+          }
+      } else {
+        if((meta[62:65] == 0b100 ∧
+            ipv6.valid)) {
+          add(Forwarding_routing_v6_table);
+          if((true ∧
+              Forwarding_routing_v6_table[34:162] == ipv6[192:320])) {
+            if(Forwarding_routing_v6_table[0:2] == 0b00) {
+              meta[65:97] := Forwarding_routing_v6_table[2:34]
+            } else {
+              if(Forwarding_routing_v6_table[0:2] == 0b01) {
+                skip
+              } else {
+                skip
+                }
+              }
+          } else {
+            skip
+            }
+        } else {
+          skip
+        }
+      }
+    }
+  }
+}

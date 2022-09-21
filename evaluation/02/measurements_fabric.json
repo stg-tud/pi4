@@ -1,0 +1,172 @@
+{
+  "results": [
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -m 1500 ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 53.98833305518,
+      "stddev": 0.6431013442367668,
+      "median": 53.98833305518,
+      "user": 1.3903237999999998,
+      "system": 0.36500705999999994,
+      "min": 53.53359173368,
+      "max": 54.44307437668,
+      "times": [
+        54.44307437668,
+        53.53359173368
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "maxlen": "1500"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -m 3000 ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 64.79069510918,
+      "stddev": 0.2681041980418811,
+      "median": 64.79069510918,
+      "user": 1.4917472999999997,
+      "system": 0.38093856,
+      "min": 64.60111681268,
+      "max": 64.98027340568,
+      "times": [
+        64.98027340568,
+        64.60111681268
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "maxlen": "3000"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -m 4500 ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 77.59774947168,
+      "stddev": 3.5856265340087394,
+      "median": 77.59774947168,
+      "user": 1.4422628,
+      "system": 0.43476706,
+      "min": 75.06232863468,
+      "max": 80.13317030868,
+      "times": [
+        80.13317030868,
+        75.06232863468
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "maxlen": "4500"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -m 6000 ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 87.74021813368,
+      "stddev": 0.8220497094153161,
+      "median": 87.74021813368,
+      "user": 1.5621657999999998,
+      "system": 0.42254605999999995,
+      "min": 87.15894120968,
+      "max": 88.32149505768,
+      "times": [
+        88.32149505768,
+        87.15894120968
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "maxlen": "6000"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -m 7500 ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 101.28519582518001,
+      "stddev": 0.7829933444718763,
+      "median": 101.28519582518001,
+      "user": 1.6258137999999998,
+      "system": 0.34397506,
+      "min": 100.73153592168,
+      "max": 101.83885572868,
+      "times": [
+        100.73153592168,
+        101.83885572868
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "maxlen": "7500"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -m 9000 ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 127.58480520718001,
+      "stddev": 1.8191331913710644,
+      "median": 127.58480520718001,
+      "user": 1.5007142999999998,
+      "system": 0.40915006,
+      "min": 126.29848379168,
+      "max": 128.87112662268,
+      "times": [
+        126.29848379168,
+        128.87112662268
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "maxlen": "9000"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -m 10500 ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 138.75904745668,
+      "stddev": 0.967044603719613,
+      "median": 138.75904745668,
+      "user": 1.5402877999999998,
+      "system": 0.44360955999999996,
+      "min": 138.07524365968,
+      "max": 139.44285125368,
+      "times": [
+        139.44285125368,
+        138.07524365968
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "maxlen": "10500"
+      }
+    },
+    {
+      "command": "dune exec bin/main.exe -- -i ./p4/includes -i ./evaluation/p4/01/fabric/include -m 12000 ./evaluation/p4/01/fabric/fabric.p4",
+      "mean": 134.53749633567998,
+      "stddev": 3.3462196148501766,
+      "median": 134.53749633567998,
+      "user": 1.4852717999999998,
+      "system": 0.45197455999999997,
+      "min": 132.17136175468,
+      "max": 136.90363091668,
+      "times": [
+        136.90363091668,
+        132.17136175468
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "parameters": {
+        "maxlen": "12000"
+      }
+    }
+  ]
+}

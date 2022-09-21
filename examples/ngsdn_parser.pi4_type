@@ -1,0 +1,1 @@
+(x:{y: standard_metadata . meta | y.pkt_in.length > 703}) -> {y: ⊤ | y.standard_metadata.valid ∧ y.meta.valid ∧ y.ethernet.valid ∧ y.pkt_in.length > 0 || y.pkt_in.length == 0 }

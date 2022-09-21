@@ -1,0 +1,22 @@
+{
+  "results": [
+    {
+      "command": "dune exec bin/main.exe -- -m 1500 -ir -typ ./examples/ngsdn.pi4_type ./examples/ngsdn_deparser.pi4",
+      "mean": 2.38757978294,
+      "stddev": 0.008622587369009256,
+      "median": 2.38757978294,
+      "user": 1.11384836,
+      "system": 0.19943782,
+      "min": 2.38148269294,
+      "max": 2.39367687294,
+      "times": [
+        2.39367687294,
+        2.38148269294
+      ],
+      "exit_codes": [
+        0,
+        0
+      ]
+    }
+  ]
+}

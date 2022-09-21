@@ -1,0 +1,12 @@
+(x:{y: ⊤ | y.standard_metadata.valid ∧ 
+            y.meta.valid ∧ 
+            ¬y.cpu_in.valid ∧
+            y.ethernet.valid ∧ 
+            (y.icmpv6.valid => (y.ipv6.valid ∧ ((y.icmpv6.type == 0x87 ∨ y.icmpv6.type == 0x88) => y.ndp.valid))) ∧
+            (¬y.IngressPipeImpl_acl_table_table.valid) ∧ 
+            (¬y.IngressPipeImpl_l2_exact_table_table.valid) ∧ 
+            (¬y.IngressPipeImpl_l2_ternary_table_table.valid) ∧ 
+            (¬y.IngressPipeImpl_my_station_table_table.valid) ∧ 
+            (¬y.IngressPipeImpl_ndp_reply_table_table.valid) ∧ 
+            (¬y.IngressPipeImpl_routing_v6_table_table.valid) ∧ 
+            (y.pkt_in.length > 0 || y.pkt_in.length == 0) }) -> {y:⊤|¬y.cpu_in.valid}
