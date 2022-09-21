@@ -1,10 +1,8 @@
 opam-version: "2.0"
 version: "0.1"
 synopsis: "Dependently-typed Data Plane Programming"
-authors: "Matthias"
-maintainer: "Matthias"
-homepage: "foo"
-bug-reports: "foo"
+authors: "Matthias Eichholz"
+maintainer: "Matthias Eichholz"
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
@@ -16,7 +14,7 @@ depends: [
   "core" 
   "dune" {>= "3.4"}
   "menhir" {< "20211230"}
-  "ocaml" {>= "4.12.0"}
+  "ocaml" {>= "4.14.0"}
   "petr4" {>= "0.1.2"}
   "ppx_jane"
   "fmt"

@@ -99,7 +99,7 @@ let test_typecheck_if () =
     |}
   in
   let typ =
-    {| (x: {y:a|y.pkt_in.length == 4}) -> {y: Σy:a.b|x.a.valid} + {y:a|!x.a.valid} |}
+    {| (x: {y:a|y.pkt_in.length == 4}) -> {y: a.b|x.a.valid} + {y:a|!x.a.valid} |}
   in
   Test.check_program Test.typecheck program typ
 

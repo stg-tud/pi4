@@ -1,22 +1,23 @@
-# Pi4
+# Dependently-Typed Data Plane Programming with Π4
 
-Typechecker for a dependently-typed variant of P4.
+This repository contains the implementation of Π4, a dependently-typed variant of the P4 language based on regular types with decidable refinements that is capable of expressing and modularly reasoning about a rich set of network properties.
 
-## TODOs
-1. Support tables in the frontend
-2. Allow to specify multiple properties using `@pi4` annotations (x)
-3. Integrate substitution inlining
-4. Integrate includes caching
+The full paper is available at https://doi.org/10.1145/3498701.
 
 ## Building
 
-### External Dependencies
-https://github.com/eichholz/ocaml-z3
+1. Install OPAM following the official installation instructions
 
-### Build documentation
-```dune build @doc```
+1. Pin and install external dependencies *petr4* and *ocaml-z3*
+    ```
+    opam pin add petr4 https://github.com/verified-network-toolchain/petr4
+    opam pin add z3 https://github.com/eichholz/ocaml-z3.git#use-successes
+    ```
 
-The documentation is available in `_build/default/_doc/`.
+1. Use OPAM to install dependencies: 
+    ```
+    opam install --deps-only
+    ```
 
 ## Running
 
@@ -43,7 +44,6 @@ dune exec test/test.exe test type_checking
 https://github.com/LexiFi/landmarks
 
 ```
-export OCAML_LANDMARKS="format=json,output=./profile.json,debug"
+dune exec --context profiling -- bin/main.exe -- [ARGS]
+dune exec --context profiling -- test/test.exe -- [ARGS]
 ```
-
-The viewer for the generated output can be found here: http://lexifi.github.io/landmarks/viewer.html
