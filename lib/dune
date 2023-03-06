@@ -3,9 +3,7 @@
  (public_name pi4)
  (preprocess
   (pps ppx_jane))
- (libraries bitv core fmt landmarks logs menhirLib owl-base petr4 z3)
- (instrumentation
-  (backend landmarks --auto)))
+ (libraries bitv core fmt logs menhirLib owl-base petr4 z3))
 
 (include_subdirs no)
 

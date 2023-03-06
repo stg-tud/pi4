@@ -14,21 +14,7 @@ let rec pp_bitvector (pp : Format.formatter) (bitvec : BitVector.t) =
 let pp_packet (pp : Format.formatter) (packet : packet) =
   match packet with PktIn -> pf pp "pkt_in" | PktOut -> pf pp "pkt_out"
 
-let pp_sliceable (ctx : Env.context) (pp : Format.formatter)
-    (sliceable : Sliceable.t) =
-  match sliceable with
-  | Packet (x, p) ->
-    let name = Env.index_to_name_exn ctx x in
-    pf pp "%a.%a" string name pp_packet p
-  | Instance (x, inst) ->
-    let name = Env.index_to_name_exn ctx x in
-    pf pp "%a.%a" string name string inst.name
-
-let pp_sliceable_raw (pp : Format.formatter) (sliceable : Sliceable.t) =
-  match sliceable with
-  | Packet (x, p) -> pf pp "%a.%a" int x pp_packet p
-  | Instance (x, inst) -> pf pp "%a.%a" int x string inst.name
-
+ 
 let rec pp_arith_expr (ctx : Env.context) (pp : Format.formatter)
     (expr : Expression.arith) =
   match expr with
@@ -45,7 +31,10 @@ let rec pp_bv_expr (ctx : Env.context) (pp : Format.formatter)
   | Minus (t1, t2) -> pf pp "(%a - %a)" (pp_bv_expr ctx) t1 (pp_bv_expr ctx) t2
   | Bv bv -> pf pp "0b%a" pp_bitvector bv
   | Concat (tm1, tm2) -> pf pp "%a@%a" (pp_bv_expr ctx) tm1 (pp_bv_expr ctx) tm2
-  | Slice (s, l, r) -> pf pp "%a[%a:%a]" (pp_sliceable ctx) s int l int r
+  | Slice (s, l, r) -> pf pp "(%a)[%a:%a]" (pp_bv_expr ctx) s int l int r
+  | Instance (x, inst) -> 
+    let name = Env.index_to_name_exn ctx x in
+    pf pp "%a.%a" string name string inst.name
   | Packet (x, p) ->
     let name = Env.index_to_name_exn ctx x in
     pf pp "%a.%a" string name pp_packet p
@@ -66,7 +55,8 @@ let rec pp_bv_expr_raw (pp : Format.formatter) (expr : Expression.bv) =
   | Minus (t1, t2) -> pf pp "%a - %a" pp_bv_expr_raw t1 pp_bv_expr_raw t2
   | Bv bv -> pf pp "0b%a" pp_bitvector bv
   | Concat (tm1, tm2) -> pf pp "%a@%a" pp_bv_expr_raw tm1 pp_bv_expr_raw tm2
-  | Slice (s, l, r) -> pf pp "%a[%a:%a]" pp_sliceable_raw s int l int r
+  | Slice (s, l, r) -> pf pp "(%a)[%a:%a]" pp_bv_expr_raw s int l int r
+  | Instance (x, inst) -> pf pp "%a.%a" int x string inst.name
   | Packet (x, p) -> pf pp "%a.%a" int x pp_packet p
 
 let pp_expr_raw (pp : Format.formatter) (expr : Expression.t) =

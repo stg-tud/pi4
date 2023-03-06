@@ -18,8 +18,8 @@ depends: [
   "petr4" {>= "0.1.2"}
   "ppx_jane"
   "fmt"
-  "landmarks"
-  "landmarks-ppx"
+  #"landmarks"
+  #"landmarks-ppx"
   "logs"
   "owl-base"
   "bitv"

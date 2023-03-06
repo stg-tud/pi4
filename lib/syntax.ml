@@ -177,7 +177,7 @@ module BitVector = struct
     match bv1 with Nil -> bv2 | Cons (b, bs) -> Cons (b, concat bs bv2)
 
   let of_bit_list bits =
-    List.rev bits |> List.fold ~init:Nil ~f:(fun acc b -> Cons (b, acc))
+  (* List.rev *) bits |> List.fold ~init:Nil ~f:(fun acc b -> Cons (b, acc))
 
   let of_bit_str bv_str = of_bit_list (Bit.bit_list_of_string bv_str)
 
@@ -206,14 +206,6 @@ module BitVector = struct
 
   let zero size = of_bit_list (List.init size ~f:(fun _ -> Bit.Zero))
 end
-
-module Sliceable = struct
-  type t =
-    | Packet of var * packet
-    | Instance of var * Instance.t
-  [@@deriving compare, sexp]
-end
-
 module Expression = struct
   type arith =
     | Num of int (* n *)
@@ -226,10 +218,9 @@ module Expression = struct
     | Minus of bv * bv (* t1 - t2 where t1 and t2 must have bitvector types *)
     | Bv of BitVector.t (* bv *)
     | Concat of bv * bv
-    (* t1 @ t2 where t1 and t2 must have bitvector types *)
-    | Slice of Sliceable.t * int * int (* x.p[hi:lo] or x.h[hi:lo] *)
-    | Packet of var * packet
-  (* x.p *)
+    | Slice of bv * int * int  (* bv[hi:lo]  *)
+    | Instance of var * Instance.t 
+    | Packet of var * packet (* x.p *)
   [@@deriving compare, sexp]
 
   type t =
@@ -247,8 +238,8 @@ module Expression = struct
     | Ok slice -> slice
     | Error (`FieldAccessError e) -> failwith e
 
-  let instance_slice x inst = Slice (Instance (x, inst), 0, Instance.sizeof inst)
-  let bit_access sliceable idx = BvExpr (Slice (sliceable, idx, idx + 1))
+  let instance_slice x inst = Slice (Instance (x, inst), 0, Instance.sizeof inst) 
+  let bit_access bv idx = BvExpr (Slice (bv, idx, idx + 1))
 end
 
 module Formula = struct
@@ -398,8 +389,8 @@ let packet_equality (x : var) (y : var) (packet : packet) =
 
 let inst_equality (idx_x : var) (idx_y : var) (insts : Instance.t list) =
   List.fold insts ~init:Formula.True ~f:(fun acc inst ->
-      let slice var =
-        Expression.Slice (Instance (var, inst), 0, Instance.sizeof inst)
+      let instance var =
+        Expression.Instance (var, inst)
       in
       let eq =
         Formula.(
@@ -407,7 +398,7 @@ let inst_equality (idx_x : var) (idx_y : var) (insts : Instance.t list) =
             ( And (Neg (IsValid (idx_x, inst)), Neg (IsValid (idx_y, inst))),
               And
                 ( And (IsValid (idx_x, inst), IsValid (idx_y, inst)),
-                  Eq (BvExpr (slice idx_x), BvExpr (slice idx_y)) ) ))
+                  Eq (BvExpr (instance idx_x), BvExpr (instance idx_y)) ) ))
       in
       And (acc, eq))
 

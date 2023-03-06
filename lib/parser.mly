@@ -423,6 +423,10 @@ bv_expr:
       let binder = Env.name_to_index_exn ctx x in
       let inst = HeaderTable.lookup_instance_exn inst_str ht in 
       Expression.field_to_slice_exn inst field_name binder }
+| LPAREN bv_expr RPAREN LSQUARE l=INT COLON r=INT RSQUARE {
+  fun ht ctx -> 
+      let tm1 = $2 ht ctx in
+      Slice ( tm1, l, r)}
 | x=ID DOT pkt=packet {
     fun _ ctx -> 
       let binder = Env.name_to_index_exn ctx x in
@@ -431,7 +435,7 @@ bv_expr:
   fun ht ctx -> 
     let binder = Env.name_to_index_exn ctx x in
     let inst = HeaderTable.lookup_instance_exn inst_str ht in 
-    Expression.Slice(Sliceable.Instance(binder, inst), 0, Instance.sizeof inst) }
+    Expression.Slice(Instance(binder, inst), 0, Instance.sizeof inst) }
 
 expr:
 | LPAREN expr RPAREN { 

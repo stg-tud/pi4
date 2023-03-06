@@ -402,7 +402,7 @@ let rec petr4_expr_to_expr (ctx : Syntax.Expression.bv String.Map.t)
           BvExpr
             (Concat
                (bv_s (String.make diff '0'), Expression.instance_slice 0 inst))
-        else BvExpr (Slice (Sliceable.Instance (0, inst), 0, cast_size)))
+        else BvExpr (Slice (Instance (0, inst), 0, cast_size)))
     | _ ->
       Error
         (`NotImplementedError
