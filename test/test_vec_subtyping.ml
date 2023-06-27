@@ -194,7 +194,7 @@ let pred_pkt_in_out_empty binder =
       in
       let hty_t =
         Parsing.parse_heap_type header_table []
-          "{x:eth|x.pkt_out==(x.pkt_in)[10:20]@(x.pkt_out)[0:10]}"
+          "{x:eth|x.pkt_out==(x.pkt_in)[0:10]@(x.pkt_out)[10:20]}"
       in
         Test.not_subtype hty_s hty_t [] header_table  
     
