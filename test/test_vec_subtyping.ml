@@ -21,7 +21,8 @@ let ahd_inst =
 let header_table = HeaderTable.populate [ ahd_inst ]
 *)
 
-
+(*in order for the tests in this file to pass, the same order of bits as Z3 is used. 
+Change accordingly in the Concat case in bv_expr_to_smt, in file encoding.ml*)
 
 let eth_inst =
   Test_utils.mk_inst "eth" [ ("smac", 48) ; ("dmac", 48);( "type", 16) ]
@@ -186,8 +187,6 @@ let pred_pkt_in_out_empty binder =
     
 
 
-
-      (*this test makes no sense*)
     let test_slice_parsed9 () =
       let hty_s =
         Parsing.parse_heap_type header_table []
@@ -200,8 +199,6 @@ let pred_pkt_in_out_empty binder =
         Test.not_subtype hty_s hty_t [] header_table  
     
 
-
-        (*this test makes no sense*)
     let test_slice_parsed10 () =
       let hty_s =
         Parsing.parse_heap_type header_table []

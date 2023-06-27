@@ -433,6 +433,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       |(Static n, Static m) -> DynamicSize.Static (n + m)
       |_  -> DynamicSize.Sum (e1_dsize, e2_dsize)
       in
+      (*
       { smt_term =
           Smtlib.ite
             (Smtlib.equals e1_dsize_smt.smt_term (Smtlib.bv 0 length))
@@ -441,9 +442,9 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
         dynamic_size = dy;
         let_bindings = e1_dsize_smt.let_bindings @ e2_dsize_smt.let_bindings;
         constraints = e1_dsize_smt.constraints @ e2_dsize_smt.constraints 
-      }
+      }*)
 
-       (* Use this encoding for the vec_subtyping tests. Note that the LSB is on the right for both Z3 and PI4 
+       (* Use this encoding for the vec_subtyping tests. Note that the LSB is on the right for both Z3 and PI4 *)
       { smt_term =
           Smtlib.ite
             (Smtlib.equals e2_dsize_smt.smt_term (Smtlib.bv 0 length))
@@ -452,7 +453,7 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
         dynamic_size = dy;
         let_bindings = e1_dsize_smt.let_bindings @ e2_dsize_smt.let_bindings;
         constraints = e1_dsize_smt.constraints @ e2_dsize_smt.constraints 
-      }*)
+      }
 
     | Slice (s, l, r) ->
       let e = fold_concat s in
