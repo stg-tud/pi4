@@ -2,6 +2,7 @@ open Core
 open Result.Let_syntax
 open Syntax
 open Z3
+open Simplify
 module Log = (val Logs.src_log Logging.encoding_src : Logs.LOG)
 
 let id_access var inst = Smtlib.Id (String.concat ~sep:"." [ var; inst ])
@@ -117,13 +118,6 @@ let rec dynamic_size_to_smt (bv : DynamicSize.t) (len : int) (maxlen : int) =
         constraints = []
       }
     else { smt_term = const; let_bindings = []; constraints = [] }
-(* 
-  | Range (size, start) ->
-    let smt_size = Smtlib.bv size len in
-    let smt_start = Smtlib.bv start len in
-    let bindings = [("slice_size", smt_size); ("slice_start", smt_start)] in
-    let constraints = [] in
-    { smt_term = smt_size; let_bindings = bindings; constraints = constraints } *)
   | Static n ->
     { smt_term = Smtlib.bv n len; let_bindings = []; constraints = [] }
   | Sum (s1, s2) ->
@@ -340,13 +334,13 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       assert (size_tm1 = size_tm2);
       size_tm1
     | Bv Nil -> return 0
-    | Bv _ -> return maxlen
+    | Bv bv -> return (Syntax.BitVector.sizeof bv)
     | Concat (tm1, tm2) ->
       let%bind size_tm1 = static_size_of_bv_expr maxlen tm1 in
       let%map size_tm2 = static_size_of_bv_expr maxlen tm2 in
       min (size_tm1 + size_tm2) maxlen
-    | Slice (_, _, _) -> return maxlen
-    | Instance (_, _)  -> return maxlen
+    | Slice (_, l, r) -> return (r-l)
+    | Instance (_, inst)  -> return  (Instance.sizeof inst) 
     | Packet (_, _) -> return maxlen
 
   type term_encoding =
@@ -422,7 +416,9 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
         let_bindings = [];
         constraints = []
       }
-    | Concat (e1, e2) ->
+    | Concat (s1, s2) ->
+      let e1 = fold_concat s1 in 
+      let e2 = fold_concat s2 in 
       let%bind { smt_term = e1_smt; dynamic_size = e1_dsize; _ } =
         bv_expr_to_smt e1 length ctx
       in
@@ -432,11 +428,6 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
       let e1_dsize_smt = dynamic_size_to_smt e1_dsize length C.maxlen in
       let e2_dsize_smt = dynamic_size_to_smt e2_dsize length C.maxlen in
 
-      (*add constraints on dynamic size of concatenation*)   
-      let max_length_smt = Smtlib.bv (C.maxlen*2) length in
-      let size_sum_smt = Smtlib.bvadd e1_dsize_smt.smt_term e2_dsize_smt.smt_term in
-      let size_constraint = Smtlib.bvule size_sum_smt max_length_smt in   
-   
       let dy =
       match (e1_dsize, e2_dsize) with
       |(Static n, Static m) -> DynamicSize.Static (n + m)
@@ -449,14 +440,26 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
             Smtlib.(bvor e1_smt (bvshl e2_smt e1_dsize_smt.smt_term));
         dynamic_size = dy;
         let_bindings = e1_dsize_smt.let_bindings @ e2_dsize_smt.let_bindings;
-        constraints = e1_dsize_smt.constraints @ e2_dsize_smt.constraints @ [size_constraint]
+        constraints = e1_dsize_smt.constraints @ e2_dsize_smt.constraints 
       }
 
-    | Slice (e, l, r) ->
+       (* Use this encoding for the vec_subtyping tests. Note that the LSB is on the right for both Z3 and PI4 
+      { smt_term =
+          Smtlib.ite
+            (Smtlib.equals e2_dsize_smt.smt_term (Smtlib.bv 0 length))
+            e1_smt
+            Smtlib.(bvor e2_smt (bvshl e1_smt e2_dsize_smt.smt_term));
+        dynamic_size = dy;
+        let_bindings = e1_dsize_smt.let_bindings @ e2_dsize_smt.let_bindings;
+        constraints = e1_dsize_smt.constraints @ e2_dsize_smt.constraints 
+      }*)
+
+    | Slice (s, l, r) ->
+      let e = fold_concat s in
       let%bind len = static_size_of_bv_expr C.maxlen e
       in
       assert (len >= r - l); 
-      let%bind { smt_term = e_smt; dynamic_size = e_dsize; _ } = bv_expr_to_smt e length ctx in
+      let%bind { smt_term = e_smt; dynamic_size = e_dsize; _ } = bv_expr_to_smt e len ctx in
 
       let extract = Smtlib.(extract (r - 1) l e_smt) in
       let size_diff = length - (r - l) in
@@ -553,19 +556,6 @@ module FixedWidthBitvectorEncoding (C : Config) : S = struct
           Smtlib.and_ c acc)
     in
 
-    (* let packet_length_constraint =
-      match e1, e2 with
-      | Length (x1, p1), Num _ ->
-        let binder = Env.index_to_name_exn ctx x1 in
-        let smt_pkt =
-          Smtlib.const (Fmt.str "%s.%a.length" binder Pretty.pp_packet p1)
-        in
-        let smt_maxlen = Smtlib.bv C.maxlen (Utils.min_bit_width C.maxlen) in
-        let pkt_lt_maxlen = Smtlib.bvult smt_pkt smt_maxlen in
-        Smtlib.and_ pkt_lt_maxlen (Smtlib.and_ (f smt_pkt e2_enc.smt_term) init)
-      | _ -> init
-      in
-  let init = packet_length_constraint in *)
   List.fold (e1_enc.let_bindings @ e2_enc.let_bindings)
     ~init ~f:(fun acc l ->
       Smtlib.Let (fst l, snd l, acc))
