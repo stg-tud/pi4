@@ -177,7 +177,7 @@ module BitVector = struct
     match bv1 with Nil -> bv2 | Cons (b, bs) -> Cons (b, concat bs bv2)
 
   let of_bit_list bits =
-  (* List.rev *) bits |> List.fold ~init:Nil ~f:(fun acc b -> Cons (b, acc))
+    List.rev bits |> List.fold ~init:Nil ~f:(fun acc b -> Cons (b, acc))
 
   let of_bit_str bv_str = of_bit_list (Bit.bit_list_of_string bv_str)
 
