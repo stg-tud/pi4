@@ -26,7 +26,7 @@ let test_suite =
     ("bitvector", Test_bitvec.test_set);
     ("inline", Test_inline.test_set);
     ("substitution", Test_substitution.test_set);
-    ("subtyping_vec", Test_subtyping_vec.test_set)
+    ("vec_subtyping", Test_vec_subtyping.test_set);
   ]
 
 let () =
