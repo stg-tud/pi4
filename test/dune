@@ -3,9 +3,7 @@
  (name test)
  (preprocess
   (pps ppx_jane))
- (libraries alcotest fmt.cli landmarks logs.fmt pi4)
- (instrumentation
-  (backend landmarks --auto)))
+ (libraries alcotest fmt.cli logs.fmt pi4))
 
 (rule
  (alias runtest)

@@ -76,9 +76,8 @@ and collect_free_binders_from_bv_expr (ctx : Env.context) (term : Expression.bv)
   | Concat (tm1, tm2) ->
     collect_free_binders_from_bv_expr ctx tm1 acc
     |> collect_free_binders_from_bv_expr ctx tm2
-  | Slice (Packet (x, _), _, _)
-  | Slice (Instance (x, _), _, _) ->
-    add_binder_if_free ctx x acc
+  | Slice ( _, _, _) -> acc
+  | Instance (x, _) -> add_binder_if_free ctx x acc
   | Packet (x, _) -> add_binder_if_free ctx x acc
 
 and collect_free_binders_from_expr (ctx : Env.context) (expr : Expression.t)
@@ -140,6 +139,6 @@ and free_vars_bv_expr (ctx : Env.context) (expr : Expression.bv) : bool =
   | Bv _ -> false
   | Minus (tm1, tm2) -> free_vars_bv_expr ctx tm1 || free_vars_bv_expr ctx tm2
   | Concat (tm1, tm2) -> free_vars_bv_expr ctx tm1 || free_vars_bv_expr ctx tm2
-  | Slice (Packet (x, _), _, _) -> var_not_bound x ctx
-  | Slice (Instance (x, _), _, _) -> var_not_bound x ctx
+  | Slice ( _, _, _) -> false
+  | Instance (x, _) -> var_not_bound x ctx
   | Packet (x, _) -> var_not_bound x ctx

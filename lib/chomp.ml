@@ -39,7 +39,7 @@ let rec chomp_t1_bv (bind : Syntax.var) (b0 : int) (expr : Expression.bv) =
     Minus (chomp_t1_bv bind b0 t1, chomp_t1_bv bind b0 t2)
     (* TODO: Check if this is correct.*)
   | Concat (t1, t2) -> Concat (chomp_t1_bv bind b0 t1, chomp_t1_bv bind b0 t2)
-  | (Slice (Packet (_, PktOut), _, _) | Slice (Instance (_, _), _, _) | Bv _) as
+  | (Instance (_, _) | Bv _ | Slice (_, _, _)) as
     t ->
     t
 
@@ -116,7 +116,7 @@ let rec heap_tref1_bv (expr : Expression.bv) b0 binder inst n =
     let t1' = heap_tref1_bv t1 b0 binder inst n |> Simplify.fold_concat in
     let t2' = heap_tref1_bv t2 b0 binder inst n |> Simplify.fold_concat in
     Minus (t1', t2')
-  | (Bv Nil | Slice (_, _, _) | Packet (_, _)) as t -> t
+  | (Bv Nil | Slice (_, _, _) | Packet (_, _) | Instance(_, _)) as t -> t
 
 let heap_tref1 (t : Expression.t) b0 binder inst n =
   let open Expression in

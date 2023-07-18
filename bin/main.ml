@@ -195,13 +195,17 @@ let command =
         Logs.set_reporter @@ Logs_fmt.reporter ();
         if verbose then (
           Logs.set_level @@ Some Logs.Debug;
-          (* Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug; *)
-          Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
+          (*Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Debug; *)
+          
+          (*Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
           Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Info;
           Logs.Src.set_level Pi4.Logging.prover_profile_src @@ Some Logs.Info;
           Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;
-          Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Debug)
-        else Logs.set_level @@ Some Logs.Info;
+          Logs.Src.set_level Pi4.Logging.frontend_src @@ Some Logs.Debug;
+          Logs.Src.set_level Pi4.Logging.encoding_src @@ Some Logs.Debug*))
+        else 
+          Logs.set_level @@ Some Logs.Debug;
+          Logs.Src.set_level Pi4.Logging.encoding_src @@ Some Logs.Debug;
         if ir then
           match typ with
           | Some typfile -> pi4_check filename typfile maxlen

@@ -23,14 +23,6 @@ end
 
 let incr_binder x cutoff n = if x >= cutoff then x + n else x
 
-let shift_sliceable (sliceable : Sliceable.t) cutoff n =
-  match sliceable with
-  | Packet (x, pkt) ->
-    let x' = incr_binder x cutoff n in
-    Sliceable.Packet (x', pkt)
-  | Instance (x, inst) ->
-    let x' = incr_binder x cutoff n in
-    Sliceable.Instance (x', inst)
 
 let rec shift_arith_expr (expr : Expression.arith) (cutoff : int) (n : int) =
   match expr with
@@ -48,7 +40,10 @@ let rec shift_bv_expr (expr : Expression.bv) (cutoff : int) (n : int) =
   | Bv _ as bv -> bv
   | Concat (tm1, tm2) ->
     Concat (shift_bv_expr tm1 cutoff n, shift_bv_expr tm2 cutoff n)
-  | Slice (s, l, r) -> Slice (shift_sliceable s cutoff n, l, r)
+  | Slice (s, l, r) -> Slice (shift_bv_expr s cutoff n, l, r)
+  | Instance (x, inst) ->
+    let x' = incr_binder x cutoff n in
+    Instance (x', inst)
   | Packet (x, pkt) ->
     let x' = incr_binder x cutoff n in
     Packet (x', pkt)
@@ -309,8 +304,9 @@ module ExprChecker (P : Prover.S) = struct
                "Instance %s must be included in input type to typecheck term \
                 instance slice '%s[%d:%d]'"
                inst.name inst.name l r))
-    | Slice (Packet (_, _), l, r) -> Ok (BitVec (StaticSize (r - l)))
+    | Slice (_, l, r) -> Ok (BitVec (StaticSize (r - l)))
     | Packet (_, _) -> Ok (BitVec MaxLen)
+    | Instance (_, inst) -> Ok (BitVec (StaticSize (Instance.sizeof inst)))
 
   let check_expr (header_table : HeaderTable.t) (ctx : Env.context)
       (hty : HeapType.t) (expr : Expression.t) =
@@ -1163,7 +1159,7 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
             hty_subst);
       Log.debug (fun m ->
           m "Context for substitution type:@ %a" Pretty.pp_context ctx');
-      if enable_substitution_inlining then (
+      (* if enable_substitution_inlining then (
         match (c1, c2) with
         | Ascription _, _ | _, Ascription _ -> return hty_subst
         | _ ->
@@ -1173,7 +1169,9 @@ module SemanticChecker (C : Encoding.Config) : Checker = struct
                 (Pretty.pp_header_type ctx')
                 hty_subst);
           return hty_subst)
-      else return hty_subst
+      else  *)
+        
+        return hty_subst
     | Skip ->
       Log.debug (fun m -> m "@[<v>Typechecking skip...@]");
       Log.debug (fun m ->

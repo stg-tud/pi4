@@ -17,7 +17,7 @@ let rec fold_concat t =
   | Concat (t1, Bv Nil) -> fold_concat t1
   | Concat (Bv a, Bv b) -> Bv (BitVector.concat a b)
   | Concat (Slice (s1, ll, lr), Slice (s2, rl, rr)) ->
-    if [%compare.equal: Sliceable.t] s1 s2 && lr = rl then
+    if [%compare.equal: bv] s1 s2 && lr = rl then
       Slice (s1, ll, rr)
     else
       t
@@ -25,7 +25,7 @@ let rec fold_concat t =
     fold_concat (Concat (Bv (BitVector.concat a b), t2))
   | Concat
       ((Slice (s1, ll, lr) as t1), Concat ((Slice (s2, rl, rr) as t21), t22)) ->
-    if [%compare.equal: Sliceable.t] s1 s2 && lr = rl then
+    if [%compare.equal: bv] s1 s2 && lr = rl then
       fold_concat (Concat (Slice (s1, ll, rr), t22))
     else
       Concat (t1, fold_concat (Concat (t21, t22)))

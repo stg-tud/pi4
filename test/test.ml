@@ -25,7 +25,8 @@ let test_suite =
     ("vlan_decap", Test_vlan_decap.test_set);
     ("bitvector", Test_bitvec.test_set);
     ("inline", Test_inline.test_set);
-    ("substitution", Test_substitution.test_set)
+    ("substitution", Test_substitution.test_set);
+    ("vec_subtyping", Test_vec_subtyping.test_set);
   ]
 
 let () =
@@ -33,10 +34,12 @@ let () =
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter @@ Logs.format_reporter ();
   Logs.set_level ~all:true @@ Some Logs.Debug;
+  (*
   Logs.Src.set_level Pi4.Logging.typechecker_src @@ Some Logs.Debug;
+  
   Logs.Src.set_level Pi4.Logging.substitution_src @@ Some Logs.Info;
-  Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;
-
+  Logs.Src.set_level Pi4.Logging.prover_src @@ Some Logs.Info;*)
+  Logs.Src.set_level Pi4.Logging.encoding_src @@ Some Logs.Debug;
 
   (* start_profiling (); *)
   Alcotest.run "Pi4" test_suite

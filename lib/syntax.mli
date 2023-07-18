@@ -100,13 +100,6 @@ module BitVector : sig
   val zero : int -> t
 end
 
-module Sliceable : sig
-  type t =
-    | Packet of var * packet
-    | Instance of var * Instance.t
-  [@@deriving compare, sexp]
-end
-
 module Expression : sig
   type arith =
     | Num of int (* n *)
@@ -120,7 +113,8 @@ module Expression : sig
     | Bv of BitVector.t (* bv *)
     | Concat of bv * bv
     (* t1 @ t2 where t1 and t2 must have bitvector types *)
-    | Slice of Sliceable.t * int * int (* x.p[hi:lo] or x.h[hi:lo] *)
+    | Slice of bv * int * int  (* bv[hi:lo]  *)
+    | Instance of var * Instance.t 
     | Packet of var * packet
   (* x.p *)
   [@@deriving compare, sexp]
@@ -133,9 +127,9 @@ module Expression : sig
   val field_to_slice :
     Instance.t -> string -> var -> (bv, [> `FieldAccessError of string ]) result
 
-  val field_to_slice_exn : Instance.t -> string -> var -> bv
-  val instance_slice : var -> Instance.t -> bv
-  val bit_access : Sliceable.t -> var -> t
+  val field_to_slice_exn : Instance.t -> string -> var -> bv  
+  val instance_slice : var -> Instance.t -> bv 
+  val bit_access : bv -> var -> t
 end
 
 module Formula : sig

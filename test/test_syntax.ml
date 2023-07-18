@@ -7,7 +7,7 @@ let test_bv_l () =
   Alcotest.(check Testable.term)
     "terms are equal"
     (BvExpr (Bv (Cons (B 0, Cons (B 1, Cons (B 2, Nil))))))
-    (BvExpr (bv_l [ B 0; B 1; B 2 ]))
+    (BvExpr (bv_l [ B 2; B 1; B 0 ]))
 
 let test_bv_s () =
   Alcotest.(check Testable.term)

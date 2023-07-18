@@ -18,7 +18,7 @@ module FormulaId = struct
       | GtExp of Expression.t (* x.exp > y.exp *)
       | EqInst of int * Instance.t (* x.ι == y.exp_bv *)
       | EqPkt of int * Syntax.packet (* x.p == y.exp_bv *)
-      | EqBvSl of (Sliceable.t * int * int) (* x.ι/p[hi:lo] == y.exp_bv *)
+      | EqBvSl of (bv * int * int) (* bv[hi:lo] == y.exp_bv *)
       | EqBv of Expression.t (* x.ι/p == y.bv *)
       | Preserve (* φ ∧ φ ∧ ... *)
       | Err of string
@@ -44,21 +44,36 @@ let pp_fromula_id (pp : Format.formatter) (fid : FormulaId.t) =
   | EqExp e -> pf pp "eq_exp_%a" Pretty.pp_expr_raw e
   | EqInst (v, i) -> pf pp "eq_inst_%i.%s" v i.name
   | EqPkt (v, p) -> pf pp "eq_pkt_%i.%a" v Pretty.pp_packet p
-  | EqBvSl (i, s, e) -> pf pp "eq_bv_sl_%a[%i:%i]" Pretty.pp_sliceable_raw i s e
+  | EqBvSl (i, s, e) -> pf pp "eq_bv_sl_%a[%i:%i]" Pretty.pp_bv_expr_raw i s e
   | EqBv e -> pf pp "eq_bv_%a" Pretty.pp_expr_raw e
   | Preserve -> pf pp "Preserve"
   | Err e -> pf pp "Error: %s" e
 
+
+
 let pp_pkt_slice (pp : Format.formatter) (sl, hi, lo) =
   let open Fmt in
-  pf pp "@[%a[%i:%i] @]" Pretty.pp_sliceable_raw sl hi lo
+  pf pp "@[%a[%i:%i] @]" Pretty.pp_bv_expr_raw sl hi lo
+
+
+
+  
+
+
+ 
+
 
 (* ======== Utility ======== *)
 
 (* Extract var from a Packet/Instance *)
-let var_from_sl (s : Sliceable.t) : var =
-  let open Sliceable in
-  match s with Packet (v, _) | Instance (v, _) -> v
+
+(*
+let var_from_sl (s :Sliceable.t) : var =
+  let open Expression in
+  match s with 
+    Packet (v, _) 
+  | Instance (v, _) -> v
+*)
 
 (* f contains concat on PktIn? *)
 let rec contains_pkt_in_concat f =
@@ -91,7 +106,8 @@ let rec var_from_exp (expr : Expression.t) =
     let b2_res = var_from_exp (BvExpr bv2) in
     check_vars b1_res b2_res
   | ArithExpr (Num _) | BvExpr (Bv _) -> None
-  | BvExpr (Slice (s, _, _)) -> Some (var_from_sl s)
+  | BvExpr (Slice ( _, _, _)) -> None (*Some (var_from_sl s)*)
+  | BvExpr (Instance (i, _)) -> Some i
   | BvExpr (Packet (v, _)) -> Some v
 
 (* Utility returning default value def when input is None *)
@@ -185,6 +201,7 @@ let get_subs_expr exp =
       | None, Some _ -> opt2
       | _ -> None)
     | BvExpr (Slice _) -> Some e
+    | BvExpr (Instance _) -> Some e
     | BvExpr (Packet _) -> Some e
     | BvExpr (Minus _) | BvExpr (Bv _) -> None
   in
@@ -215,7 +232,7 @@ let replace_expression exp_i exp_o exp_r =
           Concat (replace_bv b1 exp_o exp_r, replace_bv b2 exp_o exp_r)
         | Minus (b1, b2) ->
           Minus (replace_bv b1 exp_o exp_r, replace_bv b2 exp_o exp_r)
-        | Slice _ | Packet _ | Bv _ -> exp_i
+        | Slice _ | Instance _ | Packet _ | Bv _ -> exp_i
     in
 
     match (exp_i, exp_o, exp_r) with
@@ -235,7 +252,7 @@ let extract_to_map form :
   let update_instance m_in i_exp exp =
     let open FormulaId in
     match i_exp with
-    | Sliceable.Instance (var, inst) ->
+    | Instance (var, inst) ->
       let m_in =
         match exp with
         | Eq (BvExpr (Slice _), BvExpr field) ->
@@ -264,7 +281,7 @@ let extract_to_map form :
     | _ ->
       Log.debug (fun m ->
           m "@[Nothing to update since %a is no instance@]"
-            Pretty.pp_sliceable_raw i_exp);
+            Pretty.pp_bv_expr_raw i_exp);
       m_in
   in
 
@@ -393,7 +410,7 @@ let rec fold_form form =
     match (sl, sl_f) with
     | Slice (sl_s, sl_hi_l, sl_lo_l), Slice (sl_f_s, sl_f_hi_l, sl_f_lo_l) ->
       if
-        [%compare.equal: Sliceable.t] sl_s sl_f_s
+        [%compare.equal: bv] sl_s sl_f_s
         && [%compare.equal: var] sl_lo_l sl_f_hi_l
       then (
         match (bv, bv_f) with
@@ -406,7 +423,7 @@ let rec fold_form form =
           rslt
         | ( Slice (sl_s_r, sl_hi_r, sl_lo_r),
             Concat (Slice (sl_f_s_r, sl_f_hi_r, sl_f_lo_r), r) ) ->
-          if [%compare.equal: Sliceable.t] sl_s_r sl_f_s_r then (
+          if [%compare.equal: bv] sl_s_r sl_f_s_r then (
             if [%compare.equal: var] sl_lo_r sl_f_hi_r then (
               let rslt =
                 Eq
@@ -433,7 +450,7 @@ let rec fold_form form =
             rslt
         | ( Slice (sl_s_r, sl_hi_r, sl_lo_r),
             Slice (sl_f_s_r, sl_f_hi_r, sl_f_lo_r) ) ->
-          if [%compare.equal: Sliceable.t] sl_s_r sl_f_s_r then (
+          if [%compare.equal: bv] sl_s_r sl_f_s_r then (
             if [%compare.equal: var] sl_lo_r sl_f_hi_r then (
               let rslt =
                 Eq
@@ -1004,7 +1021,16 @@ let simplify_formula form
           | Instance (_, i) ->
             if [%compare.equal: var] (lo - hi) (Instance.sizeof i) then
               Some (EqInst (0, i))
-            else Some (EqBvSl (Instance (0, i), hi, lo)))
+            else Some (EqBvSl (Instance (0, i), hi, lo))
+          (*Added cases, think rec*)  
+          | Minus(_, _) -> None
+          | Concat(_, _) -> None 
+          | Slice(_, _, _) -> None
+          | Bv _ -> None
+            )
+        
+
+
         (* e = p --> EqPkt *)
         | _, BvExpr (Packet (_, p)) -> Some (EqPkt (0, p))
         (* x.ι[l:r]==bv --> EqBvSl *)
